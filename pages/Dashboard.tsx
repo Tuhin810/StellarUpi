@@ -5,12 +5,14 @@ import BalanceCard from '../components/BalanceCard';
 import SideDrawer from '../components/SideDrawer';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  Menu,
-  Bell,
   ChevronRight,
-  Shield
+  Shield,
+  QrCode,
+  Send,
+  Download,
+  Users,
+  Menu,
+  Bell
 } from 'lucide-react';
 import { getTransactions, getProfileByStellarId } from '../services/db';
 
@@ -86,6 +88,27 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       </div>
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
+
+      {/* Quick Actions Grid */}
+      <div className="grid grid-cols-4 gap-4 mt-10">
+        {[
+          { icon: <QrCode size={20} />, label: 'Scan', path: '/scan' },
+          { icon: <Send size={20} />, label: 'Send', path: '/send' },
+          { icon: <Download size={20} />, label: 'Receive', path: '/profile' },
+          { icon: <Users size={20} />, label: 'Family', path: '/family' }
+        ].map((action, i) => (
+          <button
+            key={i}
+            onClick={() => navigate(action.path)}
+            className="flex flex-col items-center gap-3"
+          >
+            <div className="w-14 h-14 bg-zinc-900/80 border border-white/5 rounded-2xl flex items-center justify-center text-[#E5D5B3] shadow-lg hover:bg-zinc-800 transition-all active:scale-90">
+              {action.icon}
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{action.label}</span>
+          </button>
+        ))}
+      </div>
 
       {/* Recent Contacts (Circles) */}
       <div className="mt-12">

@@ -350,19 +350,17 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-white">
-      <div className="pt-20 px-8 flex items-center justify-between mb-8">
+      <div className="pt-5 px-5 flex items-center justify-between mb-8">
         <div>
           <button onClick={() => navigate(-1)} className="mb-4 text-zinc-500 hover:text-white transition-colors">
             <ArrowLeft size={24} />
           </button>
           <h2 className="text-4xl font-black tracking-tighter">Transfer</h2>
         </div>
-        <div className="w-12 h-12 gold-gradient rounded-xl flex items-center justify-center text-black shadow-xl">
-          <Send size={22} />
-        </div>
+
       </div>
 
-      <div className="px-8 mb-10">
+      <div className="px-5 mb-10">
         <div className="relative group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#E5D5B3] transition-colors" size={20} />
           <input
@@ -370,21 +368,21 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             placeholder="Search contacts"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-16 pr-6 py-5 bg-zinc-900/50 border border-white/5 rounded-2xl shadow-inner focus:ring-1 focus:ring-[#E5D5B3] font-bold text-lg text-white placeholder-zinc-700"
+            className="w-full pl-16 pr-6 py-5 bg-zinc-800/60 border border-white/5 rounded-2xl shadow-inner focus:ring-1 focus:ring-[#E5D5B3] font-bold text-lg text-white placeholder-zinc-700"
           />
         </div>
       </div>
 
-      <div className="px-8 mb-12">
+      <div className="px-5 mb-12">
         <button
           onClick={() => {
             const id = prompt("Enter UPI ID:");
             if (id) setSelectedContact({ id, name: id.split('@')[0] });
           }}
-          className="w-full flex items-center justify-between p-6 bg-zinc-900/80 border border-white/5 rounded-[2.5rem] shadow-xl active:scale-[0.98] transition-all group"
+          className="w-full flex items-center justify-between p-3 bg-zinc-900/80 border border-white/5 rounded-[1.5rem] shadow-xl active:scale-[0.98] transition-all group"
         >
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 gold-gradient rounded-2xl flex items-center justify-center text-black">
+            <div className="w-14 h-14 gold-gradient rounded-full flex items-center justify-center text-black">
               <Sparkles size={24} />
             </div>
             <div className="text-left">
