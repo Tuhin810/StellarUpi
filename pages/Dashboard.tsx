@@ -94,7 +94,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
         {[
           { icon: <QrCode size={20} />, label: 'Scan', path: '/scan' },
           { icon: <Send size={20} />, label: 'Send', path: '/send' },
-          { icon: <Download size={20} />, label: 'Receive', path: '/profile' },
+          { icon: <Download size={20} />, label: 'Receive', path: '/receive' },
           { icon: <Users size={20} />, label: 'Family', path: '/family' }
         ].map((action, i) => (
           <button
