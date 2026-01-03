@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, TransactionRecord } from '../types';
 import BalanceCard from '../components/BalanceCard';
+import SideDrawer from '../components/SideDrawer';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowDownLeft,
@@ -21,6 +22,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
   const [txs, setTxs] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -34,18 +36,29 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
   if (!profile) return null;
 
   return (
-    <div className="pb-32 pt-5 px-6 bg-[#1A1A1A] min-h-screen text-white">
+    <div className="pb-32 pt-5 px-6 bg-[#1A1A1A] min-h-screen text-white relative overflow-x-hidden">
+      <SideDrawer
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        profileName={profile.stellarId.split('@')[0]}
+        stellarId={profile.stellarId}
+      />
+
       {/* Header */}
       <div className="flex justify-between items-center mb-10">
-        <button className="p-2 text-zinc-400">
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="p-2 text-zinc-400 hover:text-white transition-colors"
+        >
           <Menu size={24} />
         </button>
-        <button className="p-2 text-zinc-400">
+        <button className="p-2 text-zinc-400 hover:text-white transition-colors">
           <Bell size={24} />
         </button>
       </div>
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
+
 
       {/* Recent Contacts (Circles) */}
       <div className="mt-12">
