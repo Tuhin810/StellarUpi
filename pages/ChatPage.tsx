@@ -29,6 +29,9 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
     const [messages, setMessages] = useState<any[]>([]);
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
+    const [showRequestModal, setShowRequestModal] = useState(false);
+    const [requestAmount, setRequestAmount] = useState('');
+    const [requestLoading, setRequestLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -109,6 +112,27 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
         }
     };
 
+    const handleSendRequest = async () => {
+        if (!requestAmount || isNaN(parseFloat(requestAmount)) || !profile || !contactId) return;
+        setRequestLoading(true);
+        try {
+            await addDoc(collection(db, 'chats'), {
+                senderId: profile.stellarId,
+                receiverId: contactId,
+                amount: parseFloat(requestAmount),
+                type: 'request',
+                status: 'PENDING',
+                timestamp: serverTimestamp()
+            });
+            setShowRequestModal(false);
+            setRequestAmount('');
+        } catch (err) {
+            console.error("Failed to send request", err);
+        } finally {
+            setRequestLoading(false);
+        }
+    };
+
     const avatarUrl = (seed: string) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
 
     if (!profile || !contactId) return null;
@@ -176,6 +200,31 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                         );
                     }
 
+                    if (msg.type === 'request') {
+                        return (
+                            <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] rounded-[2rem] p-6 border border-white/10 shadow-2xl ${isMe ? 'bg-zinc-900 border-zinc-800' : 'bg-zinc-950 border-[#E5D5B3]/10'}`}>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-4">{isMe ? 'Request from you' : 'Request from ' + (targetProfile?.displayName || contactId.split('@')[0])}</p>
+                                    <h3 className="text-4xl font-black text-white mb-6 italic">₹{msg.amount?.toLocaleString()}</h3>
+
+                                    {!isMe && msg.status === 'PENDING' ? (
+                                        <button
+                                            onClick={() => navigate(`/send?to=${msg.senderId}&amt=${msg.amount}`)}
+                                            className="w-full py-4 bg-[#E5D5B3] text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-all"
+                                        >
+                                            Pay Now
+                                        </button>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-zinc-600">
+                                            <div className="w-2 h-2 rounded-full bg-zinc-700 animate-pulse"></div>
+                                            <span className="text-[10px] font-black uppercase tracking-widest">{msg.status === 'PENDING' ? 'Unpaid' : 'Completed'}</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    }
+
                     return (
                         <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
                             <div className={`max-w-[80%] px-6 py-4 rounded-3xl font-bold text-sm shadow-xl ${isMe ? 'bg-[#E5D5B3] text-black rounded-tr-none' : 'bg-zinc-900 text-white rounded-tl-none border border-white/5'}`}>
@@ -199,7 +248,10 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                     >
                         <Zap size={14} fill="currentColor" /> Pay
                     </button>
-                    <button className="flex-1 h-12 bg-zinc-800 rounded-2xl text-white font-black text-xs uppercase tracking-widest border border-white/5 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center">
+                    <button
+                        onClick={() => setShowRequestModal(true)}
+                        className="flex-1 h-12 bg-zinc-800 rounded-2xl text-white font-black text-xs uppercase tracking-widest border border-white/5 hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center justify-center"
+                    >
                         Request
                     </button>
                 </div>
@@ -222,6 +274,46 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                     </button>
                 </div>
             </div>
+
+            {/* Request Modal */}
+            {showRequestModal && (
+                <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center pt-4">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowRequestModal(false)}></div>
+                    <div className="relative w-full max-w-sm bg-zinc-900 rounded-[3rem] p-10 border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom-10 duration-300">
+                        <h3 className="text-xl font-black mb-1 tracking-tight">Request Money</h3>
+                        <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-8">From {targetProfile?.displayName || contactId.split('@')[0]}</p>
+
+                        <div className="flex items-center justify-start gap-4 bg-black/40 p-4 rounded-[2.5rem] border border-white/5 mb-10">
+                            <span className="text-zinc-600 text-4xl font-black opacity-30">₹</span>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                autoFocus
+                                value={requestAmount}
+                                onChange={(e) => setRequestAmount(e.target.value.replace(/[^0-9]/g, ''))}
+                                placeholder="0"
+                                className="bg-transparent text-white text-2xl font-black text-start w-full outline-none placeholder-zinc-800"
+                            />
+                        </div>
+
+                        <div className="flex gap-4">
+                            <button
+                                onClick={() => setShowRequestModal(false)}
+                                className="flex-1 py-5 bg-zinc-800 rounded-2xl text-zinc-400 font-bold uppercase tracking-widest text-xs"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleSendRequest}
+                                disabled={!requestAmount || requestLoading}
+                                className="flex-[2] py-5 gold-gradient text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-30 flex items-center justify-center"
+                            >
+                                {requestLoading ? <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : 'Send Request'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
