@@ -12,7 +12,7 @@ import {
   ChevronRight,
   Shield
 } from 'lucide-react';
-import { getTransactions } from '../services/db';
+import { getTransactions, getProfileByStellarId } from '../services/db';
 
 interface Props {
   profile: UserProfile | null;
@@ -21,16 +21,43 @@ interface Props {
 const Dashboard: React.FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
   const [txs, setTxs] = useState<TransactionRecord[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (profile) {
-      getTransactions(profile.stellarId).then(res => {
-        setTxs(res.slice(0, 20));
+    const loadData = async () => {
+      if (!profile) return;
+
+      try {
+        const res = await getTransactions(profile.stellarId);
+        const uniqueTxs = res.slice(0, 20);
+        setTxs(uniqueTxs);
+
+        // Extract unique contact IDs
+        const uniqueContactIds = Array.from(new Set(uniqueTxs.map(tx =>
+          tx.fromId === profile.stellarId ? tx.toId : tx.fromId
+        ))).filter(id => id !== profile.stellarId);
+
+        // Fetch profiles for these contacts
+        const contactProfiles = await Promise.all(uniqueContactIds.map(async (id) => {
+          const p = await getProfileByStellarId(id);
+          return {
+            id,
+            name: p?.displayName || id.split('@')[0],
+            avatarSeed: p?.avatarSeed || id
+          };
+        }));
+
+        setContacts(contactProfiles);
+      } catch (err) {
+        console.error("Error loading dashboard data:", err);
+      } finally {
         setLoading(false);
-      });
-    }
+      }
+    };
+
+    loadData();
   }, [profile]);
 
   if (!profile) return null;
@@ -40,8 +67,9 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       <SideDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        profileName={profile.stellarId.split('@')[0]}
+        profileName={profile.displayName || profile.stellarId.split('@')[0]}
         stellarId={profile.stellarId}
+        avatarSeed={profile.avatarSeed}
       />
 
       {/* Header */}
@@ -58,7 +86,6 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       </div>
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
-
 
       {/* Recent Contacts (Circles) */}
       <div className="mt-12">
@@ -82,24 +109,22 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
                 </div>
               ))}
             </div>
-          ) : Array.from(new Map(txs.map(tx => {
-            const contactId = tx.fromId === profile.stellarId ? tx.toId : tx.fromId;
-            return [contactId, tx];
-          })).values()).length === 0 ? (
+          ) : contacts.length === 0 ? (
             <div className="w-full text-center py-6 bg-zinc-900/30 rounded-3xl border border-white/5">
               <p className="text-zinc-500 text-sm font-bold">No recent contacts</p>
             </div>
-          ) : Array.from(new Map(txs.map(tx => {
-            const contactId = tx.fromId === profile.stellarId ? tx.toId : tx.fromId;
-            return [contactId, { id: contactId, name: contactId.split('@')[0] }];
-          })).values()).map((contact: any) => (
+          ) : contacts.map((contact: any) => (
             <button
               key={contact.id}
               onClick={() => navigate(`/send?to=${contact.id}`)}
               className="flex flex-col items-center gap-3 min-w-[72px] group"
             >
-              <div className="w-16 h-16 rounded-full bg-zinc-800 border border-white/5 flex items-center justify-center text-[#E5D5B3] font-black text-xl group-hover:bg-[#E5D5B3] group-hover:text-black transition-all">
-                {contact.name.charAt(0).toUpperCase()}
+              <div className="w-16 h-16 rounded-3xl bg-zinc-800 border border-white/5 overflow-hidden group-hover:border-[#E5D5B3]/50 transition-all shadow-xl">
+                <img
+                  src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.avatarSeed}`}
+                  alt={contact.name}
+                  className="w-full h-full object-cover"
+                />
               </div>
               <span className="text-[11px] font-bold text-zinc-400 capitalize truncate w-16 text-center">
                 {contact.name}

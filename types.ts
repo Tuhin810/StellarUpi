@@ -7,6 +7,8 @@ export interface UserProfile {
   encryptedSecret: string;
   isFamilyOwner: boolean;
   ownerId?: string; // For family members, points to the owner's UID
+  displayName?: string;
+  avatarSeed?: string;
 }
 
 export interface FamilyMember {

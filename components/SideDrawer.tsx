@@ -8,10 +8,12 @@ interface Props {
     onClose: () => void;
     profileName: string;
     stellarId: string;
+    avatarSeed?: string;
 }
 
-const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId }) => {
+const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, avatarSeed }) => {
     const navigate = useNavigate();
+    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed || stellarId}`;
 
     const menuItems = [
         { icon: <User size={22} />, label: 'My Profile', path: '/profile' },
@@ -39,13 +41,13 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId }
                 className={`fixed top-0 left-0 h-full w-[80%] max-w-[320px] bg-[#1A1A1A] z-[70] transition-transform duration-300 ease-out border-r border-white/5 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 {/* Header */}
-                <div className="p-8 pt-16 flex justify-between items-start mb-8">
+                <div className="p-8 pt-16 flex justify-between items-start mb-8 text-white">
                     <div className="flex flex-col items-start">
-                        <div className="w-16 h-16 gold-gradient rounded-2xl flex items-center justify-center text-black font-black text-2xl mb-4 shadow-xl">
-                            {profileName.charAt(0).toUpperCase()}
+                        <div className="w-20 h-20 rounded-2xl bg-zinc-900 border border-white/10 overflow-hidden shadow-2xl mb-4">
+                            <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
                         </div>
                         <h2 className="text-xl font-black tracking-tight capitalize">{profileName}</h2>
-                        <p className="text-zinc-500 text-xs font-bold tracking-tight mt-1">{stellarId}</p>
+                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1">{stellarId}</p>
                     </div>
                     <button onClick={onClose} className="p-2 bg-zinc-900 rounded-xl text-zinc-500 hover:text-white transition-colors">
                         <X size={20} />
@@ -80,7 +82,7 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId }
                         </div>
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Stellar Protocol</p>
-                            <p className="text-xs font-bold">Mainnet v2.4.0</p>
+                            <p className="text-xs font-bold text-white">Mainnet v2.4.0</p>
                         </div>
                     </div>
 

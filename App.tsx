@@ -14,6 +14,7 @@ import QRScanner from './pages/QRScanner';
 import Transactions from './pages/Transactions';
 import FamilyManager from './pages/FamilyManager';
 import SharedWallet from './pages/SharedWallet';
+import Profile from './pages/Profile';
 
 const BottomNav: React.FC = () => {
   const location = useLocation();
@@ -120,6 +121,7 @@ const App: React.FC = () => {
           <Route path="/transactions" element={isAuthenticated ? <Transactions profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/family" element={isAuthenticated ? <FamilyManager profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/shared" element={isAuthenticated ? <SharedWallet profile={profile} /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={isAuthenticated ? <Profile profile={profile} /> : <Navigate to="/login" />} />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

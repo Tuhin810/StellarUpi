@@ -35,6 +35,12 @@ export const getProfile = async (uid: string): Promise<UserProfile | null> => {
   return null;
 };
 
+export const getProfileByStellarId = async (stellarId: string): Promise<UserProfile | null> => {
+  const idInfo = await getUserById(stellarId);
+  if (!idInfo) return null;
+  return getProfile(idInfo.uid);
+};
+
 export const recordTransaction = async (tx: Partial<TransactionRecord>) => {
   await addDoc(collection(db, 'transactions'), {
     ...tx,
@@ -98,4 +104,8 @@ export const updateFamilySpend = async (memberDocId: string, amount: number) => 
       spentToday: increment(amount) 
     });
   }
+};
+
+export const updateUserDetails = async (uid: string, data: { displayName?: string, avatarSeed?: string }) => {
+  await updateDoc(doc(db, 'upiAccounts', uid), data);
 };
