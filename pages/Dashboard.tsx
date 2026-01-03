@@ -116,7 +116,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
           ) : contacts.map((contact: any) => (
             <button
               key={contact.id}
-              onClick={() => navigate(`/send?to=${contact.id}`)}
+              onClick={() => navigate(`/chat/${contact.id}`)}
               className="flex flex-col items-center gap-3 min-w-[72px] group"
             >
               <div className="w-16 h-16 rounded-3xl bg-zinc-800 border border-white/5 overflow-hidden group-hover:border-[#E5D5B3]/50 transition-all shadow-xl">

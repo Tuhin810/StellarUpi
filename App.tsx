@@ -8,6 +8,8 @@ import { Home, History, Send, ChevronUp } from 'lucide-react';
 
 // Pages
 import Login from './pages/Login';
+import { auth } from './services/firebase';
+import { signInAnonymously } from 'firebase/auth';
 import Dashboard from './pages/Dashboard';
 import SendMoney from './pages/SendMoney';
 import QRScanner from './pages/QRScanner';
@@ -15,6 +17,7 @@ import Transactions from './pages/Transactions';
 import FamilyManager from './pages/FamilyManager';
 import SharedWallet from './pages/SharedWallet';
 import Profile from './pages/Profile';
+import ChatPage from './pages/ChatPage';
 
 const BottomNav: React.FC = () => {
   const location = useLocation();
@@ -73,6 +76,7 @@ const App: React.FC = () => {
 
       const accounts = await provider.send("eth_accounts", []);
       if (accounts.length > 0 && accounts[0].toLowerCase() === loggedAddress.toLowerCase()) {
+        await signInAnonymously(auth);
         const p = await getProfile(loggedAddress.toLowerCase());
         setProfile(p);
       } else {
@@ -122,6 +126,7 @@ const App: React.FC = () => {
           <Route path="/family" element={isAuthenticated ? <FamilyManager profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/shared" element={isAuthenticated ? <SharedWallet profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/profile" element={isAuthenticated ? <Profile profile={profile} /> : <Navigate to="/login" />} />
+          <Route path="/chat/:contactId" element={isAuthenticated ? <ChatPage profile={profile} /> : <Navigate to="/login" />} />
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

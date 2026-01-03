@@ -36,3 +36,15 @@ export interface TransactionRecord {
   isFamilySpend: boolean;
   spenderId?: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  senderId: string;
+  receiverId: string;
+  text?: string;
+  amount?: number;
+  type: 'text' | 'payment' | 'request';
+  timestamp: any;
+  status?: 'SUCCESS' | 'FAILED' | 'PENDING';
+  txHash?: string;
+}

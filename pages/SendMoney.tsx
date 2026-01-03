@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, TransactionRecord, FamilyMember } from '../types';
-import { getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile } from '../services/db';
+import { getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -16,6 +16,7 @@ interface Props {
 interface Contact {
   id: string;
   name: string;
+  avatarSeed?: string;
 }
 
 interface FamilyWalletInfo {
@@ -76,17 +77,20 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       if (!profile) return;
       try {
         const txs = await getTransactions(profile.stellarId);
-        const contactMap = new Map<string, Contact>();
-        txs.forEach((tx: TransactionRecord) => {
-          const contactId = tx.fromId === profile.stellarId ? tx.toId : tx.fromId;
-          if (!contactMap.has(contactId) && contactId !== profile.stellarId) {
-            contactMap.set(contactId, {
-              id: contactId,
-              name: contactId.split('@')[0] || contactId.substring(0, 8),
-            });
-          }
-        });
-        setRecentContacts(Array.from(contactMap.values()).slice(0, 10));
+        const uniqueIds = Array.from(new Set(txs.map(tx =>
+          tx.fromId === profile.stellarId ? tx.toId : tx.fromId
+        ))).filter(id => id !== profile.stellarId).slice(0, 10);
+
+        const contactProfiles = await Promise.all(uniqueIds.map(async (id) => {
+          const p = await getProfileByStellarId(id);
+          return {
+            id,
+            name: p?.displayName || id.split('@')[0],
+            avatarSeed: p?.avatarSeed || id
+          };
+        }));
+
+        setRecentContacts(contactProfiles);
       } catch (err) {
         console.error('Error loading contacts:', err);
       } finally {
@@ -94,13 +98,19 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       }
     };
     loadContacts();
-    const toParam = searchParams.get('to');
-    if (toParam) {
-      setSelectedContact({
-        id: toParam,
-        name: toParam.split('@')[0] || toParam.substring(0, 8),
-      });
-    }
+
+    const loadTarget = async () => {
+      const toParam = searchParams.get('to');
+      if (toParam) {
+        const p = await getProfileByStellarId(toParam);
+        setSelectedContact({
+          id: toParam,
+          name: p?.displayName || toParam.split('@')[0],
+          avatarSeed: p?.avatarSeed || toParam
+        });
+      }
+    };
+    loadTarget();
   }, [profile, searchParams]);
 
   const filteredContacts = recentContacts.filter(contact =>
@@ -218,15 +228,17 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           <div className="w-10"></div>
         </div>
 
-        <div className="relative z-10 flex-1 flex flex-col items-center pt-8 px-6">
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-b from-zinc-800 to-zinc-950 p-[1px] mb-4">
-              <div className="w-full h-full rounded-full bg-[#1A1A1A] flex items-center justify-center text-2xl font-black text-[#E5D5B3] border border-white/5">
-                {selectedContact.name.charAt(0)}
-              </div>
+        <div className="relative z-10 flex-1 flex flex-col items-center pt-8 px-6 text-white">
+          <div className="flex flex-col items-center mb-10 text-center">
+            <div className="w-24 h-24 rounded-[2rem] bg-zinc-900 border-2 border-white/5 overflow-hidden shadow-2xl mb-4">
+              <img
+                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedContact.avatarSeed || selectedContact.id}`}
+                alt={selectedContact.name}
+                className="w-full h-full object-cover"
+              />
             </div>
-            <h2 className="text-xl font-black tracking-tight">{selectedContact.name}</h2>
-            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">{selectedContact.id}</p>
+            <h2 className="text-2xl font-black tracking-tight capitalize">{selectedContact.name}</h2>
+            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1 opacity-60">{selectedContact.id}</p>
           </div>
 
           <div className="w-full flex flex-col items-center">
@@ -401,8 +413,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                 className="flex items-center justify-between group"
               >
                 <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center text-base font-black text-zinc-400 group-hover:bg-[#E5D5B3] group-hover:text-black transition-all">
-                    {contact.name.charAt(0).toUpperCase()}
+                  <div className="w-12 h-12 bg-zinc-800 rounded-2xl overflow-hidden border border-white/5 group-hover:border-[#E5D5B3]/50 transition-all shadow-lg">
+                    <img
+                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.avatarSeed || contact.id}`}
+                      alt={contact.name}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
                   <div className="text-left">
                     <p className="font-bold text-white text-base leading-none mb-1 capitalize">{contact.name}</p>
