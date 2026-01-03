@@ -109,3 +109,37 @@ export const updateFamilySpend = async (memberDocId: string, amount: number) => 
 export const updateUserDetails = async (uid: string, data: { displayName?: string, avatarSeed?: string }) => {
   await updateDoc(doc(db, 'upiAccounts', uid), data);
 };
+
+export const createGroup = async (groupData: any) => {
+  const docRef = await addDoc(collection(db, 'groups'), {
+    ...groupData,
+    timestamp: serverTimestamp()
+  });
+  return docRef.id;
+};
+
+export const getGroups = async (stellarId: string) => {
+  const q = query(
+    collection(db, 'groups'),
+    where('members', 'array-contains', stellarId)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+export const recordSplitExpense = async (expense: any) => {
+    await addDoc(collection(db, 'splitExpenses'), {
+        ...expense,
+        timestamp: serverTimestamp()
+    });
+};
+
+export const getGroupExpenses = async (groupId: string) => {
+    const q = query(
+        collection(db, 'splitExpenses'),
+        where('groupId', '==', groupId),
+        orderBy('timestamp', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};

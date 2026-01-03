@@ -47,4 +47,30 @@ export interface ChatMessage {
   timestamp: any;
   status?: 'SUCCESS' | 'FAILED' | 'PENDING';
   txHash?: string;
+  groupId?: string; // If this belongs to a group context
+}
+
+export interface SplitGroup {
+  id: string;
+  name: string;
+  members: string[]; // List of stellarIds
+  createdBy: string;
+  avatarSeed: string;
+  timestamp: any;
+}
+
+export interface SplitExpense {
+  id: string;
+  groupId: string;
+  description: string;
+  totalAmount: number;
+  paidBy: string; // stellarId
+  splitType: 'equal' | 'percentage';
+  participants: {
+    stellarId: string;
+    amount: number;
+    status: 'PENDING' | 'PAID';
+    txHash?: string;
+  }[];
+  timestamp: any;
 }
