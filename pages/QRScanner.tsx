@@ -49,11 +49,11 @@ const QRScanner: React.FC = () => {
       <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
 
       <div className="relative z-10 pt-16 px-8 flex items-center justify-between">
-        <button onClick={() => navigate(-1)} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5">
+        <button onClick={() => navigate("/")} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5">
           <ArrowLeft size={20} className="text-zinc-400" />
         </button>
         <span className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Universal Scanner</span>
-        <button onClick={() => navigate(-1)} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5 text-zinc-400">
+        <button onClick={() => navigate("/")} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5 text-zinc-400">
           <X size={20} />
         </button>
       </div>

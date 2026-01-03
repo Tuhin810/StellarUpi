@@ -352,7 +352,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     <div className="min-h-screen bg-[#1A1A1A] text-white">
       <div className="pt-5 px-5 flex items-center justify-between mb-8">
         <div>
-          <button onClick={() => navigate(-1)} className="mb-4 text-zinc-500 hover:text-white transition-colors">
+          <button onClick={() => navigate("/")} className="mb-4 text-zinc-500 hover:text-white transition-colors">
             <ArrowLeft size={24} />
           </button>
           <h2 className="text-4xl font-black tracking-tighter">Transfer</h2>
@@ -368,7 +368,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             placeholder="Search contacts"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-16 pr-6 py-5 bg-zinc-800/60 border border-white/5 rounded-2xl shadow-inner focus:ring-1 focus:ring-[#E5D5B3] font-bold text-lg text-white placeholder-zinc-700"
+            className="w-full pl-16 pr-6 py-3 bg-zinc-800/60 border border-white/5 rounded-2xl shadow-inner focus:ring-1 focus:ring-[#E5D5B3] font-bold text-lg text-white placeholder-zinc-700"
           />
         </div>
       </div>

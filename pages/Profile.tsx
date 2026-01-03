@@ -82,7 +82,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
             {/* Header */}
             <div className="pt-16 px-8 flex items-center justify-between mb-10 relative z-10">
                 <button
-                    onClick={() => navigate(-1)}
+                    onClick={() => navigate("/")}
                     className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5"
                 >
                     <ArrowLeft size={20} />

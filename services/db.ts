@@ -151,3 +151,29 @@ export const getGroupExpenses = async (groupId: string) => {
     const snap = await getDocs(q);
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
+
+export const searchUsers = async (searchTerm: string): Promise<UserProfile[]> => {
+  if (!searchTerm) return [];
+  const term = searchTerm.toLowerCase();
+  
+  // 1. Check exact stellarId
+  const qId = query(collection(db, 'upiAccounts'), where('stellarId', '==', term));
+  const sId = await getDocs(qId);
+  if (!sId.empty) return sId.docs.map(d => d.data() as UserProfile);
+
+  // 2. Check exact publicKey
+  const qPk = query(collection(db, 'upiAccounts'), where('publicKey', '==', searchTerm));
+  const sPk = await getDocs(qPk);
+  if (!sPk.empty) return sPk.docs.map(d => d.data() as UserProfile);
+
+  // 3. Prefix search on displayName
+  // Note: This matches "John" with "John Doe", but is case sensitive in Firestore
+  const qName = query(
+    collection(db, 'upiAccounts'),
+    where('displayName', '>=', searchTerm),
+    where('displayName', '<=', searchTerm + '\uf8ff'),
+    limit(5)
+  );
+  const sName = await getDocs(qName);
+  return sName.docs.map(d => d.data() as UserProfile);
+};

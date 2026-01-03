@@ -48,7 +48,7 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
   return (
     <div className="min-h-screen bg-gray-50 pb-10">
       <div className="pt-12 px-6 flex items-center gap-4 mb-8">
-        <button onClick={() => navigate(-1)} className="p-3 bg-white rounded-2xl shadow-sm">
+        <button onClick={() => navigate("/")} className="p-3 bg-white rounded-2xl shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-2xl font-extrabold text-gray-900">Family Wallet</h2>
@@ -60,7 +60,7 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
             <Shield size={24} />
             <h3 className="text-lg font-bold">Add Family Member</h3>
           </div>
-          
+
           <div className="space-y-4">
             <div className="relative">
               <User className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-300" size={20} />
@@ -108,9 +108,9 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
                   <p className="font-extrabold text-gray-900">{member.stellarId}</p>
                   <p className="text-xs font-bold text-indigo-600">₹{member.spentToday} / ₹{member.dailyLimit} daily</p>
                   <div className="w-full h-1 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                    <div 
-                      className="h-full bg-indigo-500 rounded-full" 
-                      style={{ width: `${Math.min((member.spentToday/member.dailyLimit)*100, 100)}%` }}
+                    <div
+                      className="h-full bg-indigo-500 rounded-full"
+                      style={{ width: `${Math.min((member.spentToday / member.dailyLimit) * 100, 100)}%` }}
                     />
                   </div>
                 </div>

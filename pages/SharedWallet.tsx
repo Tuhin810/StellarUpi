@@ -58,10 +58,10 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
       // REAL WORLD: Use multisig or a signing proxy. Here, we retrieve the owner profile.
       const ownerRef = (await getDocs(query(collection(db, 'users'), where('uid', '==', (familyPermission as any).ownerUid)))).docs[0];
       const ownerData = ownerRef.data() as UserProfile;
-      
+
       const vaultKey = prompt("Enter Family Vault Key to authorize spend from Shared Account:");
       if (!vaultKey) throw new Error("Key required");
-      
+
       const ownerSecret = decryptSecret(ownerData.encryptedSecret, vaultKey);
       const xlmAmount = (amtNum / 8.42).toFixed(7);
 
@@ -94,7 +94,7 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="pt-12 px-6 flex items-center gap-4 mb-8">
-        <button onClick={() => navigate(-1)} className="p-3 bg-white rounded-2xl shadow-sm">
+        <button onClick={() => navigate("/")} className="p-3 bg-white rounded-2xl shadow-sm">
           <ArrowLeft size={24} />
         </button>
         <h2 className="text-2xl font-extrabold text-gray-900">Shared Spending</h2>
@@ -122,7 +122,7 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
             </div>
 
             <form onSubmit={handleSharedPay} className="bg-white p-8 rounded-[2.5rem] shadow-sm space-y-6">
-               <div className="space-y-1">
+              <div className="space-y-1">
                 <label className="text-sm font-bold text-gray-400">Recipient</label>
                 <input
                   type="text"

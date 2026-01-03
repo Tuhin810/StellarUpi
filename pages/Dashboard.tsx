@@ -7,17 +7,19 @@ import { useNavigate } from 'react-router-dom';
 import {
   ChevronRight,
   Shield,
-  QrCode,
-  Send,
-  Download,
   Menu,
   Bell,
   Users,
   Plus,
   UserPlus,
-  Check
+  QrCode,
+  Send,
+  Download,
+  Check,
+  Search,
+  X
 } from 'lucide-react';
-import { getTransactions, getProfileByStellarId, createGroup, getGroups } from '../services/db';
+import { getTransactions, getProfileByStellarId, createGroup, getGroups, searchUsers } from '../services/db';
 
 interface Props {
   profile: UserProfile | null;
@@ -91,17 +93,26 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
         avatarSeed={profile.avatarSeed}
       />
 
-      {/* Header */}
-      <div className="flex justify-between items-center mb-10">
+      {/* Top Header with Static Search bar leading to /send */}
+      <div className="flex items-center gap-4 mb-8 relative z-[60]">
         <button
           onClick={() => setIsSidebarOpen(true)}
-          className="p-2 text-zinc-400 hover:text-white transition-colors"
+          className="p-3 bg-zinc-900/80 rounded-2xl text-zinc-400 hover:text-white border border-white/5 shadow-xl transition-all active:scale-95"
         >
-          <Menu size={24} />
+          <Menu size={22} />
         </button>
-        <button className="p-2 text-zinc-400 hover:text-white transition-colors">
-          <Bell size={24} />
-        </button>
+
+        <div
+          onClick={() => navigate('/send')}
+          className="flex-1 relative cursor-pointer"
+        >
+          <div className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-600">
+            <Search size={18} />
+          </div>
+          <div className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-4 pl-14 pr-12 font-bold text-xs text-zinc-700 shadow-xl flex items-center h-full">
+            Search name, address...
+          </div>
+        </div>
       </div>
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />

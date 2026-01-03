@@ -43,7 +43,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
       {/* Header */}
       <div className="pt-5 px-3 flex items-center justify-between mb-10">
         <div className="flex items-center gap-6">
-          <button onClick={() => navigate(-1)} className="p-2 text-zinc-400">
+          <button onClick={() => navigate("/")} className="p-2 text-zinc-400">
             <ArrowLeft size={24} />
           </button>
           <h2 className="text-3xl font-black tracking-tighter">History</h2>

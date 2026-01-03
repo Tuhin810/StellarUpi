@@ -142,7 +142,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
             {/* Header */}
             <div className="pt-5 pb-4 px-2 bg-zinc-900 border-b border-white/5 flex items-center justify-between sticky top-0 z-50">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => navigate(-1)} className="p-2 text-zinc-400 hover:text-white transition-colors">
+                    <button onClick={() => navigate("/")} className="p-2 text-zinc-400 hover:text-white transition-colors">
                         <ArrowLeft size={24} />
                     </button>
                     <div className="flex items-center gap-3">

@@ -121,7 +121,7 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
             {/* Dynamic Header */}
             <div className="pt-5 pb-8 px-2 bg-zinc-900/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
                 <div className="flex items-center gap-4 mb-6">
-                    <button onClick={() => navigate(-1)} className="p-2 text-zinc-400 hover:text-white">
+                    <button onClick={() => navigate("/")} className="p-2 text-zinc-400 hover:text-white">
                         <ArrowLeft size={24} />
                     </button>
                     <div className="flex items-center gap-3">
