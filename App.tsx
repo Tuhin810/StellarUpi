@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { getProfile } from './services/db';
 import { UserProfile } from './types';
 import { getMetaMaskProvider } from './services/web3';
+import { Home, History, Send, ChevronUp } from 'lucide-react';
 
 // Pages
 import Login from './pages/Login';
@@ -13,6 +14,41 @@ import QRScanner from './pages/QRScanner';
 import Transactions from './pages/Transactions';
 import FamilyManager from './pages/FamilyManager';
 import SharedWallet from './pages/SharedWallet';
+
+const BottomNav: React.FC = () => {
+  const location = useLocation();
+  const path = location.pathname;
+
+  return (
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white/50 backdrop-blur-sm rounded-3xl p-1 px-6 flex items-center justify-between shadow-2xl z-50">
+      <Link
+        to="/"
+        className={`flex-1 flex flex-col items-center py- rounded-2xl transition-all ${path === '/' ? 'text-black font-black' : 'text-zinc-300 font-bold'}`}
+      >
+        <Home size={22} />
+        <span className="text-[10px] mt-1">Home</span>
+      </Link>
+
+      <div className="relative -top-10 px-2 group">
+        <Link
+          to="/send"
+          className="w-16 h-16 gold-gradient rounded-2xl flex flex-col items-center justify-center shadow-xl group-hover:scale-105 active:scale-95 transition-all text-black border-4 border-[#1A1A1A]"
+        >
+          <ChevronUp size={20} className="mb-[-2px]" />
+          <span className="text-[10px] font-black uppercase tracking-widest leading-none">Pay</span>
+        </Link>
+      </div>
+
+      <Link
+        to="/transactions"
+        className={`flex-1 flex flex-col items-center py- rounded-2xl transition-all ${path === '/transactions' ? 'text-black font-black' : 'text-zinc-300 font-bold'}`}
+      >
+        <History size={22} />
+        <span className="text-[10px] mt-1">Activity</span>
+      </Link>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -37,7 +73,6 @@ const App: React.FC = () => {
         const p = await getProfile(loggedAddress.toLowerCase());
         setProfile(p);
       } else {
-        // mismatched or disconnected
         localStorage.removeItem('web3_address');
         sessionStorage.removeItem('temp_vault_key');
       }
@@ -51,10 +86,9 @@ const App: React.FC = () => {
   useEffect(() => {
     loadWeb3Profile();
 
-    // Listen for account changes
     if (window.ethereum) {
       window.ethereum.on('accountsChanged', (accounts: string[]) => {
-        if (accounts.length === 0 || accounts[0].toLowerCase() !== localStorage.getItem('web3_address')) {
+        if (accounts.length === 0 || (accounts[0] && accounts[0].toLowerCase() !== localStorage.getItem('web3_address'))) {
           setProfile(null);
           localStorage.removeItem('web3_address');
           sessionStorage.removeItem('temp_vault_key');
@@ -65,8 +99,8 @@ const App: React.FC = () => {
   }, []);
 
   if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-indigo-600">
-      <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+    <div className="h-screen flex items-center justify-center bg-[#050505]">
+      <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#E5D5B3] border-t-transparent"></div>
     </div>
   );
 
@@ -74,7 +108,7 @@ const App: React.FC = () => {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 text-gray-900 max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-gray-200">
+      <div className="min-h-screen bg-[#1A1A1A] text-white max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-white/5">
         <Routes>
           <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/" />} />
 
@@ -87,6 +121,8 @@ const App: React.FC = () => {
 
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+
+        {isAuthenticated && <BottomNav />}
       </div>
     </Router>
   );

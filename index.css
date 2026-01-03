@@ -1,0 +1,46 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --premium-gold: #E5D5B3;
+  --premium-gold-dark: #C5B38F;
+  --premium-bg: #1A1A1A;
+  --premium-card: #262626;
+  --premium-zinc-500: #71717A;
+}
+
+body {
+  background-color: var(--premium-bg);
+  color: white;
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #E5D5B3 0%, #C5B38F 50%, #A69371 100%);
+}
+
+.gold-text {
+  background: linear-gradient(135deg, #E5D5B3 0%, #C5B38F 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.premium-blur {
+  backdrop-filter: blur(12px);
+  background: rgba(26, 26, 26, 0.8);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}

@@ -1,63 +1,170 @@
 
-import React, { useState } from 'react';
-import { UserProfile } from '../types';
-import { getUserById, recordTransaction } from '../services/db';
-import { sendPayment } from '../services/stellar';
+import React, { useState, useEffect } from 'react';
+import { UserProfile, TransactionRecord, FamilyMember } from '../types';
+import { getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile } from '../services/db';
+import { sendPayment, getBalance } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, CheckCircle2, User, Landmark } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle2, Search, User, Wallet, Shield, Sparkles, ChevronRight } from 'lucide-react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 interface Props {
   profile: UserProfile | null;
 }
 
+interface Contact {
+  id: string;
+  name: string;
+}
+
+interface FamilyWalletInfo {
+  permission: FamilyMember;
+  ownerProfile: UserProfile;
+  ownerBalance: string;
+}
+
 const SendMoney: React.FC<Props> = ({ profile }) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  
-  const [recipientId, setRecipientId] = useState(searchParams.get('to') || '');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [recentContacts, setRecentContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [loadingContacts, setLoadingContacts] = useState(true);
+
+  const [walletBalance, setWalletBalance] = useState<string>('0.00');
+  const [familyWallet, setFamilyWallet] = useState<FamilyWalletInfo | null>(null);
+  const [loadingBalances, setLoadingBalances] = useState(true);
+
   const [amount, setAmount] = useState(searchParams.get('amt') || '');
   const [memo, setMemo] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'family'>('wallet');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const loadBalances = async () => {
+      if (!profile) return;
+      try {
+        const balance = await getBalance(profile.publicKey);
+        setWalletBalance(balance);
+
+        const q = query(collection(db, 'family'), where('uid', '==', profile.uid), where('active', '==', true));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          const permission = { id: snap.docs[0].id, ...snap.docs[0].data() } as FamilyMember;
+          const ownerUid = (permission as any).ownerUid;
+          const ownerProfile = await getProfile(ownerUid);
+          if (ownerProfile) {
+            const ownerBalance = await getBalance(ownerProfile.publicKey);
+            setFamilyWallet({ permission, ownerProfile, ownerBalance });
+          }
+        }
+      } catch (err) {
+        console.error('Error loading balances:', err);
+      } finally {
+        setLoadingBalances(false);
+      }
+    };
+    loadBalances();
+  }, [profile]);
+
+  useEffect(() => {
+    const loadContacts = async () => {
+      if (!profile) return;
+      try {
+        const txs = await getTransactions(profile.stellarId);
+        const contactMap = new Map<string, Contact>();
+        txs.forEach((tx: TransactionRecord) => {
+          const contactId = tx.fromId === profile.stellarId ? tx.toId : tx.fromId;
+          if (!contactMap.has(contactId) && contactId !== profile.stellarId) {
+            contactMap.set(contactId, {
+              id: contactId,
+              name: contactId.split('@')[0] || contactId.substring(0, 8),
+            });
+          }
+        });
+        setRecentContacts(Array.from(contactMap.values()).slice(0, 10));
+      } catch (err) {
+        console.error('Error loading contacts:', err);
+      } finally {
+        setLoadingContacts(false);
+      }
+    };
+    loadContacts();
+    const toParam = searchParams.get('to');
+    if (toParam) {
+      setSelectedContact({
+        id: toParam,
+        name: toParam.split('@')[0] || toParam.substring(0, 8),
+      });
+    }
+  }, [profile, searchParams]);
+
+  const filteredContacts = recentContacts.filter(contact =>
+    contact.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const xlmToInrRaw = (xlm: string) => parseFloat(xlm) * 8.42;
+  const xlmToInr = (xlm: string) => xlmToInrRaw(xlm).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+  const getFamilyRemainingLimit = () => {
+    if (!familyWallet) return 0;
+    return familyWallet.permission.dailyLimit - familyWallet.permission.spentToday;
+  };
+
   const handlePay = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile) return;
+    if (!profile || !selectedContact) return;
     setLoading(true);
     setError('');
 
+    const amtNum = parseFloat(amount);
     try {
-      // 1. Resolve ID
-      const recipient = await getUserById(recipientId);
+      const recipient = await getUserById(selectedContact.id);
       if (!recipient) throw new Error("Recipient ID not found");
 
-      // 2. Decrypt Secret
-      const password = sessionStorage.getItem('temp_vault_key');
-      if (!password) throw new Error("Vault locked. Please re-login.");
-      const secret = decryptSecret(profile.encryptedSecret, password);
-
-      // 3. Convert Amount (Stellar uses string)
-      // Assuming user input is INR, we convert to XLM for blockchain
-      const xlmAmount = (parseFloat(amount) / 8.42).toFixed(7);
-
-      // 4. Submit Tx
-      const hash = await sendPayment(secret, recipient.publicKey, xlmAmount, memo);
-
-      // 5. Log DB
-      await recordTransaction({
-        fromId: profile.stellarId,
-        toId: recipientId,
-        fromName: profile.stellarId,
-        toName: recipientId,
-        amount: parseFloat(amount),
-        currency: 'INR',
-        status: 'SUCCESS',
-        txHash: hash,
-        isFamilySpend: false
-      });
-
+      if (paymentMethod === 'family' && familyWallet) {
+        if (amtNum > getFamilyRemainingLimit()) throw new Error("Exceeds daily spending limit");
+        const vaultKey = prompt("Enter Family Vault Key:");
+        if (!vaultKey) throw new Error("Vault key required");
+        const ownerSecret = decryptSecret(familyWallet.ownerProfile.encryptedSecret, vaultKey);
+        const xlmAmount = (amtNum / 8.42).toFixed(7);
+        const hash = await sendPayment(ownerSecret, recipient.publicKey, xlmAmount, `FamilySpend: ${profile.stellarId}`);
+        await updateFamilySpend(familyWallet.permission.id, amtNum);
+        await recordTransaction({
+          fromId: familyWallet.ownerProfile.stellarId,
+          toId: selectedContact.id,
+          fromName: familyWallet.ownerProfile.stellarId,
+          toName: selectedContact.id,
+          amount: amtNum,
+          currency: 'INR',
+          status: 'SUCCESS',
+          txHash: hash,
+          isFamilySpend: true,
+          spenderId: profile.stellarId
+        });
+      } else {
+        const password = sessionStorage.getItem('temp_vault_key');
+        if (!password) throw new Error("Vault locked. Please login again.");
+        const secret = decryptSecret(profile.encryptedSecret, password);
+        const xlmAmount = (amtNum / 8.42).toFixed(7);
+        const hash = await sendPayment(secret, recipient.publicKey, xlmAmount, memo || "Sent via StellarPay");
+        await recordTransaction({
+          fromId: profile.stellarId,
+          toId: selectedContact.id,
+          fromName: profile.stellarId,
+          toName: selectedContact.id,
+          amount: amtNum,
+          currency: 'INR',
+          status: 'SUCCESS',
+          txHash: hash,
+          isFamilySpend: false
+        });
+      }
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || "Payment failed");
@@ -68,99 +175,249 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-10 bg-indigo-600 text-white text-center">
-        <CheckCircle2 size={120} className="mb-8 animate-bounce" />
-        <h2 className="text-4xl font-extrabold mb-2">Success!</h2>
-        <p className="text-xl font-medium text-indigo-100 mb-8">
-          Sent ₹{amount} to <span className="underline">{recipientId}</span>
-        </p>
-        <button 
-          onClick={() => navigate('/')}
-          className="w-full max-w-xs bg-white text-indigo-600 py-4 rounded-3xl font-bold text-lg shadow-2xl"
-        >
-          Back Home
-        </button>
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#1A1A1A] text-white text-center relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full">
+          <div className="absolute top-[20%] left-[20%] w-[120%] h-[60%] bg-[#E5D5B3]/5 rounded-full blur-[120px] rotate-[-15deg]"></div>
+        </div>
+
+        <div className="relative z-10 flex flex-col items-center max-w-sm w-full">
+          <div className="w-24 h-24 gold-gradient text-black rounded-full flex items-center justify-center mb-10 shadow-[0_0_50px_rgba(229,213,179,0.2)]">
+            <CheckCircle2 size={48} />
+          </div>
+          <h2 className="text-3xl font-black mb-2 tracking-tight">Success</h2>
+          <p className="text-zinc-500 font-medium mb-12">Transfer to <span className="text-white">{selectedContact?.name}</span> completed</p>
+
+          <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 w-full rounded-[2.5rem] p-10 mb-12">
+            <span className="text-zinc-500 text-xs font-black uppercase tracking-[0.2em] block mb-2">Total Amount</span>
+            <h3 className="text-5xl font-black italic">₹{parseInt(amount).toLocaleString()}</h3>
+          </div>
+
+          <button
+            onClick={() => navigate('/')}
+            className="w-full gold-gradient text-black py-5 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedContact) {
+    return (
+      <div className="min-h-screen bg-[#1A1A1A] flex flex-col relative overflow-hidden text-white">
+        <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
+
+        <div className="relative z-20 pt-16 px-6 flex items-center justify-between">
+          <button
+            onClick={() => setSelectedContact(null)}
+            className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <span className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Secure Transfer</span>
+          <div className="w-10"></div>
+        </div>
+
+        <div className="relative z-10 flex-1 flex flex-col items-center pt-8 px-6">
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-b from-zinc-800 to-zinc-950 p-[1px] mb-4">
+              <div className="w-full h-full rounded-full bg-[#1A1A1A] flex items-center justify-center text-2xl font-black text-[#E5D5B3] border border-white/5">
+                {selectedContact.name.charAt(0)}
+              </div>
+            </div>
+            <h2 className="text-xl font-black tracking-tight">{selectedContact.name}</h2>
+            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mt-1">{selectedContact.id}</p>
+          </div>
+
+          <div className="w-full flex flex-col items-center">
+            <div className="flex items-baseline justify-center mb-4 min-h-[80px]">
+              <span className="text-zinc-600 text-5xl font-black mr-3 opacity-30">₹</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoFocus
+                value={amount}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^0-9]/g, '');
+                  if (val.length <= 8) setAmount(val);
+                }}
+                placeholder="0"
+                className="bg-transparent text-white text-7xl font-black text-center w-full max-w-[280px] outline-none placeholder-zinc-800 tracking-tighter"
+              />
+            </div>
+
+            <button
+              onClick={() => {
+                const note = prompt("Add a note:", memo);
+                if (note !== null) setMemo(note);
+              }}
+              className="px-6 py-3 bg-zinc-900/80 backdrop-blur-md border border-white/5 rounded-2xl text-zinc-400 text-xs font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2"
+            >
+              {memo ? memo : (
+                <>
+                  <Sparkles size={14} className="text-[#E5D5B3]" />
+                  Add Note
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <div className="relative z-20 bg-white rounded-t-[3rem] p-8 pb-12 shadow-2xl">
+          <h3 className="text-zinc-400 font-black text-[10px] uppercase tracking-[0.2em] mb-6">Payment Method</h3>
+
+          <div className="space-y-4">
+            <button
+              onClick={() => setPaymentMethod('wallet')}
+              className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${paymentMethod === 'wallet' ? 'border-black bg-zinc-50' : 'border-zinc-100'
+                }`}
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentMethod === 'wallet' ? 'bg-black text-[#E5D5B3]' : 'bg-zinc-100 text-zinc-400'
+                  }`}>
+                  <Wallet size={18} />
+                </div>
+                <div className="text-left">
+                  <p className="font-black text-black text-sm tracking-tight">Main Vault</p>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                    Available: ₹{loadingBalances ? '...' : xlmToInr(walletBalance)}
+                  </p>
+                </div>
+              </div>
+              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'wallet' ? 'border-black' : 'border-zinc-200'
+                }`}>
+                {paymentMethod === 'wallet' && <div className="w-2.5 h-2.5 bg-black rounded-full" />}
+              </div>
+            </button>
+
+            {familyWallet && (
+              <button
+                onClick={() => setPaymentMethod('family')}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${paymentMethod === 'family' ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-100'
+                  }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentMethod === 'family' ? 'bg-zinc-900 text-[#E5D5B3]' : 'bg-zinc-100 text-zinc-400'
+                    }`}>
+                    <Shield size={18} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-black text-black text-sm tracking-tight">Family Account</p>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      Remaining: ₹{getFamilyRemainingLimit().toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'family' ? 'border-zinc-900' : 'border-zinc-200'
+                  }`}>
+                  {paymentMethod === 'family' && <div className="w-2.5 h-2.5 bg-zinc-900 rounded-full" />}
+                </div>
+              </button>
+            )}
+          </div>
+
+          <button
+            onClick={handlePay}
+            disabled={loading || !amount || parseFloat(amount) <= 0}
+            className="w-full mt-10 gold-gradient text-black h-[72px] rounded-2xl font-black text-xl shadow-2xl active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
+          >
+            {loading ? (
+              <div className="w-6 h-6 border-4 border-black/20 border-t-black rounded-full animate-spin" />
+            ) : (
+              <>
+                <span>Confirm Transfer</span>
+                <Send size={20} />
+              </>
+            )}
+          </button>
+
+          {error && <p className="text-red-500 text-[10px] font-bold text-center mt-4 uppercase tracking-widest">{error}</p>}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="pt-12 px-6 flex items-center gap-4 mb-10">
-        <button onClick={() => navigate(-1)} className="p-3 bg-white rounded-2xl shadow-sm">
-          <ArrowLeft size={24} />
-        </button>
-        <h2 className="text-2xl font-extrabold text-gray-900">Send Money</h2>
+    <div className="min-h-screen bg-[#1A1A1A] text-white">
+      <div className="pt-20 px-8 flex items-center justify-between mb-8">
+        <div>
+          <button onClick={() => navigate(-1)} className="mb-4 text-zinc-500 hover:text-white transition-colors">
+            <ArrowLeft size={24} />
+          </button>
+          <h2 className="text-4xl font-black tracking-tighter">Transfer</h2>
+        </div>
+        <div className="w-12 h-12 gold-gradient rounded-xl flex items-center justify-center text-black shadow-xl">
+          <Send size={22} />
+        </div>
       </div>
 
-      <div className="px-6">
-        <form onSubmit={handlePay} className="space-y-6">
-          <div className="bg-white p-6 rounded-[2.5rem] shadow-sm space-y-4">
-            <div className="space-y-1">
-              <label className="text-sm font-bold text-gray-400 ml-1">Recipient ID</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-indigo-500" size={20} />
-                <input
-                  type="text"
-                  required
-                  placeholder="name@stellar"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-bold"
-                  value={recipientId}
-                  onChange={(e) => setRecipientId(e.target.value)}
-                />
-              </div>
-            </div>
+      <div className="px-8 mb-10">
+        <div className="relative group">
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#E5D5B3] transition-colors" size={20} />
+          <input
+            type="text"
+            placeholder="Search contacts"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-16 pr-6 py-5 bg-zinc-900/50 border border-white/5 rounded-2xl shadow-inner focus:ring-1 focus:ring-[#E5D5B3] font-bold text-lg text-white placeholder-zinc-700"
+          />
+        </div>
+      </div>
 
-            <div className="space-y-1">
-              <label className="text-sm font-bold text-gray-400 ml-1">Amount (₹)</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-300">₹</span>
-                <input
-                  type="number"
-                  required
-                  placeholder="0.00"
-                  className="w-full pl-12 pr-4 py-6 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 text-3xl font-black"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                />
-              </div>
+      <div className="px-8 mb-12">
+        <button
+          onClick={() => {
+            const id = prompt("Enter UPI ID:");
+            if (id) setSelectedContact({ id, name: id.split('@')[0] });
+          }}
+          className="w-full flex items-center justify-between p-6 bg-zinc-900/80 border border-white/5 rounded-[2.5rem] shadow-xl active:scale-[0.98] transition-all group"
+        >
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 gold-gradient rounded-2xl flex items-center justify-center text-black">
+              <Sparkles size={24} />
             </div>
-
-            <div className="space-y-1">
-              <label className="text-sm font-bold text-gray-400 ml-1">What's it for? (Optional)</label>
-              <input
-                type="text"
-                placeholder="Rent, Dinner, Gift..."
-                className="w-full px-4 py-4 bg-gray-50 border-0 rounded-2xl focus:ring-2 focus:ring-indigo-500 font-medium"
-                value={memo}
-                onChange={(e) => setMemo(e.target.value)}
-              />
+            <div className="text-left">
+              <p className="font-black text-white text-lg leading-none mb-1">New Pay</p>
+              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">External UPI ID</p>
             </div>
           </div>
+          <ChevronRight size={20} className="text-zinc-700 group-hover:text-[#E5D5B3] transition-all" />
+        </button>
+      </div>
 
-          <div className="flex items-center gap-4 p-4 bg-indigo-50 rounded-2xl">
-            <div className="bg-indigo-600 text-white p-2 rounded-xl">
-              <Landmark size={20} />
-            </div>
-            <p className="text-sm font-bold text-indigo-900">Stellar Testnet Node #001</p>
+      <div className="px-8 pb-32">
+        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6">Recent Ledger</h3>
+        {loadingContacts ? (
+          <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-[#E5D5B3] border-t-transparent rounded-full animate-spin"></div></div>
+        ) : filteredContacts.length === 0 ? (
+          <div className="bg-zinc-900/40 rounded-[2.5rem] border border-white/5 p-12 text-center">
+            <p className="text-zinc-500 font-bold">No recent activity found</p>
           </div>
-
-          {error && <p className="text-red-500 text-sm font-bold text-center">{error}</p>}
-
-          <button
-            disabled={loading}
-            type="submit"
-            className="w-full bg-indigo-600 text-white py-5 rounded-3xl font-black text-xl shadow-xl hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 disabled:opacity-50"
-          >
-            {loading ? (
-              <div className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent"></div>
-            ) : (
-              <>
-                Confirm Payment <Send size={24} />
-              </>
-            )}
-          </button>
-        </form>
+        ) : (
+          <div className="grid grid-cols-1 gap-6">
+            {filteredContacts.map(contact => (
+              <button
+                key={contact.id}
+                onClick={() => setSelectedContact(contact)}
+                className="flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-5">
+                  <div className="w-12 h-12 bg-zinc-800 rounded-full flex items-center justify-center text-base font-black text-zinc-400 group-hover:bg-[#E5D5B3] group-hover:text-black transition-all">
+                    {contact.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-white text-base leading-none mb-1 capitalize">{contact.name}</p>
+                    <p className="text-[10px] font-bold text-zinc-400 tracking-tight">{contact.id}</p>
+                  </div>
+                </div>
+                <div className="p-2 border border-white/5 rounded-xl group-hover:border-[#E5D5B3]/30 transition-all">
+                  <ChevronRight size={16} className="text-zinc-700" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

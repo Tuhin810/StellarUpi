@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, Sparkles, X } from 'lucide-react';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +19,6 @@ const QRScanner: React.FC = () => {
 
     function onScanSuccess(decodedText: string) {
       scanner.clear();
-      // Expecting format: stellarpay://pay?to=alex@stellar&amt=100
       try {
         const url = new URL(decodedText);
         const to = url.searchParams.get('to');
@@ -30,13 +29,15 @@ const QRScanner: React.FC = () => {
           setError("Invalid QR Code Format");
         }
       } catch (e) {
-        setError("Invalid QR Code");
+        if (decodedText.includes('@')) {
+          navigate(`/send?to=${decodedText}`);
+        } else {
+          setError("Unknown QR type");
+        }
       }
     }
 
-    function onScanFailure(error: any) {
-      // Quiet fail to keep scanning
-    }
+    function onScanFailure(error: any) { }
 
     return () => {
       scanner.clear().catch(e => console.error("Scanner clear failed", e));
@@ -44,49 +45,87 @@ const QRScanner: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      <div className="pt-12 px-6 flex items-center justify-between z-10">
-        <button onClick={() => navigate(-1)} className="p-3 bg-white/10 backdrop-blur-lg rounded-2xl">
-          <ArrowLeft size={24} />
+    <div className="min-h-screen bg-[#1A1A1A] text-white flex flex-col relative overflow-hidden">
+      <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
+
+      <div className="relative z-10 pt-16 px-8 flex items-center justify-between">
+        <button onClick={() => navigate(-1)} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5">
+          <ArrowLeft size={20} className="text-zinc-400" />
         </button>
-        <h2 className="text-xl font-black tracking-tight">Scan to Pay</h2>
-        <div className="w-12" />
+        <span className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Universal Scanner</span>
+        <button onClick={() => navigate(-1)} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5 text-zinc-400">
+          <X size={20} />
+        </button>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center relative px-10">
-        <div className="w-full max-w-sm aspect-square bg-gray-900 rounded-[3rem] border-4 border-indigo-500 overflow-hidden shadow-[0_0_50px_rgba(79,70,229,0.5)]">
-           <div id="reader"></div>
-        </div>
-        
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-2 bg-indigo-600 px-6 py-3 rounded-2xl font-bold mb-4">
-            <QrCode size={20} />
-            <span>Align QR in frame</span>
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10">
+        <div className="relative w-full max-w-sm aspect-square">
+          <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-[#E5D5B3] rounded-tl-2xl z-20"></div>
+          <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-[#E5D5B3] rounded-tr-2xl z-20"></div>
+          <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-[#E5D5B3] rounded-bl-2xl z-20"></div>
+          <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-[#E5D5B3] rounded-br-2xl z-20"></div>
+
+          <div className="relative w-full h-full bg-zinc-950 rounded-3xl overflow-hidden border border-white/5 shadow-2xl z-10">
+            <div id="reader" className="w-full h-full"></div>
           </div>
-          <p className="text-gray-400 text-sm font-medium">Any StellarPay or compatible QR</p>
+
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#E5D5B3]/50 to-transparent shadow-[0_0_15px_rgba(229,213,179,0.3)] z-30 animate-scan"></div>
+        </div>
+
+        <div className="mt-16 text-center">
+          <div className="inline-flex items-center gap-3 gold-gradient text-black px-8 py-4 rounded-2xl font-black text-sm mb-6 shadow-2xl">
+            <Sparkles size={18} />
+            <span>Scanning Active</span>
+          </div>
+          <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] px-10 leading-relaxed">
+            Position the recipient's code within the frame
+          </p>
         </div>
 
         {error && (
-          <div className="mt-4 p-4 bg-red-500/20 text-red-500 rounded-2xl font-bold border border-red-500/50">
+          <div className="mt-8 px-6 py-4 bg-rose-500/10 text-rose-500 rounded-2xl font-black text-xs border border-rose-500/20 uppercase tracking-widest backdrop-blur-xl">
             {error}
           </div>
         )}
       </div>
 
-      <div className="p-10 flex justify-center gap-10 bg-gradient-to-t from-black to-transparent">
+      <div className="relative z-10 p-12 flex justify-center gap-12">
         <div className="flex flex-col items-center gap-2">
-          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-             <Camera size={28} />
+          <div className="w-14 h-14 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+            <Camera size={24} />
           </div>
-          <span className="text-xs font-bold text-gray-400">Flash</span>
+          <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-none">Flash</span>
         </div>
         <div className="flex flex-col items-center gap-2">
-          <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center">
-             <QrCode size={28} />
+          <div className="w-14 h-14 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
+            <QrCode size={24} />
           </div>
-          <span className="text-xs font-bold text-gray-400">Gallery</span>
+          <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-none">Gallery</span>
         </div>
       </div>
+
+      <style>{`
+        @keyframes scan-line {
+            0% { top: 0% }
+            100% { top: 100% }
+        }
+        .animate-scan {
+            animation: scan-line 2s linear infinite;
+        }
+        #reader { border: none !important; }
+        #reader video { border-radius: 1.5rem; object-fit: cover !important; }
+        #reader__dashboard_section_csr button { 
+            background: #E5D5B3 !important; 
+            color: black !important; 
+            border-radius: 0.75rem !important;
+            font-weight: 800 !important;
+            padding: 0.5rem 1rem !important;
+            border: none !important;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+      `}</style>
     </div>
   );
 };
