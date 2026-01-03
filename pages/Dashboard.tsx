@@ -97,7 +97,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       <div className="flex items-center gap-4 mb-8 relative z-[60]">
         <button
           onClick={() => setIsSidebarOpen(true)}
-          className="p-3 bg-zinc-900/80 rounded-2xl text-zinc-400 hover:text-white border border-white/5 shadow-xl transition-all active:scale-95"
+          className="p-3 bg-zinc-900/80 rounded-2xl text-zinc-400 hover-:text-white border border-white/5 shadow-xl transition-all active:scale-95"
         >
           <Menu size={22} />
         </button>
@@ -130,7 +130,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
             onClick={() => navigate(action.path)}
             className="flex flex-col items-center gap-3"
           >
-            <div className="w-14 h-14 bg-zinc-900/80 border border-white/5 rounded-2xl flex items-center justify-center text-[#E5D5B3] shadow-lg hover:bg-zinc-800 transition-all active:scale-90">
+            <div className="w-14 h-14 bg-zinc-900/80 border border-white/5 rounded-2xl flex items-center justify-center text-[#E5D5B3] shadow-lg hover-:bg-zinc-800 transition-all active:scale-90">
               {action.icon}
             </div>
             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{action.label}</span>
@@ -141,7 +141,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       {/* Recent Contacts (Circles) */}
       <div className="mt-12">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black tracking-tight">Send Money Again</h3>
+          <h3 className="text-xl font-black tracking-tight">People</h3>
           <button className="text-[#E5D5B3] text-xs font-black uppercase tracking-widest opacity-60">View All</button>
         </div>
         <div className="flex gap-6 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2">
@@ -150,10 +150,10 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
             onClick={() => setShowCreateGroup(true)}
             className="flex flex-col items-center gap-3 min-w-[72px] group"
           >
-            <div className="w-16 h-16 rounded-3xl bg-zinc-900 border border-[#E5D5B3]/20 flex items-center justify-center text-[#E5D5B3] group-hover:bg-[#E5D5B3] group-hover:text-black transition-all shadow-xl">
+            <div className="w-16 h-16 rounded-[2rem] bg-zinc-900/50 backdrop-blur-md border border-[#E5D5B3]/10 flex items-center justify-center text-[#E5D5B3] group-hover-:gold-gradient group-hover-:text-black transition-all shadow-xl shadow-black/40 group-hover-:scale-105 active:scale-95 group-hover-:border-transparent">
               <UserPlus size={24} />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#E5D5B3]">New Group</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover-:text-[#E5D5B3] transition-colors">New Group</span>
           </button>
 
           {loading ? (
@@ -175,14 +175,14 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
               onClick={() => navigate(contact.isGroup ? `/group/${contact.id}` : `/chat/${contact.id}`)}
               className="flex flex-col items-center gap-3 min-w-[72px] group"
             >
-              <div className={`w-16 h-16 rounded-3xl bg-zinc-800 border border-white/5 overflow-hidden group-hover:border-[#E5D5B3]/50 transition-all shadow-xl ${contact.isGroup ? 'p-1' : ''}`}>
+              <div className={`w-16 h-16 rounded-[2rem] ${contact.isGroup ? 'bg-zinc-900 border-[#E5D5B3]/40' : 'bg-zinc-800 border-white/5'} border overflow-hidden group-hover-:border-[#E5D5B3]/80 transition-all shadow-2xl shadow-black/60 group-hover-:scale-105 active:scale-95 flex items-center justify-center relative group`}>
                 <img
-                  src={`https://api.dicebear.com/7.x/${contact.isGroup ? 'identicon' : 'avataaars'}/svg?seed=${contact.avatarSeed}`}
+                  src={`https://api.dicebear.com/7.x/${contact.isGroup ? 'shapes' : 'avataaars'}/svg?seed=${contact.avatarSeed}`}
                   alt={contact.name}
-                  className="w-full h-full object-cover rounded-2xl"
+                  className="w-full h-full object-cover"
                 />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors truncate w-16 text-center">{contact.name}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover-:text-white transition-colors truncate w-16 text-center">{contact.name}</span>
             </button>
           ))}
         </div>

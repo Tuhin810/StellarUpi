@@ -125,8 +125,8 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
                         <ArrowLeft size={24} />
                     </button>
                     <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-[#E5D5B3] p-1 overflow-hidden">
-                            <img src={`https://api.dicebear.com/7.x/identicon/svg?seed=${group.avatarSeed}`} className="w-full h-full" />
+                        <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-[#E5D5B3]/40 flex items-center justify-center overflow-hidden shadow-2xl relative">
+                            <img src={`https://api.dicebear.com/7.x/shapes/svg?seed=${group.avatarSeed}`} className="w-full h-full object-cover" />
                         </div>
                         <div>
                             <h2 className="text-xl font-black tracking-tight">{group.name}</h2>
