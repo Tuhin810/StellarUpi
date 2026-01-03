@@ -40,6 +40,20 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
     useEffect(() => {
         if (!profile || !contactId) return;
 
+        const chatsRef = { current: [] as any[] };
+        const txsRef = { current: [] as any[] };
+
+        const updateUnifiedMessages = () => {
+            const unified = [...chatsRef.current, ...txsRef.current].sort((a, b) => {
+                const timeA = a.timestamp?.seconds || 0;
+                const timeB = b.timestamp?.seconds || 0;
+                return timeA - timeB;
+            });
+            setMessages(unified);
+            setLoading(false);
+            setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        };
+
         // Listen to text messages
         const chatQuery = query(
             collection(db, 'chats'),
@@ -52,8 +66,8 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
         );
 
         const unsubChats = onSnapshot(chatQuery, (snap) => {
-            const chats = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'chat' }));
-            updateUnifiedMessages(chats, txsRef.current);
+            chatsRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'chat' }));
+            updateUnifiedMessages();
         });
 
         // Listen to transactions
@@ -67,24 +81,10 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
             limit(50)
         );
 
-        const txsRef = { current: [] as any[] };
         const unsubTxs = onSnapshot(txQuery, (snap) => {
-            const txs = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'tx' }));
-            txsRef.current = txs;
-            // Trigger update logic
-            // (This relies on the fact that at least one snap will fire)
+            txsRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'tx' }));
+            updateUnifiedMessages();
         });
-
-        const updateUnifiedMessages = (chats: any[], txs: any[]) => {
-            const unified = [...chats, ...txs].sort((a, b) => {
-                const timeA = a.timestamp?.seconds || 0;
-                const timeB = b.timestamp?.seconds || 0;
-                return timeA - timeB;
-            });
-            setMessages(unified);
-            setLoading(false);
-            setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-        };
 
         return () => {
             unsubChats();
@@ -116,7 +116,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
     return (
         <div className="flex flex-col h-screen bg-[#1A1A1A] text-white overflow-hidden">
             {/* Header */}
-            <div className="pt-14 pb-4 px-6 bg-zinc-900 border-b border-white/5 flex items-center justify-between sticky top-0 z-50">
+            <div className="pt-5 pb-4 px-2 bg-zinc-900 border-b border-white/5 flex items-center justify-between sticky top-0 z-50">
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate(-1)} className="p-2 text-zinc-400 hover:text-white transition-colors">
                         <ArrowLeft size={24} />
@@ -155,13 +155,13 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                     if (isTx) {
                         return (
                             <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] rounded-[2rem] p-1 border border-white/5 shadow-2xl overflow-hidden ${isMe ? 'bg-zinc-900' : 'bg-zinc-800'}`}>
-                                    <div className="bg-[#E5D5B3] p-4 rounded-[1.8rem] flex flex-col items-center gap-2">
+                                <div className={`max-w-[85%] rounded-[1rem] p-1 border border-white/5 shadow-2xl overflow-hidden ${isMe ? 'bg-zinc-900' : 'bg-zinc-800'}`}>
+                                    <div className="bg-[#E5D5B3] p-4 rounded-[1rem] flex flex-col items-center gap-2">
                                         <span className="text-black/40 text-[10px] font-black tracking-[0.2em] uppercase">
                                             {isMe ? 'Payment to' : 'Payment received from'}
                                         </span>
                                         <h3 className="text-2xl font-black text-black">₹{msg.amount?.toLocaleString()}</h3>
-                                        <div className="flex items-center gap-2 px-4 py-1.5 bg-black/5 rounded-full mt-2">
+                                        <div className="flex items-center gap-2 px-4 py-1 bg-black/5 rounded-full ">
                                             <CheckCircle2 size={12} className="text-emerald-600" />
                                             <span className="text-[11px] font-bold text-black/60 capitalize">Paid • {msg.timestamp?.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
                                         </div>
