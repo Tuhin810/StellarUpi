@@ -88,6 +88,14 @@ export const getFamilyMembers = async (ownerUid: string) => {
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as FamilyMember));
 };
 
+export const getTransactionById = async (id: string): Promise<TransactionRecord | null> => {
+  const snap = await getDoc(doc(db, 'transactions', id));
+  if (snap.exists()) {
+    return { id: snap.id, ...snap.data() } as TransactionRecord;
+  }
+  return null;
+};
+
 export const updateFamilySpend = async (memberDocId: string, amount: number) => {
   const today = new Date().toISOString().split('T')[0];
   const ref = doc(db, 'family', memberDocId);

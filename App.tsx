@@ -20,12 +20,13 @@ import Profile from './pages/Profile';
 import ChatPage from './pages/ChatPage';
 import ReceiveMoney from './pages/ReceiveMoney';
 import GroupPage from './pages/GroupPage';
+import TransactionDetail from './pages/TransactionDetail';
 
 const BottomNav: React.FC = () => {
   const location = useLocation();
   const path = location.pathname;
 
-  if (path === '/send' || path === '/receive' || path.startsWith('/chat') || path.startsWith('/group')) return null;
+  if (path === '/send' || path === '/receive' || path.startsWith('/chat') || path.startsWith('/group') || (path.startsWith('/transaction/') && !path.startsWith('/transactions'))) return null;
 
   return (
     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white/50 backdrop-blur-sm rounded-3xl p-1 px-6 flex items-center justify-between shadow-2xl z-50">
@@ -125,6 +126,7 @@ const App: React.FC = () => {
           <Route path="/send" element={isAuthenticated ? <SendMoney profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/scan" element={isAuthenticated ? <QRScanner /> : <Navigate to="/login" />} />
           <Route path="/transactions" element={isAuthenticated ? <Transactions profile={profile} /> : <Navigate to="/login" />} />
+          <Route path="/transaction/:txId" element={isAuthenticated ? <TransactionDetail profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/family" element={isAuthenticated ? <FamilyManager profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/shared" element={isAuthenticated ? <SharedWallet profile={profile} /> : <Navigate to="/login" />} />
           <Route path="/profile" element={isAuthenticated ? <Profile profile={profile} /> : <Navigate to="/login" />} />
