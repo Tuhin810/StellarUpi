@@ -242,25 +242,23 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   if (val.length <= 8) setAmount(val);
                 }}
                 placeholder="0"
-                className="bg-transparent text-white text-7xl font-black text-center
-                 w-full max-w-[280px] outline-none placeholder-zinc-800 "
+                className="bg-transparent text-white text-5xl font-black text-center w-full
+                 max-w-[180px] outline-none placeholder-zinc-800 caret-transparent"
               />
             </div>
 
-            <button
-              onClick={() => {
-                const note = prompt("Add a note:", memo);
-                if (note !== null) setMemo(note);
-              }}
-              className="px-6 py-3 bg-zinc-900/80 backdrop-blur-md border border-white/5 rounded-2xl text-zinc-400 text-xs font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2"
-            >
-              {memo ? memo : (
-                <>
-                  <Sparkles size={14} className="text-[#E5D5B3]" />
-                  Add Note
-                </>
-              )}
-            </button>
+            <div className="w-full max-w-[200px] relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                <Sparkles size={14} className="text-[#E5D5B3] opacity-50" />
+              </div>
+              <input
+                type="text"
+                placeholder="ADD NOTE"
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-full text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/20 transition-all text-center"
+              />
+            </div>
           </div>
         </div>
 
