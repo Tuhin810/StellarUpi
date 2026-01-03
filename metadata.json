@@ -1,0 +1,7 @@
+{
+  "name": "StellarPay UPI",
+  "description": "A high-performance, UPI-style web wallet built on the Stellar blockchain with human-readable IDs and family spending limits.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
