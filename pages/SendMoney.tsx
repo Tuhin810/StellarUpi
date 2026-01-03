@@ -208,14 +208,13 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       <div className="min-h-screen bg-[#1A1A1A] flex flex-col relative overflow-hidden text-white">
         <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
 
-        <div className="relative z-20 pt-16 px-6 flex items-center justify-between">
+        <div className="relative z-20 pt-5 px-6 flex items-center justify-between">
           <button
             onClick={() => setSelectedContact(null)}
             className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5"
           >
             <ArrowLeft size={20} />
           </button>
-          <span className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Secure Transfer</span>
           <div className="w-10"></div>
         </div>
 
@@ -243,7 +242,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   if (val.length <= 8) setAmount(val);
                 }}
                 placeholder="0"
-                className="bg-transparent text-white text-7xl font-black text-center w-full max-w-[280px] outline-none placeholder-zinc-800 tracking-tighter"
+                className="bg-transparent text-white text-7xl font-black text-center
+                 w-full max-w-[280px] outline-none placeholder-zinc-800 "
               />
             </div>
 
@@ -264,7 +264,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           </div>
         </div>
 
-        <div className="relative z-20 bg-white rounded-t-[3rem] p-8 pb-12 shadow-2xl">
+        <div className="relative z-20 bg-white rounded-t-[1.5rem] p-8 pb-12 shadow-2xl">
           <h3 className="text-zinc-400 font-black text-[10px] uppercase tracking-[0.2em] mb-6">Payment Method</h3>
 
           <div className="space-y-4">

@@ -25,7 +25,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
   useEffect(() => {
     if (profile) {
       getTransactions(profile.stellarId).then(res => {
-        setTxs(res.slice(0, 5));
+        setTxs(res.slice(0, 20));
         setLoading(false);
       });
     }
@@ -47,10 +47,10 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
 
-      {/* Recent Transactions Section */}
-      <div className="mt-10">
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="text-lg font-bold tracking-tight">Recent Transactions</h3>
+      {/* Recent Contacts (Circles) */}
+      <div className="mt-12">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-bold tracking-tight">Send Money Again</h3>
           <button
             onClick={() => navigate('/transactions')}
             className="text-zinc-500 text-sm font-bold"
@@ -59,54 +59,40 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
           </button>
         </div>
 
-        <div className="space-y-6">
+        <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
           {loading ? (
-            <div className="animate-pulse space-y-4">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="flex gap-4 items-center">
-                  <div className="w-12 h-12 bg-zinc-800 rounded-full"></div>
-                  <div className="flex-1 space-y-2">
-                    <div className="h-4 bg-zinc-800 rounded w-1/3"></div>
-                    <div className="h-3 bg-zinc-800 rounded w-1/4"></div>
-                  </div>
+            <div className="flex gap-6">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex flex-col items-center gap-2 animate-pulse">
+                  <div className="w-16 h-16 bg-zinc-800 rounded-full"></div>
+                  <div className="h-3 bg-zinc-800 rounded w-12"></div>
                 </div>
               ))}
             </div>
-          ) : txs.length === 0 ? (
-            <div className="text-center py-10 bg-zinc-900/50 rounded-3xl border border-white/5">
-              <p className="text-zinc-500 font-bold">No recent transfers</p>
+          ) : Array.from(new Map(txs.map(tx => {
+            const contactId = tx.fromId === profile.stellarId ? tx.toId : tx.fromId;
+            return [contactId, tx];
+          })).values()).length === 0 ? (
+            <div className="w-full text-center py-6 bg-zinc-900/30 rounded-3xl border border-white/5">
+              <p className="text-zinc-500 text-sm font-bold">No recent contacts</p>
             </div>
-          ) : txs.map((tx) => {
-            const isSent = tx.fromId === profile.stellarId;
-            return (
-              <div key={tx.id} className="flex items-center justify-between group">
-                <div className="flex items-center gap-5">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isSent ? 'bg-[#E5D5B3]/10 text-[#E5D5B3]' : 'bg-[#E5D5B3]/20 text-[#E5D5B3]'}`}>
-                    {isSent ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
-                  </div>
-                  <div>
-                    <p className="font-bold text-base leading-none mb-1">
-                      {isSent ? `To: ${tx.toId.split('@')[0]}` : `From: ${tx.fromId.split('@')[0]}`}
-                    </p>
-                    <p className="text-xs font-medium text-zinc-500">
-                      {tx.timestamp?.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} •
-                      {tx.timestamp?.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true })}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className={`font-bold text-base ${isSent ? 'text-white' : 'text-[#E5D5B3]'}`}>
-                    {isSent ? '-' : '+'}₹{tx.amount.toLocaleString()}
-                  </p>
-                  {tx.isFamilySpend && (
-                    <div className="flex items-center gap-1 text-[10px] text-zinc-500 justify-end mt-0.5">
-                      <Shield size={8} /> Family
-                    </div>
-                  )}
-                </div>
+          ) : Array.from(new Map(txs.map(tx => {
+            const contactId = tx.fromId === profile.stellarId ? tx.toId : tx.fromId;
+            return [contactId, { id: contactId, name: contactId.split('@')[0] }];
+          })).values()).map((contact: any) => (
+            <button
+              key={contact.id}
+              onClick={() => navigate(`/send?to=${contact.id}`)}
+              className="flex flex-col items-center gap-3 min-w-[72px] group"
+            >
+              <div className="w-16 h-16 rounded-full bg-zinc-800 border border-white/5 flex items-center justify-center text-[#E5D5B3] font-black text-xl group-hover:bg-[#E5D5B3] group-hover:text-black transition-all">
+                {contact.name.charAt(0).toUpperCase()}
               </div>
-            );
-          })}
+              <span className="text-[11px] font-bold text-zinc-400 capitalize truncate w-16 text-center">
+                {contact.name}
+              </span>
+            </button>
+          ))}
         </div>
       </div>
 
