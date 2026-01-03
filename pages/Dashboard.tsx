@@ -130,7 +130,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       {/* Recent Contacts (Circles) */}
       <div className="mt-12">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black italic tracking-tight">Send Money Again</h3>
+          <h3 className="text-xl font-black tracking-tight">Send Money Again</h3>
           <button className="text-[#E5D5B3] text-xs font-black uppercase tracking-widest opacity-60">View All</button>
         </div>
         <div className="flex gap-6 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2">

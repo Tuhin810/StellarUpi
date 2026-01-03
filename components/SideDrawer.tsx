@@ -43,9 +43,9 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
                 {/* Header */}
                 <div className="p-8 pt-16 flex justify-between items-start mb-8 text-white">
                     <div className="flex flex-col items-start">
-                        <div className="w-20 h-20 rounded-2xl bg-zinc-900 border border-white/10 overflow-hidden shadow-2xl mb-4">
+                        {/* <div className="w-20 h-20 rounded-2xl bg-zinc-900 border border-white/10 overflow-hidden shadow-2xl mb-4">
                             <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
-                        </div>
+                        </div> */}
                         <h2 className="text-xl font-black tracking-tight capitalize">{profileName}</h2>
                         <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1">{stellarId}</p>
                     </div>

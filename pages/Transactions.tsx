@@ -26,7 +26,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
   return (
     <div className="min-h-screen bg-[#1A1A1A] text-white pb-32">
       {/* Header */}
-      <div className="pt-16 px-8 flex items-center justify-between mb-10">
+      <div className="pt-5 px-3 flex items-center justify-between mb-10">
         <div className="flex items-center gap-6">
           <button onClick={() => navigate(-1)} className="p-2 text-zinc-400">
             <ArrowLeft size={24} />
@@ -40,7 +40,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
         </div>
       </div>
 
-      <div className="px-8 space-y-8">
+      <div className="px-5 space-y-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <div className="w-10 h-10 border-4 border-[#E5D5B3] border-t-transparent rounded-full animate-spin mb-4"></div>
