@@ -82,7 +82,7 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
                         </div>
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Stellar Protocol</p>
-                            <p className="text-xs font-bold text-white">Mainnet v2.4.0</p>
+                            <p className="text-xs font-bold text-white">TestNet v2.4.0</p>
                         </div>
                     </div>
 
