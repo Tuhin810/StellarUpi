@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { UserProfile, FamilyMember } from '../types';
-import { getFamilyMembers, addFamilyMember } from '../services/db';
+import { getFamilyMembers, addFamilyMember, removeFamilyMember } from '../services/db';
 import { ArrowLeft, UserPlus, Shield, User, XCircle, AlertCircle, TrendingUp, Wallet, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { decryptSecret, encryptSecret } from '../services/encryption';
@@ -55,6 +55,16 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
       setError(err.message || "Failed to add member");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRemove = async (memberId: string) => {
+    if (!window.confirm('Remove this family member?')) return;
+    try {
+      await removeFamilyMember(memberId);
+      fetchMembers();
+    } catch (err: any) {
+      setError(err.message || "Failed to remove member");
     }
   };
 
@@ -177,7 +187,10 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
                       </div>
                     </div>
                   </div>
-                  <button className="ml-4 p-4 text-zinc-700 hover:text-rose-500 transition-colors">
+                  <button
+                    onClick={() => handleRemove(member.id)}
+                    className="ml-4 p-4 text-zinc-700 hover:text-rose-500 transition-colors"
+                  >
                     <XCircle size={24} />
                   </button>
                 </div>

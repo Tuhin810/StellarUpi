@@ -12,7 +12,8 @@ import {
   orderBy,
   limit,
   updateDoc,
-  increment
+  increment,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
@@ -95,6 +96,10 @@ export const getTransactionById = async (id: string): Promise<TransactionRecord 
     return { id: snap.id, ...snap.data() } as TransactionRecord;
   }
   return null;
+};
+
+export const removeFamilyMember = async (memberDocId: string) => {
+  await deleteDoc(doc(db, 'family', memberDocId));
 };
 
 export const updateFamilySpend = async (memberDocId: string, amount: number) => {
