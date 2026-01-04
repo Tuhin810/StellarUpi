@@ -139,9 +139,22 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
       if (paymentMethod === 'family' && familyWallet) {
         if (amtNum > getFamilyRemainingLimit()) throw new Error("Exceeds daily spending limit");
-        const vaultKey = prompt("Enter Family Vault Key:");
-        if (!vaultKey) throw new Error("Vault key required");
-        const ownerSecret = decryptSecret(familyWallet.ownerProfile.encryptedSecret, vaultKey);
+
+        let ownerSecret: string;
+
+        // Try using the seamless shared secret first
+        if ((familyWallet.permission as any).sharedSecret) {
+          ownerSecret = decryptSecret((familyWallet.permission as any).sharedSecret, profile.uid.toLowerCase());
+        } else {
+          const vaultKey = sessionStorage.getItem('temp_vault_key');
+          if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you in the Family Manager.");
+          ownerSecret = decryptSecret(familyWallet.ownerProfile.encryptedSecret, vaultKey);
+        }
+
+        if (!ownerSecret || !ownerSecret.startsWith('S')) {
+          throw new Error("Invalid Authorization Key. The family owner may need to re-authorize your access.");
+        }
+
         const xlmAmount = (amtNum / 8.42).toFixed(7);
         const hash = await sendPayment(ownerSecret, recipient.publicKey, xlmAmount, `FamilySpend: ${profile.stellarId}`);
         await updateFamilySpend(familyWallet.permission.id, amtNum);

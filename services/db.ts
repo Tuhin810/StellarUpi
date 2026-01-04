@@ -67,7 +67,7 @@ export const getTransactions = async (stellarId: string) => {
   return (txs as TransactionRecord[]).sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
 };
 
-export const addFamilyMember = async (ownerUid: string, memberId: string, limit: number) => {
+export const addFamilyMember = async (ownerUid: string, memberId: string, limit: number, encryptedOwnerSecret?: string) => {
   const targetIdInfo = await getUserById(memberId);
   if (!targetIdInfo) throw new Error("Member ID not found");
 
@@ -78,7 +78,8 @@ export const addFamilyMember = async (ownerUid: string, memberId: string, limit:
     dailyLimit: limit,
     spentToday: 0,
     lastSpentDate: new Date().toISOString().split('T')[0],
-    active: true
+    active: true,
+    sharedSecret: encryptedOwnerSecret || null
   });
 };
 

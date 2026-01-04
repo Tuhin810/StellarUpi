@@ -59,10 +59,19 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
       const ownerRef = (await getDocs(query(collection(db, 'users'), where('uid', '==', (familyPermission as any).ownerUid)))).docs[0];
       const ownerData = ownerRef.data() as UserProfile;
 
-      const vaultKey = prompt("Enter Family Vault Key to authorize spend from Shared Account:");
-      if (!vaultKey) throw new Error("Key required");
+      let ownerSecret: string;
+      if ((familyPermission as any).sharedSecret) {
+        ownerSecret = decryptSecret((familyPermission as any).sharedSecret, profile.uid.toLowerCase());
+      } else {
+        const vaultKey = sessionStorage.getItem('temp_vault_key');
+        if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you.");
+        ownerSecret = decryptSecret(ownerData.encryptedSecret, vaultKey);
+      }
 
-      const ownerSecret = decryptSecret(ownerData.encryptedSecret, vaultKey);
+      if (!ownerSecret || !ownerSecret.startsWith('S')) {
+        throw new Error("Invalid Authorization Key. The family owner may need to re-authorize your access.");
+      }
+
       const xlmAmount = (amtNum / 8.42).toFixed(7);
 
       // 3. Execute Tx

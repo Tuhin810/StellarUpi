@@ -48,7 +48,7 @@ const QRScanner: React.FC = () => {
     <div className="min-h-screen bg-[#1A1A1A] text-white flex flex-col relative overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
 
-      <div className="relative z-10 pt-16 px-8 flex items-center justify-between">
+      <div className="relative z-10 pt-5 px-3 flex items-center justify-between">
         <button onClick={() => navigate("/")} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5">
           <ArrowLeft size={20} className="text-zinc-400" />
         </button>
@@ -72,15 +72,7 @@ const QRScanner: React.FC = () => {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#E5D5B3]/50 to-transparent shadow-[0_0_15px_rgba(229,213,179,0.3)] z-30 animate-scan"></div>
         </div>
 
-        <div className="mt-16 text-center">
-          <div className="inline-flex items-center gap-3 gold-gradient text-black px-8 py-4 rounded-2xl font-black text-sm mb-6 shadow-2xl">
-            <Sparkles size={18} />
-            <span>Scanning Active</span>
-          </div>
-          <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em] px-10 leading-relaxed">
-            Position the recipient's code within the frame
-          </p>
-        </div>
+
 
         {error && (
           <div className="mt-8 px-6 py-4 bg-rose-500/10 text-rose-500 rounded-2xl font-black text-xs border border-rose-500/20 uppercase tracking-widest backdrop-blur-xl">

@@ -4,6 +4,8 @@ import { UserProfile, FamilyMember } from '../types';
 import { getFamilyMembers, addFamilyMember } from '../services/db';
 import { ArrowLeft, UserPlus, Shield, User, XCircle, AlertCircle, TrendingUp, Wallet, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { decryptSecret, encryptSecret } from '../services/encryption';
+import { getUserById } from '../services/db';
 
 interface Props {
   profile: UserProfile | null;
@@ -34,7 +36,18 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
     setLoading(true);
     setError('');
     try {
-      await addFamilyMember(profile.uid, newMemberId, parseFloat(newLimit));
+      // Create a shared secret for the member using their UID as the encryption key
+      // This allows the member to pay "seamlessly" while keeping the key secure-ish
+      const vaultKey = sessionStorage.getItem('temp_vault_key');
+      if (!vaultKey) throw new Error("Vault locked. Unlock your own vault first.");
+
+      const rawSecret = decryptSecret(profile.encryptedSecret, vaultKey);
+      const memberInfo = await getUserById(newMemberId);
+      if (!memberInfo) throw new Error("Target member not found");
+
+      const sharedEncryptedSecret = encryptSecret(rawSecret, memberInfo.uid.toLowerCase());
+
+      await addFamilyMember(profile.uid, newMemberId, parseFloat(newLimit), sharedEncryptedSecret);
       setNewMemberId('');
       setNewLimit('');
       fetchMembers();
