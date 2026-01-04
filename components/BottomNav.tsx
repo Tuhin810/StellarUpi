@@ -12,16 +12,17 @@ const BottomNav: React.FC = () => {
         path === '/send' ||
         path === '/receive' ||
         path === '/family' ||
+        path === '/profile' ||
         path.startsWith('/chat') ||
         path.startsWith('/group') ||
         (path.startsWith('/transaction/') && !path.startsWith('/transactions'))
     ) return null;
 
     return (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-white/50 backdrop-blur-sm rounded-3xl p-1 px-6 flex items-center justify-between shadow-2xl z-50">
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-gradient-to-br from-[#E5D5B3]/20 to-[#E5D5B3]/5 backdrop-blur-lg rounded-3xl p-1 px-6 flex items-center justify-between shadow-2xl z-50">
             <Link
                 to="/"
-                className={`flex-1 flex flex-col items-center py- rounded-2xl transition-all ${path === '/' ? 'text-black font-black' : 'text-zinc-300 font-bold'}`}
+                className={`flex-1 flex flex-col items-center py- rounded-2xl transition-all ${path === '/' ? 'text-[#E5D5B3] font-black' : 'text-zinc-300 font-bold'}`}
             >
                 <Home size={22} />
                 <span className="text-[10px] mt-1">Home</span>
@@ -39,7 +40,7 @@ const BottomNav: React.FC = () => {
 
             <Link
                 to="/transactions"
-                className={`flex-1 flex flex-col items-center py- rounded-2xl transition-all ${path === '/transactions' ? 'text-black font-black' : 'text-zinc-300 font-bold'}`}
+                className={`flex-1 flex flex-col items-center py- rounded-2xl transition-all ${path === '/transactions' ? 'text-[#E5D5B3] font-black' : 'text-zinc-300 font-bold'}`}
             >
                 <History size={22} />
                 <span className="text-[10px] mt-1">Activity</span>

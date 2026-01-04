@@ -3,38 +3,30 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, TransactionRecord } from '../types';
 import BalanceCard from '../components/BalanceCard';
 import SideDrawer from '../components/SideDrawer';
-import { useNavigate } from 'react-router-dom';
-import {
-  ChevronRight,
-  Shield,
-  Menu,
-  Bell,
-  Users,
-  Plus,
-  UserPlus,
-  QrCode,
-  Send,
-  Download,
-  Check,
-  Search,
-  X
-} from 'lucide-react';
-import { getTransactions, getProfileByStellarId, createGroup, getGroups, searchUsers } from '../services/db';
+import DashboardHeader from '../components/DashboardHeader';
+import QuickActions from '../components/QuickActions';
+import PeopleList from '../components/PeopleList';
+import ReceiveQRModal from '../components/ReceiveQRModal';
+import CreateGroupModal from '../components/CreateGroupModal';
+import { getTransactions, getProfileByStellarId, getGroups } from '../services/db';
 
 interface Props {
   profile: UserProfile | null;
 }
 
+interface Contact {
+  id: string;
+  name: string;
+  avatarSeed: string;
+  isGroup?: boolean;
+}
+
 const Dashboard: React.FC<Props> = ({ profile }) => {
-  const navigate = useNavigate();
-  const [txs, setTxs] = useState<TransactionRecord[]>([]);
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [groupName, setGroupName] = useState('');
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
+  const [showQR, setShowQR] = useState(false);
 
   useEffect(() => {
     const loadData = async () => {
@@ -43,7 +35,6 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       try {
         const res = await getTransactions(profile.stellarId);
         const uniqueTxs = res.slice(0, 20);
-        setTxs(uniqueTxs);
 
         // Extract unique contact IDs
         const uniqueContactIds = Array.from(new Set(uniqueTxs.map(tx =>
@@ -84,7 +75,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
   if (!profile) return null;
 
   return (
-    <div className="pb-32 pt-5 px-6  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] min-h-screen text-white relative overflow-x-hidden">
+    <div className="pb-32 pt-5 px-6 bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] min-h-screen text-white relative overflow-x-hidden">
       <SideDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -93,184 +84,32 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
         avatarSeed={profile.avatarSeed}
       />
 
-      {/* Top Header with Static Search bar leading to /send */}
-      <div className="flex items-center gap-4 mb-8 relative z-[60]">
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="p-3 bg-zinc-900/80 rounded-2xl text-zinc-400 hover-:text-white border border-white/5 shadow-xl transition-all active:scale-95"
-        >
-          <Menu size={22} />
-        </button>
-
-        <div
-          onClick={() => navigate('/send')}
-          className="flex-1 relative cursor-pointer"
-        >
-          <div className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-600">
-            <Search size={18} />
-          </div>
-          <div className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-4 pl-14 pr-12 font-bold text-xs text-zinc-700 shadow-xl flex items-center h-full">
-            Search ...
-          </div>
-        </div>
-      </div>
+      <DashboardHeader onMenuClick={() => setIsSidebarOpen(true)} />
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
 
-      {/* Quick Actions Grid */}
-      <div className="grid grid-cols-4 gap-4 mt-10">
-        {[
-          { icon: <QrCode size={20} />, label: 'Scan', path: '/scan' },
-          { icon: <Send size={20} />, label: 'Send', path: '/send' },
-          { icon: <Download size={20} />, label: 'Receive', path: '/receive' },
-          { icon: <Users size={20} />, label: 'Family', path: '/family' }
-        ].map((action, i) => (
-          <button
-            key={i}
-            onClick={() => navigate(action.path)}
-            className="flex flex-col items-center gap-3"
-          >
-            <div className="w-14 h-14 bg-zinc-900/80 border border-white/5 rounded-2xl flex items-center justify-center text-[#E5D5B3] shadow-lg hover-:bg-zinc-800 transition-all active:scale-90">
-              {action.icon}
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{action.label}</span>
-          </button>
-        ))}
-      </div>
+      <QuickActions onReceiveClick={() => setShowQR(true)} />
 
-      {/* Recent Contacts (Circles) */}
-      <div className="mt-12">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-black tracking-tight">People</h3>
-          <button className="text-[#E5D5B3] text-xs font-black uppercase tracking-widest opacity-60">View All</button>
-        </div>
-        <div className="flex gap-6 overflow-x-auto no-scrollbar pb-4 -mx-2 px-2">
-          {/* Create Group Button */}
-          <button
-            onClick={() => setShowCreateGroup(true)}
-            className="flex flex-col items-center gap-3 min-w-[72px] group"
-          >
-            <div className="w-16 h-16 rounded-[2rem] bg-zinc-900/50 backdrop-blur-md border border-[#E5D5B3]/10 flex items-center justify-center text-[#E5D5B3] group-hover-:gold-gradient group-hover-:text-black transition-all shadow-xl shadow-black/40 group-hover-:scale-105 active:scale-95 group-hover-:border-transparent">
-              <UserPlus size={24} />
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover-:text-[#E5D5B3] transition-colors">New Group</span>
-          </button>
+      <PeopleList
+        contacts={contacts}
+        loading={loading}
+        onCreateGroupClick={() => setShowCreateGroup(true)}
+      />
 
-          {loading ? (
-            <div className="flex gap-6">
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="flex flex-col items-center gap-2 animate-pulse">
-                  <div className="w-16 h-16 bg-zinc-800 rounded-full"></div>
-                  <div className="h-3 bg-zinc-800 rounded w-12"></div>
-                </div>
-              ))}
-            </div>
-          ) : contacts.length === 0 ? (
-            <div className="w-full text-center py-6 bg-zinc-900/30 rounded-3xl border border-white/5">
-              <p className="text-zinc-500 text-sm font-bold">No recent contacts</p>
-            </div>
-          ) : contacts.map((contact: any) => (
-            <button
-              key={contact.id}
-              onClick={() => navigate(contact.isGroup ? `/group/${contact.id}` : `/chat/${contact.id}`)}
-              className="flex flex-col items-center gap-3 min-w-[72px] group"
-            >
-              <div className={`w-16 h-16 rounded-[2rem] ${contact.isGroup ? 'bg-zinc-900 border-[#E5D5B3]/40' : 'bg-zinc-800 border-white/5'} border overflow-hidden group-hover-:border-[#E5D5B3]/80 transition-all shadow-2xl shadow-black/60 group-hover-:scale-105 active:scale-95 flex items-center justify-center relative group`}>
-                <img
-                  src={`https://api.dicebear.com/7.x/${contact.isGroup ? 'shapes' : 'avataaars'}/svg?seed=${contact.avatarSeed}`}
-                  alt={contact.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover-:text-white transition-colors truncate w-16 text-center">{contact.name}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Create Group Modal */}
       {showCreateGroup && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowCreateGroup(false)}></div>
-          <div className="relative w-full max-w-sm bg-zinc-900 rounded-[3rem] p-8 border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom-10">
-            <h3 className="text-xl font-black mb-1">Create Group</h3>
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-8">Split expenses with friends</p>
-
-            <input
-              type="text"
-              placeholder="Group Name"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 px-6 font-bold text-sm mb-6 outline-none focus:border-[#E5D5B3]/20"
-            />
-
-            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-4 px-2">Select Members</p>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar mb-8 -mx-2 px-2">
-              {contacts.filter(c => !c.isGroup).map(c => {
-                const isSelected = selectedMembers.includes(c.id);
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      if (isSelected) setSelectedMembers(prev => prev.filter(id => id !== c.id));
-                      else setSelectedMembers(prev => [...prev, c.id]);
-                    }}
-                    className="flex flex-col items-center gap-2 min-w-[60px] relative"
-                  >
-                    <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all ${isSelected ? 'border-[#E5D5B3] scale-90' : 'border-transparent opacity-40'}`}>
-                      <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.avatarSeed}`} className="w-full h-full" />
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-0 right-0 w-5 h-5 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black">
-                        <Check size={12} strokeWidth={4} />
-                      </div>
-                    )}
-                    <span className="text-[9px] font-black uppercase tracking-tighter truncate w-14 text-center">{c.name}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex gap-4">
-              <button onClick={() => setShowCreateGroup(false)} className="flex-1 py-4 bg-zinc-800 rounded-2xl font-black text-xs uppercase tracking-widest text-zinc-500">Cancel</button>
-              <button
-                disabled={!groupName || selectedMembers.length === 0 || isCreating}
-                onClick={async () => {
-                  setIsCreating(true);
-                  try {
-                    const id = await createGroup({
-                      name: groupName,
-                      members: [profile.stellarId, ...selectedMembers],
-                      createdBy: profile.stellarId,
-                      avatarSeed: groupName
-                    });
-                    navigate(`/group/${id}`);
-                  } catch (e) {
-                    console.error(e);
-                  } finally {
-                    setIsCreating(false);
-                  }
-                }}
-                className="flex-[2] py-4 gold-gradient text-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl disabled:opacity-30 flex items-center justify-center"
-              >
-                {isCreating ? <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> : 'Create Group'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <CreateGroupModal
+          contacts={contacts}
+          stellarId={profile.stellarId}
+          onClose={() => setShowCreateGroup(false)}
+        />
       )}
 
-      {/* Footer Insight Card (matching bottom of image) */}
-      <div className="mt-12 bg-zinc-900/50 border border-white/5 p-6 rounded-3xl flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-xs font-medium text-zinc-400 leading-relaxed">
-            Good Job! Your Spending have reduced by <span className="text-white">18%</span> from last month.
-          </p>
-        </div>
-        <button className="text-[#E5D5B3] text-xs font-black uppercase tracking-widest ml-4 whitespace-nowrap">
-          View Details
-        </button>
-      </div>
+      {showQR && (
+        <ReceiveQRModal
+          stellarId={profile.stellarId}
+          onClose={() => setShowQR(false)}
+        />
+      )}
     </div>
   );
 };
