@@ -45,7 +45,7 @@ const QRScanner: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-white flex flex-col relative overflow-hidden">
+    <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white flex flex-col relative overflow-hidden">
       <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
 
       <div className="relative z-10 pt-5 px-3 flex items-center justify-between">

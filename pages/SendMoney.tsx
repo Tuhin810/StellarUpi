@@ -228,7 +228,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
   if (selectedContact) {
     return (
-      <div className="min-h-screen bg-[#1A1A1A] flex flex-col relative overflow-hidden text-white">
+      <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] flex flex-col relative overflow-hidden text-white">
         <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
 
         <div className="relative z-20 pt-5 px-6 flex items-center justify-between">
@@ -362,18 +362,21 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   }
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-white">
-      <div className="pt-5 px-5 flex items-center justify-between mb-8">
+    <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white">
+      <div className="pt-5 px-5 flex items-center justify-between mb-">
         <div>
-          <button onClick={() => navigate("/")} className="mb-4 text-zinc-500 hover:text-white transition-colors">
-            <ArrowLeft size={24} />
+          <button
+            onClick={() => navigate("/")}
+            className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-white/60 hover:bg-white/10 transition-all"
+          >
+            <ArrowLeft size={20} />
           </button>
-          <h2 className="text-4xl font-black tracking-tighter">Transfer</h2>
+          {/* <h2 className="text-4xl font-black tracking-tighter">Transfer</h2> */}
         </div>
 
       </div>
 
-      <div className="px-5 mb-10">
+      <div className="px-5 mb-10 mt-3">
         <div className="relative group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#E5D5B3] transition-colors" size={20} />
           <input

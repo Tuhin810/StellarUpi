@@ -32,14 +32,14 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
     }, [txId, profile]);
 
     if (loading) return (
-        <div className="h-screen bg-[#1A1A1A] flex flex-col items-center justify-center">
+        <div className="h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] flex flex-col items-center justify-center">
             <div className="w-12 h-12 border-4 border-[#E5D5B3] border-t-transparent rounded-full animate-spin mb-4"></div>
             <p className="text-[#E5D5B3] font-black uppercase tracking-[0.3em] text-[10px]">Verifying Ledger</p>
         </div>
     );
 
     if (!tx || !profile) return (
-        <div className="h-screen bg-[#1A1A1A] flex flex-col items-center justify-center p-8 text-center">
+        <div className="h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] flex flex-col items-center justify-center p-8 text-center">
             <XCircle size={64} className="text-rose-500 mb-6 opacity-20" />
             <h2 className="text-xl font-black mb-2">Record Not Found</h2>
             <p className="text-zinc-500 text-sm mb-8">This transaction doesn't exist or you don't have permission to view it.</p>
@@ -58,7 +58,7 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
     };
 
     return (
-        <div className="min-h-screen bg-[#1A1A1A] text-white flex flex-col">
+        <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white flex flex-col">
             {/* Header */}
             <div className="pt-5 px-3 flex items-center justify-between relative z-10 mb-8">
                 <button onClick={() => navigate(-1)} className="p-3 bg-zinc-900/80 rounded-2xl text-zinc-400 hover:text-white border border-white/5 shadow-xl transition-all active:scale-95">

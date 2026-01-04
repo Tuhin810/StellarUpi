@@ -39,7 +39,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
   }, [profile]);
 
   return (
-    <div className="min-h-screen bg-[#1A1A1A] text-white pb-32">
+    <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white pb-32">
       {/* Header */}
       <div className="pt-5 px-3 flex items-center justify-between mb-10">
         <div className="flex items-center gap-6">

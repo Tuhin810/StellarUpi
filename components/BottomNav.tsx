@@ -11,6 +11,7 @@ const BottomNav: React.FC = () => {
     if (
         path === '/send' ||
         path === '/receive' ||
+        path === '/family' ||
         path.startsWith('/chat') ||
         path.startsWith('/group') ||
         (path.startsWith('/transaction/') && !path.startsWith('/transactions'))

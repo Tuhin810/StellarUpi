@@ -138,7 +138,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
     if (!profile || !contactId) return null;
 
     return (
-        <div className="flex flex-col h-screen bg-[#1A1A1A] text-white overflow-hidden">
+        <div className="flex flex-col h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white overflow-hidden">
             {/* Header */}
             <div className="pt-5 pb-4 px-2 bg-zinc-900 border-b border-white/5 flex items-center justify-between sticky top-0 z-50">
                 <div className="flex items-center gap-4">
@@ -240,7 +240,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
             </div>
 
             {/* Footer Controls */}
-            <div className="p-6 pb-12 bg-zinc-900 border-t border-white/5 space-y-4">
+            <div className="p-6 pb-6 bg-zinc-900 border-t border-white/5 space-y-4">
                 <div className="flex gap-4">
                     <button
                         onClick={() => navigate(`/send?to=${contactId}`)}

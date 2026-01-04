@@ -84,7 +84,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
   if (!profile) return null;
 
   return (
-    <div className="pb-32 pt-5 px-6 bg-[#1A1A1A] min-h-screen text-white relative overflow-x-hidden">
+    <div className="pb-32 pt-5 px-6  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] min-h-screen text-white relative overflow-x-hidden">
       <SideDrawer
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
@@ -110,7 +110,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
             <Search size={18} />
           </div>
           <div className="w-full bg-zinc-900 border border-white/5 rounded-2xl py-4 pl-14 pr-12 font-bold text-xs text-zinc-700 shadow-xl flex items-center h-full">
-            Search name, address...
+            Search ...
           </div>
         </div>
       </div>

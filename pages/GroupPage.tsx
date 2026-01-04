@@ -117,7 +117,7 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
     if (!group || !profile) return null;
 
     return (
-        <div className="min-h-screen bg-[#1A1A1A] text-white flex flex-col">
+        <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white flex flex-col">
             {/* Dynamic Header */}
             <div className="pt-5 pb-8 px-2 bg-zinc-900/50 backdrop-blur-xl border-b border-white/5 sticky top-0 z-50">
                 <div className="flex items-center gap-4 mb-6">
@@ -239,7 +239,7 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
             </div>
 
             {/* Message Input */}
-            <div className="p-6 pb-12 bg-zinc-900/80 backdrop-blur-xl border-t border-white/5 relative z-10">
+            <div className="p-6 pb-6 bg-zinc-900/80 backdrop-blur-xl border-t border-white/5 relative z-10">
                 <div className="relative">
                     <input
                         type="text"
