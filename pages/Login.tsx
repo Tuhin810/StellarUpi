@@ -69,7 +69,7 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#1a1a1a] flex flex-col justify-end relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] flex flex-col justify-end relative overflow-hidden">
       {/* Large watermark text in background */}
 
       {/* Warm gradient overlay at bottom */}

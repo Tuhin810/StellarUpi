@@ -6,11 +6,15 @@
 :root {
   --premium-gold: #E5D5B3;
   --premium-gold-dark: #C5B38F;
-  --premium-bg: #1A1A1A;
+  --premium-bg: #000000;
   --premium-card: #262626;
   --premium-zinc-500: #71717A;
 }
-
+html{
+  background-color: var(--premium-bg);
+  padding: 0;
+  margin: 0;
+}
 body {
   background-color: var(--premium-bg);
   color: white;
