@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { signInAnonymously } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { getProfile } from '../services/db';
-import { getMetaMaskProvider } from '../services/web3';
+import { useWeb3ModalAccount } from '../services/web3';
 import { UserProfile } from '../types';
 
 interface AuthContextType {
@@ -19,28 +19,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [profile, setProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
 
+    // Use Web3Modal's account hook
+    const { address, isConnected } = useWeb3ModalAccount();
+
     const loadWeb3Profile = async () => {
         try {
-            const provider = getMetaMaskProvider();
-            if (!provider) {
-                setLoading(false);
-                return;
-            }
-
             const loggedAddress = localStorage.getItem('web3_address');
             if (!loggedAddress) {
                 setLoading(false);
                 return;
             }
 
-            // Check if MetaMask is connected and the address matches
-            const accounts = await provider.send("eth_accounts", []);
-            if (accounts.length > 0 && accounts[0].toLowerCase() === loggedAddress.toLowerCase()) {
+            // Check if Web3Modal is connected and the address matches
+            if (isConnected && address && address.toLowerCase() === loggedAddress.toLowerCase()) {
                 await signInAnonymously(auth);
                 const p = await getProfile(loggedAddress.toLowerCase());
                 setProfile(p);
+            } else if (!isConnected) {
+                // Check localStorage for session - user might have refreshed page
+                // Try to restore session even without active connection
+                await signInAnonymously(auth);
+                const p = await getProfile(loggedAddress.toLowerCase());
+                if (p) {
+                    setProfile(p);
+                } else {
+                    // No profile found, clear storage
+                    localStorage.removeItem('web3_address');
+                    sessionStorage.removeItem('temp_vault_key');
+                    setProfile(null);
+                }
             } else {
-                // Session mismatch, logout
+                // Address mismatch, logout
                 localStorage.removeItem('web3_address');
                 sessionStorage.removeItem('temp_vault_key');
                 setProfile(null);
@@ -54,7 +63,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     useEffect(() => {
         loadWeb3Profile();
+    }, [isConnected, address]);
 
+    // Handle account changes from injected wallet
+    useEffect(() => {
         if (window.ethereum) {
             const handleAccountsChanged = (accounts: string[]) => {
                 const storedAddress = localStorage.getItem('web3_address');

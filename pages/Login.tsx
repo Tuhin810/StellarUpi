@@ -5,84 +5,84 @@ import { auth } from '../services/firebase';
 import { saveUser, getProfile } from '../services/db';
 import { createWallet } from '../services/stellar';
 import { encryptSecret } from '../services/encryption';
-import { connectWallet, signMessage, generateUPIFromAddress } from '../services/web3';
+import { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount, generateUPIFromAddress } from '../services/web3';
 import { useNavigate } from 'react-router-dom';
-import { Wallet, Loader2, ArrowRight, Smartphone } from 'lucide-react';
+import { Wallet, Loader2, ArrowRight } from 'lucide-react';
+import { BrowserProvider } from 'ethers';
 
 const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
-  const [isMobile, setIsMobile] = useState(false);
-  const [hasMetaMask, setHasMetaMask] = useState(false);
   const navigate = useNavigate();
 
+  // Web3Modal hooks
+  const { open } = useWeb3Modal();
+  const { walletProvider } = useWeb3ModalProvider();
+  const { address, isConnected } = useWeb3ModalAccount();
+
+  // Effect to handle post-connection flow
   useEffect(() => {
-    // Detect mobile device
-    const mobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    setIsMobile(mobile);
-    setHasMetaMask(!!window.ethereum);
-  }, []);
+    const handleConnection = async () => {
+      if (isConnected && address && walletProvider && !loading) {
+        setLoading(true);
+        setStatus('Signing message...');
 
-  const handleMetaMaskLogin = async () => {
-    // If mobile and no MetaMask detected, open in MetaMask browser
-    if (isMobile && !window.ethereum) {
-      // Deep link to open this URL in MetaMask's in-app browser
-      const currentUrl = window.location.href;
-      const metamaskDeepLink = `https://metamask.app.link/dapp/${currentUrl.replace(/^https?:\/\//, '')}`;
-      window.location.href = metamaskDeepLink;
-      return;
-    }
+        try {
+          const provider = new BrowserProvider(walletProvider);
+          const signer = await provider.getSigner();
 
-    setLoading(true);
-    setStatus('Initializing...');
+          const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
+          const signature = await signer.signMessage(message);
 
+          const addressLower = address.toLowerCase();
+          setStatus('Verifying...');
+
+          await signInAnonymously(auth);
+
+          let profile = await getProfile(addressLower);
+
+          if (!profile) {
+            setStatus('Creating vault...');
+            const stellarId = generateUPIFromAddress(addressLower);
+            const { publicKey, secret } = await createWallet();
+            const encryptedSecret = encryptSecret(secret, signature);
+
+            profile = {
+              uid: addressLower,
+              email: `${addressLower.substring(0, 10)}@metamask`,
+              stellarId: stellarId,
+              publicKey,
+              encryptedSecret,
+              isFamilyOwner: true
+            };
+
+            await saveUser(profile);
+          }
+
+          localStorage.setItem('web3_address', addressLower);
+          sessionStorage.setItem('temp_vault_key', signature);
+
+          window.location.href = '/';
+        } catch (err: any) {
+          console.error("Login Error:", err);
+          let errorMsg = err.message || "Connection failed";
+          if (err.code === 4001) errorMsg = "Request rejected";
+          setStatus(errorMsg);
+          setLoading(false);
+        }
+      }
+    };
+
+    handleConnection();
+  }, [isConnected, address, walletProvider]);
+
+  const handleConnectWallet = async () => {
     try {
-      if (!window.ethereum) {
-        throw new Error("MetaMask not detected. Install extension to continue.");
-      }
-
-      setStatus('Connecting wallet...');
-      const { address, signer } = await connectWallet();
-
-      setStatus('Signing message...');
-      const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
-      const signature = await signMessage(signer, message);
-
-      const addressLower = address.toLowerCase();
-      setStatus('Verifying...');
-
-      await signInAnonymously(auth);
-
-      let profile = await getProfile(addressLower);
-
-      if (!profile) {
-        setStatus('Creating vault...');
-        const stellarId = generateUPIFromAddress(addressLower);
-        const { publicKey, secret } = await createWallet();
-        const encryptedSecret = encryptSecret(secret, signature);
-
-        profile = {
-          uid: addressLower,
-          email: `${addressLower.substring(0, 10)}@metamask`,
-          stellarId: stellarId,
-          publicKey,
-          encryptedSecret,
-          isFamilyOwner: true
-        };
-
-        await saveUser(profile);
-      }
-
-      localStorage.setItem('web3_address', addressLower);
-      sessionStorage.setItem('temp_vault_key', signature);
-
-      window.location.href = '/';
+      // Open Web3Modal - it handles both desktop MetaMask and mobile WalletConnect
+      await open();
     } catch (err: any) {
-      console.error("MetaMask Login Error:", err);
-      let errorMsg = err.message || "Connection failed";
-      if (err.code === 4001) errorMsg = "Request rejected";
-      setStatus(errorMsg);
-      setLoading(false);
+      console.error("Connect Error:", err);
+      setStatus(err.message || "Failed to open wallet");
     }
   };
 
@@ -100,20 +100,9 @@ const Login: React.FC = () => {
 
       {/* Content container */}
       <div className="relative z-10 flex-1 flex flex-col justify-end p-6 pb-10">
-        {/* Mobile hint */}
-        {isMobile && !hasMetaMask && (
-          <div className="mb-4 p-4 bg-white/5 border border-white/10 rounded-2xl flex items-start gap-3">
-            <Smartphone size={20} className="text-[#E5D5B3] flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-white text-sm font-medium mb-1">Open in MetaMask</p>
-              <p className="text-white/50 text-xs">Tap the button below to open this app in MetaMask's browser</p>
-            </div>
-          </div>
-        )}
-
         {/* CTA Button */}
         <button
-          onClick={handleMetaMaskLogin}
+          onClick={handleConnectWallet}
           disabled={loading}
           className="w-full py-5 bg-[#E5D5B3] text-black rounded-2xl font-semibold text-base shadow-xl shadow-[#E5D5B3]/20 hover:bg-[#d4c4a2] active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-3"
         >
@@ -122,16 +111,10 @@ const Login: React.FC = () => {
               <Loader2 className="animate-spin" size={20} />
               <span>{status}</span>
             </>
-          ) : isMobile && !hasMetaMask ? (
-            <>
-              <Smartphone size={20} />
-              <span>Open in MetaMask</span>
-              <ArrowRight size={18} />
-            </>
           ) : (
             <>
               <Wallet size={20} />
-              <span>Connect MetaMask</span>
+              <span>Connect Wallet</span>
               <ArrowRight size={18} />
             </>
           )}
