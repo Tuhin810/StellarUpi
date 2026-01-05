@@ -35,7 +35,9 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [loadingContacts, setLoadingContacts] = useState(true);
 
   const [walletBalance, setWalletBalance] = useState<string>('0.00');
-  const [familyWallet, setFamilyWallet] = useState<FamilyWalletInfo | null>(null);
+  // Changed from single FamilyWalletInfo to array to support multiple families
+  const [familyWallets, setFamilyWallets] = useState<FamilyWalletInfo[]>([]);
+  const [selectedFamilyIndex, setSelectedFamilyIndex] = useState<number>(0);
   const [loadingBalances, setLoadingBalances] = useState(true);
 
   const [amount, setAmount] = useState(searchParams.get('amt') || '');
@@ -52,16 +54,27 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         const balance = await getBalance(profile.publicKey);
         setWalletBalance(balance);
 
+        // Fetch ALL family memberships for this user
         const q = query(collection(db, 'family'), where('uid', '==', profile.uid), where('active', '==', true));
         const snap = await getDocs(q);
+
         if (!snap.empty) {
-          const permission = { id: snap.docs[0].id, ...snap.docs[0].data() } as FamilyMember;
-          const ownerUid = (permission as any).ownerUid;
-          const ownerProfile = await getProfile(ownerUid);
-          if (ownerProfile) {
-            const ownerBalance = await getBalance(ownerProfile.publicKey);
-            setFamilyWallet({ permission, ownerProfile, ownerBalance });
-          }
+          // Process ALL family memberships, not just the first one
+          const familyPromises = snap.docs.map(async (docSnap) => {
+            const permission = { id: docSnap.id, ...docSnap.data() } as FamilyMember;
+            const ownerUid = (permission as any).ownerUid;
+            const ownerProfile = await getProfile(ownerUid);
+
+            if (ownerProfile) {
+              const ownerBalance = await getBalance(ownerProfile.publicKey);
+              return { permission, ownerProfile, ownerBalance };
+            }
+            return null;
+          });
+
+          const results = await Promise.all(familyPromises);
+          const validFamilies = results.filter((f): f is FamilyWalletInfo => f !== null);
+          setFamilyWallets(validFamilies);
         }
       } catch (err) {
         console.error('Error loading balances:', err);
@@ -121,9 +134,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const xlmToInrRaw = (xlm: string) => parseFloat(xlm) * 8.42;
   const xlmToInr = (xlm: string) => xlmToInrRaw(xlm).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
-  const getFamilyRemainingLimit = () => {
-    if (!familyWallet) return 0;
-    return familyWallet.permission.dailyLimit - familyWallet.permission.spentToday;
+  // Get the currently selected family wallet
+  const selectedFamilyWallet = familyWallets[selectedFamilyIndex] || null;
+
+  const getFamilyRemainingLimit = (wallet: FamilyWalletInfo | null) => {
+    if (!wallet) return 0;
+    return wallet.permission.dailyLimit - wallet.permission.spentToday;
   };
 
   const handlePay = async (e: React.FormEvent) => {
@@ -137,18 +153,18 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       const recipient = await getUserById(selectedContact.id);
       if (!recipient) throw new Error("Recipient ID not found");
 
-      if (paymentMethod === 'family' && familyWallet) {
-        if (amtNum > getFamilyRemainingLimit()) throw new Error("Exceeds daily spending limit");
+      if (paymentMethod === 'family' && selectedFamilyWallet) {
+        if (amtNum > getFamilyRemainingLimit(selectedFamilyWallet)) throw new Error("Exceeds daily spending limit");
 
         let ownerSecret: string;
 
         // Try using the seamless shared secret first
-        if ((familyWallet.permission as any).sharedSecret) {
-          ownerSecret = decryptSecret((familyWallet.permission as any).sharedSecret, profile.uid.toLowerCase());
+        if ((selectedFamilyWallet.permission as any).sharedSecret) {
+          ownerSecret = decryptSecret((selectedFamilyWallet.permission as any).sharedSecret, profile.uid.toLowerCase());
         } else {
           const vaultKey = sessionStorage.getItem('temp_vault_key');
           if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you in the Family Manager.");
-          ownerSecret = decryptSecret(familyWallet.ownerProfile.encryptedSecret, vaultKey);
+          ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, vaultKey);
         }
 
         if (!ownerSecret || !ownerSecret.startsWith('S')) {
@@ -157,11 +173,11 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
         const xlmAmount = (amtNum / 8.42).toFixed(7);
         const hash = await sendPayment(ownerSecret, recipient.publicKey, xlmAmount, `FamilySpend: ${profile.stellarId}`);
-        await updateFamilySpend(familyWallet.permission.id, amtNum);
+        await updateFamilySpend(selectedFamilyWallet.permission.id, amtNum);
         await recordTransaction({
-          fromId: familyWallet.ownerProfile.stellarId,
+          fromId: selectedFamilyWallet.ownerProfile.stellarId,
           toId: selectedContact.id,
-          fromName: familyWallet.ownerProfile.stellarId,
+          fromName: selectedFamilyWallet.ownerProfile.stellarId,
           toName: selectedContact.id,
           amount: amtNum,
           currency: 'INR',
@@ -314,30 +330,45 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
               </div>
             </button>
 
-            {familyWallet && (
+            {/* Render ALL family wallets */}
+            {familyWallets.map((familyWallet, index) => (
               <button
-                onClick={() => setPaymentMethod('family')}
-                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${paymentMethod === 'family' ? 'border-zinc-900 bg-zinc-50' : 'border-zinc-100'
+                key={familyWallet.permission.id}
+                onClick={() => {
+                  setPaymentMethod('family');
+                  setSelectedFamilyIndex(index);
+                }}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${paymentMethod === 'family' && selectedFamilyIndex === index
+                    ? 'border-zinc-900 bg-zinc-50'
+                    : 'border-zinc-100'
                   }`}
               >
                 <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentMethod === 'family' ? 'bg-zinc-900 text-[#E5D5B3]' : 'bg-zinc-100 text-zinc-400'
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentMethod === 'family' && selectedFamilyIndex === index
+                      ? 'bg-zinc-900 text-[#E5D5B3]'
+                      : 'bg-zinc-100 text-zinc-400'
                     }`}>
                     <Shield size={18} />
                   </div>
                   <div className="text-left">
-                    <p className="font-black text-black text-sm tracking-tight">Family Account</p>
+                    <p className="font-black text-black text-sm tracking-tight">
+                      {familyWallet.ownerProfile.displayName || familyWallet.ownerProfile.stellarId.split('@')[0]}'s Family
+                    </p>
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                      Remaining: ₹{getFamilyRemainingLimit().toLocaleString()}
+                      Remaining: ₹{getFamilyRemainingLimit(familyWallet).toLocaleString()}
                     </p>
                   </div>
                 </div>
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'family' ? 'border-zinc-900' : 'border-zinc-200'
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'family' && selectedFamilyIndex === index
+                    ? 'border-zinc-900'
+                    : 'border-zinc-200'
                   }`}>
-                  {paymentMethod === 'family' && <div className="w-2.5 h-2.5 bg-zinc-900 rounded-full" />}
+                  {paymentMethod === 'family' && selectedFamilyIndex === index && (
+                    <div className="w-2.5 h-2.5 bg-zinc-900 rounded-full" />
+                  )}
                 </div>
               </button>
-            )}
+            ))}
           </div>
 
           <button
