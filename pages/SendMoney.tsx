@@ -1,13 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { UserProfile, TransactionRecord, FamilyMember } from '../types';
+import { UserProfile, FamilyMember } from '../types';
 import { getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, CheckCircle2, Search, User, Wallet, Shield, Sparkles, ChevronRight, X } from 'lucide-react';
+import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import SuccessScreen from '../components/SuccessScreen';
+import UpiDrawer from '../components/UpiDrawer';
 
 interface Props {
   profile: UserProfile | null;
@@ -216,31 +218,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
   if (success) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#1A1A1A] text-white text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full">
-          <div className="absolute top-[20%] left-[20%] w-[120%] h-[60%] bg-[#E5D5B3]/5 rounded-full blur-[120px] rotate-[-15deg]"></div>
-        </div>
-
-        <div className="relative z-10 flex flex-col items-center max-w-sm w-full">
-          <div className="w-24 h-24 gold-gradient text-black rounded-full flex items-center justify-center mb-10 shadow-[0_0_50px_rgba(229,213,179,0.2)]">
-            <CheckCircle2 size={48} />
-          </div>
-          <h2 className="text-3xl font-black mb-2 tracking-tight">Success</h2>
-          <p className="text-zinc-500 font-medium mb-12">Transfer to <span className="text-white">{selectedContact?.name}</span> completed</p>
-
-          <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 w-full rounded-[2.5rem] p-10 mb-12">
-            <span className="text-zinc-500 text-xs font-black uppercase tracking-[0.2em] block mb-2">Total Amount</span>
-            <h3 className="text-5xl font-black italic">₹{parseInt(amount).toLocaleString()}</h3>
-          </div>
-
-          <button
-            onClick={() => navigate('/')}
-            className="w-full gold-gradient text-black py-5 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
-          >
-            Done
-          </button>
-        </div>
-      </div>
+      <SuccessScreen
+        recipientName={selectedContact?.name || ''}
+        amount={amount}
+      />
     );
   }
 
@@ -461,81 +442,25 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       </div>
 
       {/* UPI Bottom Drawer */}
-      <div
-        className={`fixed inset-0 z-50 transition-opacity duration-300 ${isUpiDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-      >
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          onClick={() => setIsUpiDrawerOpen(false)}
-        />
-
-        {/* Drawer */}
-        <div
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2rem] transition-transform duration-300 ease-out ${isUpiDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ height: '50vh', minHeight: '320px' }}
-        >
-          {/* Handle */}
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 bg-zinc-700 rounded-full" />
-          </div>
-
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 pb-6">
-            <h3 className="text-xl font-black text-white tracking-tight">Enter UPI ID</h3>
-            <button
-              onClick={() => setIsUpiDrawerOpen(false)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Content */}
-          <div className="px-6 flex flex-col gap-6">
-            {/* Input Field */}
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                <User size={20} className="text-zinc-500" />
-              </div>
-              <input
-                type="text"
-                placeholder="example@upi"
-                value={upiInput}
-                onChange={(e) => setUpiInput(e.target.value)}
-                autoFocus={isUpiDrawerOpen}
-                className="w-full pl-12 pr-4 py-4 bg-zinc-800/60 border border-white/10 rounded-2xl text-white text-lg font-medium placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/40 focus:ring-2 focus:ring-[#E5D5B3]/20 transition-all"
-              />
-            </div>
-
-            {/* Search Button */}
-            <button
-              onClick={async () => {
-                if (upiInput.trim()) {
-                  const id = upiInput.trim();
-                  const profile = await getProfileByStellarId(id);
-                  setSelectedContact({
-                    id,
-                    name: profile?.displayName || id.split('@')[0],
-                    avatarSeed: profile?.avatarSeed || id
-                  });
-                  setIsUpiDrawerOpen(false);
-                }
-              }}
-              disabled={!upiInput.trim()}
-              className="w-full gold-gradient text-black py-4 rounded-2xl font-black text-lg shadow-xl active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
-            >
-              <Search size={20} />
-              <span>Search & Continue</span>
-            </button>
-
-            {/* Hint Text */}
-            <p className="text-zinc-500 text-xs font-medium text-center">
-              Enter a valid UPI ID to send money directly
-            </p>
-          </div>
-        </div>
-      </div>
+      <UpiDrawer
+        isOpen={isUpiDrawerOpen}
+        onClose={() => setIsUpiDrawerOpen(false)}
+        upiInput={upiInput}
+        setUpiInput={setUpiInput}
+        onSearch={async () => {
+          if (upiInput.trim()) {
+            const id = upiInput.trim();
+            const profile = await getProfileByStellarId(id);
+            setSelectedContact({
+              id,
+              name: profile?.displayName || id.split('@')[0],
+              avatarSeed: profile?.avatarSeed || id
+            });
+            setIsUpiDrawerOpen(false);
+          }
+        }}
+        searching={false}
+      />
 
 
 
