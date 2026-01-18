@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { signInAnonymously } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { getProfile } from '../services/db';
+import { onSnapshot, doc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import { useWeb3ModalAccount } from '../services/web3';
 import { UserProfile } from '../types';
 
@@ -10,7 +12,7 @@ interface AuthContextType {
     profile: UserProfile | null;
     loading: boolean;
     isAuthenticated: boolean;
-    refreshProfile: () => Promise<void>;
+    refreshProfileSync: (uid: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -22,6 +24,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     // Use Web3Modal's account hook
     const { address, isConnected } = useWeb3ModalAccount();
 
+    const setupProfileListener = (uid: string) => {
+        return onSnapshot(doc(db, 'upiAccounts', uid.toLowerCase()), (snap) => {
+            if (snap.exists()) {
+                setProfile(snap.data() as UserProfile);
+            } else {
+                setProfile(null);
+            }
+            setLoading(false);
+        }, (err) => {
+            console.error("Profile listen error", err);
+            setLoading(false);
+        });
+    };
+
     const loadWeb3Profile = async () => {
         try {
             const loggedAddress = localStorage.getItem('web3_address');
@@ -30,39 +46,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 return;
             }
 
+            await signInAnonymously(auth);
+
             // Check if Web3Modal is connected and the address matches
             if (isConnected && address && address.toLowerCase() === loggedAddress.toLowerCase()) {
-                await signInAnonymously(auth);
-                const p = await getProfile(loggedAddress.toLowerCase());
-                setProfile(p);
+                // Connection okay
             } else if (!isConnected) {
-                // Check localStorage for session - user might have refreshed page
-                // Try to restore session even without active connection
-                await signInAnonymously(auth);
-                const p = await getProfile(loggedAddress.toLowerCase());
-                if (p) {
-                    setProfile(p);
-                } else {
-                    // No profile found, clear storage
-                    localStorage.removeItem('web3_address');
-                    sessionStorage.removeItem('temp_vault_key');
-                    setProfile(null);
-                }
+                // Restoring session without connection
             } else {
                 // Address mismatch, logout
                 localStorage.removeItem('web3_address');
                 sessionStorage.removeItem('temp_vault_key');
                 setProfile(null);
+                setLoading(false);
+                return;
             }
+
+            // Always setup listener if we have a logged address
+            const unsub = setupProfileListener(loggedAddress);
+            return unsub;
         } catch (e) {
             console.error("Session restore failed", e);
-        } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        loadWeb3Profile();
+        let unsub: (() => void) | undefined;
+        loadWeb3Profile().then(cleanup => {
+            if (typeof cleanup === 'function') {
+                unsub = cleanup;
+            }
+        });
+        return () => {
+            if (unsub) unsub();
+        };
     }, [isConnected, address]);
 
     // Handle account changes from injected wallet
@@ -90,7 +108,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         profile,
         loading,
         isAuthenticated: !!profile,
-        refreshProfile: loadWeb3Profile
+        refreshProfileSync: setupProfileListener
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

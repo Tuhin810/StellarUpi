@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, User, Settings, HelpCircle, Shield, LogOut, ChevronRight, Zap, ToggleLeft, ToggleRight, ArrowDownToLine } from 'lucide-react';
+import { X, User, Settings, HelpCircle, Shield, LogOut, ChevronRight, Zap, ToggleLeft, ToggleRight, ArrowDownToLine, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNetwork } from '../context/NetworkContext';
 
@@ -20,6 +20,7 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
     const menuItems = [
         { icon: <User size={22} />, label: 'My Profile', path: '/profile' },
         { icon: <ArrowDownToLine size={22} />, label: 'Withdraw to Bank', path: '/withdraw' },
+        { icon: <Repeat size={22} />, label: 'AutoPay', path: '/autopay' },
         { icon: <Settings size={22} />, label: 'Settings', path: '/settings' },
         { icon: <Shield size={22} />, label: 'Security & Privacy', path: '/security' },
         { icon: <HelpCircle size={22} />, label: 'Help & Support', path: '/help' },

@@ -16,7 +16,8 @@ import {
     Save,
     RefreshCw,
     ChevronRight,
-    Sparkles
+    Sparkles,
+    Lock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -34,11 +35,16 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const [nickname, setNickname] = useState(profile?.displayName || profile?.stellarId.split('@')[0] || '');
     const [avatarSeed, setAvatarSeed] = useState(profile?.avatarSeed || profile?.stellarId || 'custom-seed');
     const [saving, setSaving] = useState(false);
+    const [isEditingLimit, setIsEditingLimit] = useState(false);
+    const [dailyLimit, setDailyLimit] = useState(profile?.dailyLimit || 0);
+    const [showSecurityModal, setShowSecurityModal] = useState(false);
+    const [pinEntry, setPinEntry] = useState('');
 
     useEffect(() => {
         if (profile) {
             setNickname(profile.displayName || profile.stellarId.split('@')[0]);
             setAvatarSeed(profile.avatarSeed || profile.stellarId);
+            setDailyLimit(profile.dailyLimit || 0);
         }
     }, [profile]);
 
@@ -55,9 +61,11 @@ const Profile: React.FC<Props> = ({ profile }) => {
         try {
             await updateUserDetails(profile.uid, {
                 displayName: nickname,
-                avatarSeed: avatarSeed
+                avatarSeed: avatarSeed,
+                dailyLimit: dailyLimit
             });
             setIsEditingName(false);
+            setIsEditingLimit(false);
         } catch (err) {
             console.error("Failed to update profile", err);
         } finally {
@@ -178,7 +186,58 @@ const Profile: React.FC<Props> = ({ profile }) => {
                 <div className="mb-6">
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4 px-1">Account Details</p>
 
-                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
+                    <div className="bg-zinc-900/50 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden mb-6">
+                        {/* Daily Spending Limit */}
+                        <div className="p-5 border-b border-white/5">
+                            <div className="flex justify-between items-start mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-[#E5D5B3]/10 rounded-xl flex items-center justify-center text-[#E5D5B3]">
+                                        <ShieldCheck size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wider text-white/30">Daily Spending Limit</p>
+                                        <div className="flex items-center gap-2">
+                                            {isEditingLimit ? (
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-zinc-500 font-bold">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        value={dailyLimit}
+                                                        onChange={(e) => setDailyLimit(Number(e.target.value))}
+                                                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 w-24 text-sm font-bold focus:border-[#E5D5B3]/50 outline-none"
+                                                        autoFocus
+                                                    />
+                                                    <button onClick={handleUpdateProfile} className="text-[#E5D5B3] hover:scale-110 transition-transform">
+                                                        <Save size={16} />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center gap-2">
+                                                    <p className="font-bold text-lg">₹{profile.dailyLimit || 0}</p>
+                                                    <button onClick={() => setIsEditingLimit(true)} className="p-1 text-white/20 hover:text-[#E5D5B3] transition-colors">
+                                                        <Edit2 size={12} />
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[10px] text-white/20 uppercase font-black">Allowance</p>
+                                    <p className="text-xs font-bold text-emerald-500">₹{Math.max(0, (profile.dailyLimit || 0) - (profile.spentToday || 0))}</p>
+                                </div>
+                            </div>
+
+                            {profile.dailyLimit! > 0 && (
+                                <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-gradient-to-r from-emerald-500 to-[#E5D5B3] transition-all duration-500"
+                                        style={{ width: `${Math.min(100, ((profile.spentToday || 0) / profile.dailyLimit!) * 100)}%` }}
+                                    ></div>
+                                </div>
+                            )}
+                        </div>
+
                         {/* Email */}
                         <div className="flex items-center gap-4 p-4 border-b border-white/5">
                             <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white/40">
@@ -232,9 +291,15 @@ const Profile: React.FC<Props> = ({ profile }) => {
                             <span className="text-sm font-medium">Notifications</span>
                             <ChevronRight size={16} className="text-white/30" />
                         </button>
-                        <button className="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-all">
-                            <span className="text-sm font-medium">Security</span>
-                            <ChevronRight size={16} className="text-white/30" />
+                        <button
+                            onClick={() => setShowSecurityModal(true)}
+                            className="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-all text-left"
+                        >
+                            <span className="text-sm font-medium">Security & PIN</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-emerald-500 uppercase">{profile.pin ? 'SET' : 'NOT SET'}</span>
+                                <ChevronRight size={16} className="text-white/30" />
+                            </div>
                         </button>
                         <button className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-all">
                             <span className="text-sm font-medium">Help & Support</span>
@@ -257,7 +322,53 @@ const Profile: React.FC<Props> = ({ profile }) => {
                 </button>
             </div>
 
-            {/* QR Overlay */}
+            {/* Security Modal */}
+            {showSecurityModal && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
+                    <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowSecurityModal(false)}></div>
+                    <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-3xl p-8 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-[#E5D5B3]/10 rounded-2xl flex items-center justify-center text-[#E5D5B3] mb-6">
+                            <Lock size={24} />
+                        </div>
+                        <h3 className="text-xl font-black mb-2 tracking-tight">Transaction PIN</h3>
+                        <p className="text-zinc-500 text-xs text-center mb-8">Set a 4-digit PIN to secure your payments. This PIN will be required for every transaction.</p>
+
+                        <div className="bg-black/40 w-full rounded-2xl p-4 border border-white/5 mb-8">
+                            <input
+                                type="password"
+                                maxLength={4}
+                                placeholder="ENTER 4 DIGIT PIN"
+                                value={pinEntry}
+                                onChange={(e) => setPinEntry(e.target.value.replace(/[^0-9]/g, ''))}
+                                className="w-full bg-transparent text-center text-2xl font-black tracking-[1em] outline-none text-[#E5D5B3] placeholder-zinc-800"
+                            />
+                        </div>
+
+                        <div className="flex gap-4 w-full">
+                            <button
+                                onClick={() => setShowSecurityModal(false)}
+                                className="flex-1 py-4 bg-zinc-800 rounded-2xl text-zinc-500 font-bold uppercase tracking-widest text-[10px]"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    if (pinEntry.length !== 4) return;
+                                    setSaving(true);
+                                    await updateUserDetails(profile.uid, { pin: pinEntry });
+                                    setSaving(false);
+                                    setShowSecurityModal(false);
+                                    setPinEntry('');
+                                }}
+                                disabled={pinEntry.length !== 4 || saving}
+                                className="flex-[2] py-4 bg-[#E5D5B3] text-black rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg disabled:opacity-30"
+                            >
+                                {saving ? <RefreshCw size={14} className="animate-spin" /> : 'Save PIN'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {showQR && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
                     <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowQR(false)}></div>

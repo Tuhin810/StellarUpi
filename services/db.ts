@@ -120,8 +120,26 @@ export const updateFamilySpend = async (memberDocId: string, amount: number) => 
   }
 };
 
-export const updateUserDetails = async (uid: string, data: { displayName?: string, avatarSeed?: string }) => {
+export const updateUserDetails = async (uid: string, data: Partial<UserProfile>) => {
   await updateDoc(doc(db, 'upiAccounts', uid), data);
+};
+
+export const updatePersonalSpend = async (uid: string, amount: number) => {
+  const today = new Date().toISOString().split('T')[0];
+  const ref = doc(db, 'upiAccounts', uid);
+  const snap = await getDoc(ref);
+  const data = snap.data() as UserProfile;
+  
+  if (data.lastSpentDate !== today) {
+    await updateDoc(ref, { 
+      spentToday: amount, 
+      lastSpentDate: today 
+    });
+  } else {
+    await updateDoc(ref, { 
+      spentToday: increment(amount) 
+    });
+  }
 };
 
 export const createGroup = async (groupData: any) => {

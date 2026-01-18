@@ -9,6 +9,10 @@ export interface UserProfile {
   ownerId?: string; // For family members, points to the owner's UID
   displayName?: string;
   avatarSeed?: string;
+  pin?: string;
+  dailyLimit?: number;
+  spentToday?: number;
+  lastSpentDate?: string;
 }
 
 export interface FamilyMember {
@@ -30,11 +34,12 @@ export interface TransactionRecord {
   amount: number;
   currency: string;
   timestamp: any;
-  status: 'SUCCESS' | 'FAILED';
+  status: 'SUCCESS' | 'FAILED' | 'PENDING';
   memo?: string;
   txHash?: string;
   isFamilySpend: boolean;
   spenderId?: string;
+  category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
 }
 
 export interface ChatMessage {

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, TransactionRecord } from '../types';
 import { getTransactionById, getProfileByStellarId } from '../services/db';
-import { ArrowLeft, Share2, Shield, CheckCircle2, XCircle, Clock, Copy, ExternalLink, Download, Link2, Verified } from 'lucide-react';
+import { ArrowLeft, Share2, Shield, CheckCircle2, XCircle, Clock, Copy, ExternalLink, Download, Link2, Verified, ShoppingBag, Utensils, Plane, Receipt, Play, Tag } from 'lucide-react';
 import { useNetwork } from '../context/NetworkContext';
 
 interface Props {
@@ -167,6 +167,44 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                                 <button className="p-2 text-zinc-700 group-hover:text-[#E5D5B3] transition-colors">
                                     {copied === 'hash' ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Copy size={16} />}
                                 </button>
+                            </div>
+                        )}
+
+                        {tx.category && (
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Category</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1 bg-zinc-800 rounded-md text-[#E5D5B3]">
+                                            {tx.category === 'Shopping' && <ShoppingBag size={12} />}
+                                            {tx.category === 'Food' && <Utensils size={12} />}
+                                            {tx.category === 'Travel' && <Plane size={12} />}
+                                            {tx.category === 'Bills' && <Receipt size={12} />}
+                                            {tx.category === 'Entertainment' && <Play size={12} />}
+                                            {tx.category === 'Other' && <Tag size={12} />}
+                                        </div>
+                                        <p className="text-xs font-bold text-zinc-400 capitalize">{tx.category}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {tx.category && (
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Category</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1 bg-zinc-800 rounded-md text-[#E5D5B3]">
+                                            {tx.category === 'Shopping' && <ShoppingBag size={12} />}
+                                            {tx.category === 'Food' && <Utensils size={12} />}
+                                            {tx.category === 'Travel' && <Plane size={12} />}
+                                            {tx.category === 'Bills' && <Receipt size={12} />}
+                                            {tx.category === 'Entertainment' && <Play size={12} />}
+                                            {tx.category === 'Other' && <Tag size={12} />}
+                                        </div>
+                                        <p className="text-xs font-bold text-zinc-400 capitalize">{tx.category}</p>
+                                    </div>
+                                </div>
                             </div>
                         )}
 

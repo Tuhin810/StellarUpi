@@ -2,8 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { UserProfile, TransactionRecord } from '../types';
 import { getTransactions, getProfileByStellarId } from '../services/db';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Shield, Search, Calendar } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Shield, Search, Calendar, ShoppingBag, Utensils, Plane, Receipt, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Download } from 'lucide-react';
 
 interface Props {
   profile: UserProfile | null;
@@ -16,6 +17,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
   const [loading, setLoading] = useState(true);
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState<TransactionRecord['category'] | 'All'>('All');
 
   useEffect(() => {
     if (profile) {
@@ -38,6 +40,36 @@ const Transactions: React.FC<Props> = ({ profile }) => {
     }
   }, [profile]);
 
+  const exportToCSV = () => {
+    if (txs.length === 0) return;
+
+    const headers = ['Date', 'From', 'To', 'Amount', 'Currency', 'Category', 'Status', 'ID'];
+    const rows = txs.map(tx => [
+      tx.timestamp?.toDate().toLocaleString(),
+      tx.fromId,
+      tx.toId,
+      tx.amount,
+      tx.currency,
+      tx.category || 'Other',
+      tx.status,
+      tx.id
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `stellarpay_transactions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white pb-32">
       {/* Header */}
@@ -49,6 +81,12 @@ const Transactions: React.FC<Props> = ({ profile }) => {
           <h2 className="text-3xl font-black tracking-tighter">History</h2>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={exportToCSV}
+            className="p-2 text-zinc-400 hover:text-[#E5D5B3] transition-colors"
+          >
+            <Download size={24} />
+          </button>
           <button
             onClick={() => setShowSearch(!showSearch)}
             className={`p-2 transition-all ${showSearch ? 'text-[#E5D5B3]' : 'text-zinc-400'}`}
@@ -75,6 +113,22 @@ const Transactions: React.FC<Props> = ({ profile }) => {
         </div>
       )}
 
+      {/* Category Filter */}
+      <div className="px-5 mb-8 flex gap-3 overflow-x-auto no-scrollbar">
+        {(['All', 'Shopping', 'Food', 'Travel', 'Bills', 'Entertainment', 'Other'] as const).map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${activeCategory === cat
+              ? 'bg-[#E5D5B3] text-black border-[#E5D5B3]'
+              : 'bg-zinc-900/50 text-zinc-500 border-white/5 hover:border-white/10'
+              }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
       <div className="px-5 space-y-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -92,12 +146,15 @@ const Transactions: React.FC<Props> = ({ profile }) => {
             {txs
               .filter(tx => {
                 const query = searchQuery.toLowerCase();
-                return (
+                const matchesSearch = (
                   tx.fromId.toLowerCase().includes(query) ||
                   tx.toId.toLowerCase().includes(query) ||
                   tx.amount.toString().includes(query) ||
-                  tx.status?.toLowerCase().includes(query)
+                  tx.status?.toLowerCase().includes(query) ||
+                  tx.memo?.toLowerCase().includes(query)
                 );
+                const matchesCategory = activeCategory === 'All' || tx.category === activeCategory;
+                return matchesSearch && matchesCategory;
               })
               .map((tx) => {
                 const isSent = tx.fromId === profile?.stellarId;
@@ -108,8 +165,13 @@ const Transactions: React.FC<Props> = ({ profile }) => {
                     className="flex items-center justify-between group animate-in fade-in slide-in-from-bottom-2 duration-300 cursor-pointer active:scale-[0.98] transition-all"
                   >
                     <div className="flex items-center gap-5">
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isSent ? 'bg-zinc-800/80 text-zinc-500' : 'bg-[#E5D5B3]/20 text-[#E5D5B3]'}`}>
-                        {isSent ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />}
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isSent ? 'bg-zinc-900 border border-white/5 text-zinc-500' : 'bg-[#E5D5B3]/10 border border-[#E5D5B3]/20 text-[#E5D5B3]'}`}>
+                        {tx.category === 'Shopping' && <ShoppingBag size={20} />}
+                        {tx.category === 'Food' && <Utensils size={20} />}
+                        {tx.category === 'Travel' && <Plane size={20} />}
+                        {tx.category === 'Bills' && <Receipt size={20} />}
+                        {tx.category === 'Entertainment' && <Play size={20} />}
+                        {(tx.category === 'Other' || !tx.category) && (isSent ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />)}
                       </div>
                       <div>
                         <p className="font-bold text-base leading-none mb-1">
@@ -117,9 +179,17 @@ const Transactions: React.FC<Props> = ({ profile }) => {
                             ? `To: ${names[tx.toId] || tx.toId.split('@')[0]}`
                             : `From: ${names[tx.fromId] || tx.fromId.split('@')[0]}`}
                         </p>
-                        <p className="text-xs font-medium text-zinc-500">
-                          {tx.timestamp?.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                            {tx.timestamp?.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </p>
+                          {tx.category && (
+                            <>
+                              <div className="w-1 h-1 bg-zinc-800 rounded-full" />
+                              <p className="text-[10px] font-bold text-[#E5D5B3]/60 uppercase tracking-widest">{tx.category}</p>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="text-right">
