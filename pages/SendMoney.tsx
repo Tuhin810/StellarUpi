@@ -273,33 +273,50 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           </div>
 
           <div className="w-full flex flex-col items-center">
-            <div className="flex items-baseline justify-center mb-4 min-h-[80px]">
-              <span className="text-zinc-600 text-5xl font-black mr-3 opacity-30">₹</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                autoFocus
-                value={amount}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/[^0-9]/g, '');
-                  if (val.length <= 8) setAmount(val);
-                }}
-                placeholder="0"
-                className="bg-transparent text-white text-5xl font-black text-center w-full
-                 max-w-[180px] outline-none placeholder-zinc-800 caret-transparent"
-              />
+            {/* Amount Input Card */}
+            <div className="relative w-full max-w-[280px] mb-6">
+              {/* Glow Effect */}
+              <div className="absolute inset-0 bg-[#E5D5B3]/5 rounded-[2rem] blur-xl scale-110 opacity-50" />
+
+              {/* Card */}
+              <div className="relative bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-[1rem] p-4 shadow-xl">
+                {/* Label */}
+                {/* <p className="text-[10px] font-black text-zinc-500 uppercase  text-center mb-2">Enter Amount</p> */}
+
+                {/* Amount Input */}
+                <div className="flex items-center justify-start gap-">
+                  <span className={`font-black transition-all duration-300 ${amount ? 'text-[#E5D5B3] text-4xl' : 'text-zinc-600 text-3xl'}`}>₹</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoFocus
+                    value={amount ? parseInt(amount).toLocaleString('en-IN') : ''}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/[^0-9]/g, '');
+                      if (val.length <= 8) setAmount(val);
+                    }}
+                    placeholder="0"
+                    className="bg-transparent text-white text-3xl flex-1 font-black text-center w-full outline-none placeholder-zinc-700 caret-[#E5D5B3]"
+                    style={{ maxWidth: `${Math.max(60, (amount?.length || 1) * 35)}px` }}
+                  />
+                </div>
+
+                {/* Underline Accent */}
+                {/* <div className="mt-4 mx-auto w-16 h-1 rounded-full bg-gradient-to-r from-transparent via-[#E5D5B3]/30 to-transparent" /> */}
+              </div>
             </div>
 
-            <div className="w-full max-w-[200px] relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                <Sparkles size={14} className="text-[#E5D5B3] opacity-50" />
+            {/* Note Input */}
+            <div className="w-full max-w-[240px] relative group">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all group-focus-within:scale-110">
+                <Sparkles size={14} className="text-[#E5D5B3] opacity-50 group-focus-within:opacity-100 transition-opacity" />
               </div>
               <input
                 type="text"
                 placeholder="ADD NOTE"
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-full text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/20 transition-all text-center"
+                className="w-full pl-10 pr-4 py-3.5 bg-zinc-900/50 backdrop-blur-md border border-white/5 rounded-2xl text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/30 focus:bg-zinc-900/70 transition-all text-center"
               />
             </div>
           </div>
