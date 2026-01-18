@@ -16,8 +16,8 @@ const QRScanner: React.FC = () => {
         fps: 20,
         qrbox: (viewfinderWidth, viewfinderHeight) => {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const qrboxSize = Math.floor(minEdge * 0.7);
-          return { width: qrboxSize, height: 10 };
+          const qrboxSize = Math.max(50, Math.floor(minEdge * 0.7)); // Minimum 50px required
+          return { width: qrboxSize, height: qrboxSize };
         },
         aspectRatio: 1.0
       },
