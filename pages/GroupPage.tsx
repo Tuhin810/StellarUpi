@@ -109,35 +109,41 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white flex flex-col overflow-hidden">
-            {/* Dynamic Header */}
-            <div className="pt-5 pb-8 px-2 bg-zinc-900 border-b border-white/5 sticky top-0 z-50">
-                <div className="flex items-center gap-4 mb-6">
-                    <button onClick={() => navigate("/")} className="p-2 text-zinc-400 hover:text-white transition-colors">
-                        <ArrowLeft size={24} />
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-[#E5D5B3]/40 flex items-center justify-center overflow-hidden shadow-2xl relative">
-                            <img src={`https://api.dicebear.com/7.x/shapes/svg?seed=${group.avatarSeed}`} className="w-full h-full object-cover" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-black tracking-tight">{group.name}</h2>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E5D5B3] opacity-60">{group.members.length} Members</p>
+            {/* Ultra-Premium Unified Header */}
+            <div className="pt-6 pb-6 px-6 bg-[#080808]/80 backdrop-blur-2xl border-b border-white/10 sticky top-0 z-50 flex flex-col gap-6 shadow-2xl">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => navigate("/")} className="w-10 h-10 flex items-center justify-center rounded-xl bg-zinc-900 border border-white/5 text-zinc-400 hover:text-white transition-all active:scale-95">
+                            <ArrowLeft size={18} />
+                        </button>
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center overflow-hidden shadow-2xl relative">
+                                <img src={`https://api.dicebear.com/7.x/shapes/svg?seed=${group.avatarSeed}`} className="w-full h-full object-cover" />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-[#E5D5B3]/10 to-transparent" />
+                            </div>
+                            <div className="flex flex-col">
+                                <h2 className="text-xl font-black text-white tracking-tight leading-none mb-1.5">{group.name}</h2>
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.1em] text-zinc-500">{group.members.length} members online</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex gap-3 px-2">
+                <div className="flex gap-3">
                     <button
                         onClick={() => setShowSplitModal(true)}
-                        className="flex-1 py-4 gold-gradient text-black rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        className="flex-1 h-14 gold-gradient text-black rounded-2xl font-black text-[12px] uppercase tracking-[0.1em] shadow-[0_10px_30px_-10px_rgba(229,213,179,0.3)] flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
                     >
-                        <Plus size={16} strokeWidth={3} /> Create Split
+                        <Plus size={18} strokeWidth={3} /> Create Split
                     </button>
                     <button
                         onClick={() => setShowMembersModal(true)}
-                        className="p-4 bg-zinc-800 rounded-2xl border border-white/5 text-zinc-400 hover:text-[#E5D5B3] transition-all"
+                        className="w-14 h-14 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-[#E5D5B3] hover:border-[#E5D5B3]/20 transition-all active:scale-[0.98]"
                     >
-                        <Users size={20} />
+                        <Users size={22} strokeWidth={2} />
                     </button>
                 </div>
             </div>
