@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Share2, Download } from 'lucide-react';
 
 interface SuccessScreenProps {
     recipientName: string;
@@ -18,38 +19,83 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount }) 
         }
     }, []);
 
+    const today = new Date().toLocaleDateString('en-IN', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-[#1A1A1A] text-white text-center relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-full">
-                <div className="absolute top-[20%] left-[20%] w-[120%] h-[60%] bg-[#E5D5B3]/5 rounded-full blur-[120px] rotate-[-15deg]"></div>
+        <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-[#0a0f0a] text-white text-center relative overflow-hidden">
+            {/* Ambient Background Elements */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#E5D5B3]/10 rounded-full blur-[120px] animate-pulse"></div>
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
+                <div className="absolute top-[30%] right-[10%] w-[30%] h-[30%] bg-[#E5D5B3]/5 rounded-full blur-[80px]"></div>
             </div>
 
-            <div className="relative z-10 flex flex-col items-center max-w-sm w-full">
-                {/* Lottie Success Animation */}
-                <div className="w-72 h-72 mb-2">
+            <div className="relative z-10 flex flex-col -mt-10 items-center max-w-sm w-full animate-in fade-in zoom-in duration-700">
+                {/* Lottie Success Animation Container */}
+                <div className="relative w-72 h-72 mb-2 flex items-center justify-center">
+                    <div className="absolute inset-0 bg-[#E5D5B3]/10 rounded-full blur-3xl scale-75"></div>
                     <iframe
                         src="https://lottie.host/embed/11cf97ea-4079-46f7-b3af-5d2639247cbc/zHtee9lJgW.lottie"
-                        className="w-full h-full border-0"
+                        className="w-full h-full border-0 relative z-10 pointer-events-none"
                         title="Success Animation"
                     />
                 </div>
-                <h2 className="text-3xl font-black mb-2 tracking-tight">Success</h2>
-                <p className="text-zinc-500 font-medium mb-12">
-                    Transfer to <span className="text-white">{recipientName}</span> completed
-                </p>
 
-                <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/5 w-full rounded-[2.5rem] p-10 mb-12">
-                    <span className="text-zinc-500 text-xs font-black uppercase tracking-[0.2em] block mb-2">
-                        Total Amount
-                    </span>
-                    <h3 className="text-5xl font-black italic">₹{parseInt(amount).toLocaleString()}</h3>
+                <div className="mb-8">
+
+                    <h2 className="text-4xl font-black tracking-tight -mt-8 mb-8">Transaction Success</h2>
+                    <p className="text-zinc-500 font-medium">
+                        Sent securely to <span className="text-white font-bold">{recipientName}</span>
+                    </p>
                 </div>
+
+                {/* Glassmorphic Amount Card */}
+                <div className="relative w-full mb-8 group">
+                    <div className="absolute inset-0 bg-gradient-to-r from-[#E5D5B3]/20 via-transparent to-[#E5D5B3]/20 rounded-xl blur-xl opacity-50 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="relative bg-zinc-900/40 backdrop-blur-2xl border border-white/10 w-full rounded-2xl p-8 overflow-hidden">
+
+
+                        <div className="relative z-10">
+                            <span className="text-zinc-500 text-[10px] font-black uppercase  block mb-3">Amount Paid</span>
+                            <div className="flex items-center justify-center gap-3">
+                                <span className="text-[#E5D5B3] text-3xl font-black opacity-40 italic">₹</span>
+                                <h3 className="text-6xl font-black  tracking-tighter">
+                                    {parseInt(amount).toLocaleString()}
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-4">
+                            <div className="flex items-center justify-between text-left">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-white/5 rounded-xl">
+                                        <Calendar size={14} className="text-zinc-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-none mb-1">Date & Time</p>
+                                        <p className="text-xs font-bold text-zinc-300">{today}</p>
+                                    </div>
+                                </div>
+                                {/*  */}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
 
                 <button
                     onClick={() => navigate('/')}
-                    className="w-full gold-gradient text-black py-5 rounded-2xl font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    className="w-full gold-gradient text-black py-4 rounded-[1rem] font-black text-lg shadow-[0_20px_40px_rgba(229,213,179,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 group"
                 >
-                    Done
+                    Return to Dashboard
+                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
             </div>
         </div>
