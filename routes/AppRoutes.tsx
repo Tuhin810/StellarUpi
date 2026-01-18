@@ -19,6 +19,7 @@ import GroupPage from '../pages/GroupPage';
 import TransactionDetail from '../pages/TransactionDetail';
 import AddMoney from '../pages/AddMoney';
 import Withdraw from '../pages/Withdraw';
+import PaymentLink from '../pages/PaymentLink';
 
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, profile } = useAuth();
@@ -29,6 +30,9 @@ const AppRoutes: React.FC = () => {
                 path="/login"
                 element={!isAuthenticated ? <Login /> : <Navigate to="/" />}
             />
+
+            {/* Public Payment Link - handles auth inside component */}
+            <Route path="/pay/:stellarId" element={<PaymentLink />} />
 
             <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard profile={profile!} />} />

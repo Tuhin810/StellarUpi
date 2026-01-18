@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Share2, QrCode } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Share2, QrCode, Link2, IndianRupee, X } from 'lucide-react';
 
 interface Props {
     profile: UserProfile | null;
@@ -11,6 +11,10 @@ interface Props {
 const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     const navigate = useNavigate();
     const [copied, setCopied] = useState(false);
+    const [linkCopied, setLinkCopied] = useState(false);
+    const [showLinkModal, setShowLinkModal] = useState(false);
+    const [linkAmount, setLinkAmount] = useState('');
+    const [linkNote, setLinkNote] = useState('');
 
     if (!profile) return null;
 
@@ -18,6 +22,35 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
         navigator.clipboard.writeText(profile.stellarId);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    };
+
+    const getPaymentLink = () => {
+        const baseUrl = window.location.origin;
+        let link = `${baseUrl}/pay/${profile.stellarId}`;
+        const params = new URLSearchParams();
+        if (linkAmount) params.append('amount', linkAmount);
+        if (linkNote) params.append('note', linkNote);
+        if (params.toString()) link += `?${params.toString()}`;
+        return link;
+    };
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText(getPaymentLink());
+        setLinkCopied(true);
+        setTimeout(() => setLinkCopied(false), 2000);
+    };
+
+    const handleShareLink = () => {
+        const link = getPaymentLink();
+        if (navigator.share) {
+            navigator.share({
+                title: 'Pay me on StellarPay',
+                text: `Pay ${profile.displayName || profile.stellarId}${linkAmount ? ` - ${linkAmount} XLM` : ''}`,
+                url: link,
+            });
+        } else {
+            handleCopyLink();
+        }
     };
 
     const handleShare = () => {
@@ -98,10 +131,96 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     </div>
                 </div>
 
+                {/* Payment Link Button */}
+                <button
+                    onClick={() => setShowLinkModal(true)}
+                    className="mt-8 flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold hover:bg-white/10 transition-all"
+                >
+                    <Link2 size={18} className="text-[#E5D5B3]" />
+                    Create Payment Link
+                </button>
+
                 <p className="mt-12 text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] text-center max-w-[200px] leading-loose">
                     Secure Instant Payment <br /> via Stellar Vault
                 </p>
             </div>
+
+            {/* Payment Link Modal */}
+            {showLinkModal && (
+                <div className="fixed inset-0 z-[100] flex items-end justify-center">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowLinkModal(false)}></div>
+                    <div className="relative w-full max-w-md bg-zinc-900 rounded-t-[3rem] p-8 border-t border-white/10 animate-in slide-in-from-bottom duration-300">
+                        {/* Handle */}
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-white/20 rounded-full" />
+
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setShowLinkModal(false)}
+                            className="absolute top-6 right-6 p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-all"
+                        >
+                            <X size={18} />
+                        </button>
+
+                        <h3 className="text-xl font-black mb-2 mt-4">Payment Link</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-8">Generate a shareable payment link</p>
+
+                        {/* Amount Input */}
+                        <div className="mb-4">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Amount (Optional)</label>
+                            <div className="relative">
+                                <IndianRupee size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" />
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    placeholder="0"
+                                    value={linkAmount}
+                                    onChange={(e) => setLinkAmount(e.target.value.replace(/[^0-9.]/g, ''))}
+                                    className="w-full pl-11 pr-4 py-4 bg-black/40 border border-white/5 rounded-2xl font-bold text-sm outline-none focus:border-[#E5D5B3]/20"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-bold">XLM</span>
+                            </div>
+                        </div>
+
+                        {/* Note Input */}
+                        <div className="mb-6">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Note (Optional)</label>
+                            <input
+                                type="text"
+                                placeholder="What's this for?"
+                                value={linkNote}
+                                onChange={(e) => setLinkNote(e.target.value)}
+                                className="w-full px-4 py-4 bg-black/40 border border-white/5 rounded-2xl font-bold text-sm outline-none focus:border-[#E5D5B3]/20"
+                            />
+                        </div>
+
+                        {/* Preview Link */}
+                        <div className="bg-black/20 border border-white/5 rounded-2xl p-4 mb-6">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Your Payment Link</p>
+                            <p className="text-[#E5D5B3] text-sm font-mono break-all">
+                                {getPaymentLink()}
+                            </p>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3">
+                            <button
+                                onClick={handleCopyLink}
+                                className="flex-1 py-4 bg-white/10 rounded-2xl font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                            >
+                                {linkCopied ? <Check size={16} /> : <Copy size={16} />}
+                                {linkCopied ? 'Copied!' : 'Copy Link'}
+                            </button>
+                            <button
+                                onClick={handleShareLink}
+                                className="flex-1 py-4 gold-gradient text-black rounded-2xl font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                            >
+                                <Share2 size={16} />
+                                Share
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

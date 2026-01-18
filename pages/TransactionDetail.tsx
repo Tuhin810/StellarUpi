@@ -3,7 +3,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, TransactionRecord } from '../types';
 import { getTransactionById, getProfileByStellarId } from '../services/db';
-import { ArrowLeft, Share2, Shield, CheckCircle2, XCircle, Clock, Copy, ExternalLink, Download } from 'lucide-react';
+import { ArrowLeft, Share2, Shield, CheckCircle2, XCircle, Clock, Copy, ExternalLink, Download, Link2, Verified } from 'lucide-react';
+import { useNetwork } from '../context/NetworkContext';
 
 interface Props {
     profile: UserProfile | null;
@@ -12,10 +13,15 @@ interface Props {
 const TransactionDetail: React.FC<Props> = ({ profile }) => {
     const { txId } = useParams<{ txId: string }>();
     const navigate = useNavigate();
+    const { isMainnet } = useNetwork();
     const [tx, setTx] = useState<TransactionRecord | null>(null);
     const [loading, setLoading] = useState(true);
     const [otherProfile, setOtherProfile] = useState<UserProfile | null>(null);
-    const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = useState<string | null>(null);
+
+    const explorerBaseUrl = isMainnet
+        ? 'https://stellar.expert/explorer/public'
+        : 'https://stellar.expert/explorer/testnet';
 
     useEffect(() => {
         if (txId) {
@@ -51,10 +57,20 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
     const statusColor = tx.status === 'SUCCESS' ? 'text-emerald-500' : tx.status === 'PENDING' ? 'text-amber-500' : 'text-rose-500';
     const statusBg = tx.status === 'SUCCESS' ? 'bg-emerald-500/10' : tx.status === 'PENDING' ? 'bg-amber-500/10' : 'bg-rose-500/10';
 
-    const copyToClipboard = (text: string) => {
+    const copyToClipboard = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setCopied(label);
+        setTimeout(() => setCopied(null), 2000);
+    };
+
+    const handleShare = () => {
+        if (navigator.share && tx.txHash) {
+            navigator.share({
+                title: 'StellarPay Transaction Receipt',
+                text: `Payment of ₹${tx.amount} - ${tx.status}`,
+                url: `${explorerBaseUrl}/tx/${tx.txHash}`,
+            });
+        }
     };
 
     return (
@@ -65,7 +81,7 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                     <ArrowLeft size={20} />
                 </button>
                 <h2 className="text-lg font-black tracking-tight">Receipt</h2>
-                <button className="p-3 bg-zinc-900/80 rounded-2xl text-zinc-400 border border-white/5 shadow-xl">
+                <button onClick={handleShare} className="p-3 bg-zinc-900/80 rounded-2xl text-zinc-400 border border-white/5 shadow-xl">
                     <Share2 size={20} />
                 </button>
             </div>
@@ -84,6 +100,22 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                         {tx.timestamp?.toDate().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                 </div>
+
+                {/* Blockchain Verification Badge */}
+                {tx.txHash && tx.status === 'SUCCESS' && (
+                    <div className="mb-8 animate-in fade-in slide-in-from-bottom-10 duration-600">
+                        <a
+                            href={`${explorerBaseUrl}/tx/${tx.txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center justify-center gap-3 py-4 px-6 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl group hover:bg-emerald-500/20 transition-all"
+                        >
+                            <Verified size={20} className="text-emerald-400" />
+                            <span className="text-emerald-400 font-bold text-sm">Verified on Stellar Blockchain</span>
+                            <ExternalLink size={16} className="text-emerald-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        </a>
+                    </div>
+                )}
 
                 {/* Transfer Details Card */}
                 <div className="bg-zinc-900/50 border border-white/5 rounded-[2.5rem] p-8 mb-8 shadow-2xl animate-in fade-in slide-in-from-bottom-12 duration-700">
@@ -108,13 +140,13 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                     </div>
 
                     <div className="space-y-6">
-                        <div className="flex justify-between items-center group" onClick={() => copyToClipboard(tx.id)}>
+                        <div className="flex justify-between items-center group" onClick={() => copyToClipboard(tx.id, 'txId')}>
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Transaction ID</p>
                                 <p className="text-xs font-bold font-mono text-zinc-400 truncate w-40 capitalize">{tx.id}</p>
                             </div>
                             <button className="p-2 text-zinc-700 group-hover:text-[#E5D5B3] transition-colors">
-                                {copied ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                                {copied === 'txId' ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Copy size={16} />}
                             </button>
                         </div>
 
@@ -127,14 +159,23 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                         </div>
 
                         {tx.txHash && (
-                            <div className="flex justify-between items-center group">
+                            <div className="flex justify-between items-center group" onClick={() => copyToClipboard(tx.txHash!, 'hash')}>
                                 <div className="min-w-0">
                                     <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Blockchain Hash</p>
                                     <p className="text-xs font-bold font-mono text-zinc-400 truncate w-48">{tx.txHash}</p>
                                 </div>
-                                <a href={`https://stellar.expert/explorer/public/tx/${tx.txHash}`} target="_blank" rel="noreferrer" className="p-2 text-zinc-700 group-hover:text-[#E5D5B3] transition-colors">
-                                    <ExternalLink size={16} />
-                                </a>
+                                <button className="p-2 text-zinc-700 group-hover:text-[#E5D5B3] transition-colors">
+                                    {copied === 'hash' ? <CheckCircle2 size={16} className="text-emerald-500" /> : <Copy size={16} />}
+                                </button>
+                            </div>
+                        )}
+
+                        {tx.memo && (
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 mb-1">Note</p>
+                                    <p className="text-xs font-bold text-zinc-400">{tx.memo}</p>
+                                </div>
                             </div>
                         )}
                     </div>
@@ -142,10 +183,20 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
 
                 {/* Actions */}
                 <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-16 duration-1000">
-                    <button className="flex items-center justify-center gap-3 py-5 bg-zinc-900 border border-white/5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl">
-                        <Download size={18} className="text-zinc-500" /> Save PDF
-                    </button>
-                    <button className="flex items-center justify-center gap-3 py-5 bg-zinc-900 border border-white/5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl">
+                    {tx.txHash && (
+                        <a
+                            href={`${explorerBaseUrl}/tx/${tx.txHash}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center justify-center gap-3 py-5 bg-zinc-900 border border-white/5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl"
+                        >
+                            <ExternalLink size={18} className="text-zinc-500" /> Explorer
+                        </a>
+                    )}
+                    <button
+                        onClick={handleShare}
+                        className="flex items-center justify-center gap-3 py-5 bg-zinc-900 border border-white/5 rounded-3xl font-black text-xs uppercase tracking-widest hover:bg-zinc-800 transition-all active:scale-95 shadow-xl"
+                    >
                         <Share2 size={18} className="text-zinc-500" /> Share
                     </button>
                 </div>
