@@ -77,9 +77,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     window.location.reload();
                 }
             };
-
+            //@ts-ignore
             window.ethereum.on('accountsChanged', handleAccountsChanged);
             return () => {
+                //@ts-ignore
                 window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
             };
         }

@@ -2,6 +2,7 @@
 import React from 'react';
 import { HashRouter as Router } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NetworkProvider } from './context/NetworkContext';
 import AppRoutes from './routes/AppRoutes';
 import BottomNav from './components/BottomNav';
 
@@ -28,9 +29,11 @@ const AppContent: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <NetworkProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </NetworkProvider>
   );
 };
 

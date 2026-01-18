@@ -339,14 +339,14 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   setSelectedFamilyIndex(index);
                 }}
                 className={`w-full flex items-center justify-between p-4 rounded-2xl transition-all border-2 ${paymentMethod === 'family' && selectedFamilyIndex === index
-                    ? 'border-zinc-900 bg-zinc-50'
-                    : 'border-zinc-100'
+                  ? 'border-zinc-900 bg-zinc-50'
+                  : 'border-zinc-100'
                   }`}
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${paymentMethod === 'family' && selectedFamilyIndex === index
-                      ? 'bg-zinc-900 text-[#E5D5B3]'
-                      : 'bg-zinc-100 text-zinc-400'
+                    ? 'bg-zinc-900 text-[#E5D5B3]'
+                    : 'bg-zinc-100 text-zinc-400'
                     }`}>
                     <Shield size={18} />
                   </div>
@@ -360,8 +360,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   </div>
                 </div>
                 <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'family' && selectedFamilyIndex === index
-                    ? 'border-zinc-900'
-                    : 'border-zinc-200'
+                  ? 'border-zinc-900'
+                  : 'border-zinc-200'
                   }`}>
                   {paymentMethod === 'family' && selectedFamilyIndex === index && (
                     <div className="w-2.5 h-2.5 bg-zinc-900 rounded-full" />
@@ -426,10 +426,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             const id = prompt("Enter UPI ID:");
             if (id) setSelectedContact({ id, name: id.split('@')[0] });
           }}
-          className="w-full flex items-center justify-between p-3 bg-zinc-900/80 border border-white/5 rounded-[1.5rem] shadow-xl active:scale-[0.98] transition-all group"
+          className="w-full flex items-center justify-between p-3 bg-zinc-900/80 border border-white/5 rounded-2xl shadow-xl active:scale-[0.98] transition-all group"
         >
           <div className="flex items-center gap-5">
-            <div className="w-14 h-14 gold-gradient rounded-full flex items-center justify-center text-black">
+            <div className="w-14 h-14 gold-gradient rounded-xl flex items-center justify-center text-black">
               <Sparkles size={24} />
             </div>
             <div className="text-left">
@@ -446,7 +446,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         {loadingContacts ? (
           <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-[#E5D5B3] border-t-transparent rounded-full animate-spin"></div></div>
         ) : filteredContacts.length === 0 ? (
-          <div className="bg-zinc-900/40 rounded-[2.5rem] border border-white/5 p-12 text-center">
+          <div className="bg-zinc-900/40 rounded-[1rem] border border-white/5 p-12 text-center">
             <p className="text-zinc-500 font-bold">No recent activity found</p>
           </div>
         ) : (

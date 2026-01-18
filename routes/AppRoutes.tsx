@@ -17,6 +17,8 @@ import ChatPage from '../pages/ChatPage';
 import ReceiveMoney from '../pages/ReceiveMoney';
 import GroupPage from '../pages/GroupPage';
 import TransactionDetail from '../pages/TransactionDetail';
+import AddMoney from '../pages/AddMoney';
+import Withdraw from '../pages/Withdraw';
 
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, profile } = useAuth();
@@ -40,6 +42,8 @@ const AppRoutes: React.FC = () => {
                 <Route path="/receive" element={<ReceiveMoney profile={profile!} />} />
                 <Route path="/group/:groupId" element={<GroupPage profile={profile!} />} />
                 <Route path="/chat/:contactId" element={<ChatPage profile={profile!} />} />
+                <Route path="/add-money" element={<AddMoney profile={profile!} />} />
+                <Route path="/withdraw" element={<Withdraw profile={profile!} />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" />} />

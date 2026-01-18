@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { X, User, Settings, HelpCircle, Shield, LogOut, ChevronRight, Zap } from 'lucide-react';
+import { X, User, Settings, HelpCircle, Shield, LogOut, ChevronRight, Zap, ToggleLeft, ToggleRight, ArrowDownToLine } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useNetwork } from '../context/NetworkContext';
 
 interface Props {
     isOpen: boolean;
@@ -13,10 +14,12 @@ interface Props {
 
 const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, avatarSeed }) => {
     const navigate = useNavigate();
+    const { isMainnet, networkName, toggleNetwork } = useNetwork();
     const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed || stellarId}`;
 
     const menuItems = [
         { icon: <User size={22} />, label: 'My Profile', path: '/profile' },
+        { icon: <ArrowDownToLine size={22} />, label: 'Withdraw to Bank', path: '/withdraw' },
         { icon: <Settings size={22} />, label: 'Settings', path: '/settings' },
         { icon: <Shield size={22} />, label: 'Security & Privacy', path: '/security' },
         { icon: <HelpCircle size={22} />, label: 'Help & Support', path: '/help' },
@@ -26,6 +29,12 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
         localStorage.removeItem('web3_address');
         sessionStorage.removeItem('temp_vault_key');
         window.location.reload();
+    };
+
+    const handleNetworkToggle = () => {
+        if (window.confirm(`Switch to ${isMainnet ? 'Testnet' : 'Mainnet'}? This will reload the app.`)) {
+            toggleNetwork();
+        }
     };
 
     return (
@@ -43,9 +52,6 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
                 {/* Header */}
                 <div className="p-8 pt-16 flex justify-between items-start mb-8 text-white">
                     <div className="flex flex-col items-start">
-                        {/* <div className="w-20 h-20 rounded-2xl bg-zinc-900 border border-white/10 overflow-hidden shadow-2xl mb-4">
-                            <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
-                        </div> */}
                         <h2 className="text-xl font-black tracking-tight capitalize">{profileName}</h2>
                         <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1">{stellarId}</p>
                     </div>
@@ -76,15 +82,41 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
 
                 {/* Footer */}
                 <div className="p-8 border-t border-white/5 space-y-6">
-                    <div className="flex items-center gap-3 bg-zinc-900/50 p-4 rounded-2xl border border-white/5">
-                        <div className="w-8 h-8 gold-gradient rounded-lg flex items-center justify-center text-black shadow-lg">
-                            <Zap size={16} />
+                    {/* Network Toggle */}
+                    <button
+                        onClick={handleNetworkToggle}
+                        className="w-full flex items-center justify-between bg-zinc-900/50 p-4 rounded-2xl border border-white/5 hover:bg-zinc-900 transition-all group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg ${isMainnet
+                                ? 'bg-emerald-500 text-white'
+                                : 'gold-gradient text-black'
+                                }`}>
+                                <Zap size={16} />
+                            </div>
+                            <div className="text-left">
+                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Stellar Network</p>
+                                <p className={`text-xs font-bold ${isMainnet ? 'text-emerald-400' : 'text-[#E5D5B3]'}`}>
+                                    {networkName}
+                                </p>
+                            </div>
                         </div>
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Stellar Protocol</p>
-                            <p className="text-xs font-bold text-white">TestNet v2.4.0</p>
+                        <div className="text-zinc-500 group-hover:text-white transition-colors">
+                            {isMainnet ? <ToggleRight size={28} className="text-emerald-400" /> : <ToggleLeft size={28} />}
                         </div>
-                    </div>
+                    </button>
+
+                    {/* Mainnet Warning */}
+                    {isMainnet && (
+                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
+                            <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
+                                ⚡ Real XLM Mode
+                            </p>
+                            <p className="text-zinc-400 text-[10px] mt-1">
+                                Transactions use real cryptocurrency
+                            </p>
+                        </div>
+                    )}
 
                     <button
                         onClick={handleLogout}

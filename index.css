@@ -15,6 +15,9 @@ html{
   padding: 0;
   margin: 0;
 }
+#reader__scan_region {
+  /* position: static !important; */
+}
 body {
   background-color: var(--premium-bg);
   color: white;

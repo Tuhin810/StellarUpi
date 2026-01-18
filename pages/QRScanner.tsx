@@ -2,16 +2,25 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap } from 'lucide-react';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
+  const [isFlashOn, setIsFlashOn] = useState(false);
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
       "reader",
-      { fps: 10, qrbox: { width: 250, height: 250 } },
+      {
+        fps: 20,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdge * 0.7);
+          return { width: qrboxSize, height: 10 };
+        },
+        aspectRatio: 1.0
+      },
       /* verbose= */ false
     );
 
@@ -45,81 +54,138 @@ const QRScanner: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white flex flex-col relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px]"></div>
+    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden font-sans">
+      {/* Immersive Backdrop */}
+      <div className="absolute inset-0 bg-black z-0"></div>
 
-      <div className="relative z-10 pt-5 px-3 flex items-center justify-between">
-        <button onClick={() => navigate("/")} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5">
-          <ArrowLeft size={20} className="text-zinc-400" />
+      {/* Top Header - Native Style */}
+      <div className="relative z-20 pt-14 px-6 flex items-center justify-between">
+        <button
+          onClick={() => navigate("/")}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/10 active:scale-95 transition-all"
+        >
+          <ArrowLeft size={22} className="text-white" />
         </button>
-        <span className="text-xs font-black uppercase tracking-[0.3em] text-zinc-500">Universal Scanner</span>
-        <button onClick={() => navigate("/")} className="p-4 bg-zinc-900/80 backdrop-blur-md rounded-2xl border border-white/5 text-zinc-400">
-          <X size={20} />
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-1">Scanner</span>
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-[#E5D5B3]/10 border border-[#E5D5B3]/20 rounded-full">
+            <div className="w-1 h-1 bg-[#E5D5B3] rounded-full animate-pulse"></div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#E5D5B3]">Active</span>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate("/")}
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/10 active:scale-95 transition-all"
+        >
+          <X size={22} className="text-white" />
         </button>
       </div>
 
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-10">
-        <div className="relative w-full max-w-sm aspect-square">
-          <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-[#E5D5B3] rounded-tl-2xl z-20"></div>
-          <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-[#E5D5B3] rounded-tr-2xl z-20"></div>
-          <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-[#E5D5B3] rounded-bl-2xl z-20"></div>
-          <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-[#E5D5B3] rounded-br-2xl z-20"></div>
+      {/* Main Scanner Section */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center ">
+        <div className="relative w-full aspect-square max-w-[320px]">
+          {/* Scanning Corners - Sleeker */}
+          <div className="absolute -top-1 -left-1 w-12 h-12 border-t-[3px] border-l-[3px] border-[#E5D5B3] rounded-tl-3xl z-30"></div>
+          <div className="absolute -top-1 -right-1 w-12 h-12 border-t-[3px] border-r-[3px] border-[#E5D5B3] rounded-tr-3xl z-30"></div>
+          <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-[3px] border-l-[3px] border-[#E5D5B3] rounded-bl-3xl z-30"></div>
+          <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-[3px] border-r-[3px] border-[#E5D5B3] rounded-br-3xl z-30"></div>
 
-          <div className="relative w-full h-full bg-zinc-950 rounded-3xl overflow-hidden border border-white/5 shadow-2xl z-10">
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#E5D5B3] to-transparent shadow-[0_0_20px_rgba(229,213,179,0.8)] z-40 animate-scan-slow opacity-60"></div>
+          {/* Scanner Window */}
+          <div className="relative w-full h-full bg-zinc-950 rounded-[.5rem] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] z-10 group">
             <div id="reader" className="w-full h-full"></div>
+
+            {/* Scan Line Animation */}
+
+            {/* Inner Glow */}
+            {/* <div className="absolute inset-0 border-[20px] border-black/20 pointer-events-none z-20"></div> */}
           </div>
 
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#E5D5B3]/50 to-transparent shadow-[0_0_15px_rgba(229,213,179,0.3)] z-30 animate-scan"></div>
+          {/* Error Message Tooltip */}
+          {error && (
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-max max-w-[280px] px-6 py-4 bg-rose-500 text-white rounded-2xl font-bold text-xs shadow-2xl z-50 flex items-center gap-3 animate-bounce">
+              <AlertCircle size={18} />
+              {error}
+            </div>
+          )}
         </div>
 
-
-
-        {error && (
-          <div className="mt-8 px-6 py-4 bg-rose-500/10 text-rose-500 rounded-2xl font-black text-xs border border-rose-500/20 uppercase tracking-widest backdrop-blur-xl">
-            {error}
-          </div>
-        )}
+        {/* Instructions */}
+        <div className="mt-12 text-center max-w-[200px]">
+          <p className="text-zinc-400 text-sm font-medium leading-relaxed">
+            Point your camera at a <span className="text-white font-bold">Stellar</span> or <span className="text-white font-bold">UPI</span> QR code
+          </p>
+        </div>
       </div>
 
-      <div className="relative z-10 p-12 flex justify-center gap-12">
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-14 h-14 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
-            <Camera size={24} />
+      {/* Bottom Controls - Native Cam Look */}
+      <div className="relative z-20 pb-20 px-10 flex justify-center items-center gap-10">
+        <button className="flex flex-col items-center gap-3 group">
+          <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-zinc-400 group-hover:bg-white/10 group-hover:text-white transition-all backdrop-blur-lg">
+            <Zap size={24} fill={isFlashOn ? "currentColor" : "none"} />
           </div>
-          <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-none">Flash</span>
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <div className="w-14 h-14 bg-zinc-900 border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-colors">
-            <QrCode size={24} />
+          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Flash</span>
+        </button>
+
+        <button className="flex flex-col items-center gap-3 group">
+          <div className="w-20 h-20 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(229,213,179,0.3)] active:scale-95 transition-all">
+            <QrCode size={30} />
           </div>
-          <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-none">Gallery</span>
-        </div>
+          <span className="text-[10px] font-black text-white uppercase tracking-widest">Gallery</span>
+        </button>
+
+        <button className="flex flex-col items-center gap-3 group" onClick={() => navigate("/help")}>
+          <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-zinc-400 group-hover:bg-white/10 group-hover:text-white transition-all backdrop-blur-lg">
+            <Info size={24} />
+          </div>
+          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Help</span>
+        </button>
       </div>
 
       <style>{`
-        @keyframes scan-line {
-            0% { top: 0% }
-            100% { top: 100% }
+        @keyframes scan-line-slow {
+            0% { transform: translateY(0); opacity: 0 }
+            10% { opacity: 0.6 }
+            90% { opacity: 0.6 }
+            100% { transform: translateY(320px); opacity: 0 }
         }
-        .animate-scan {
-            animation: scan-line 2s linear infinite;
+        .animate-scan-slow {
+            animation: scan-line-slow 2.5s ease-in-out infinite;
         }
-        #reader { border: none !important; }
-        #reader video { border-radius: 1.5rem; object-fit: cover !important; }
+        #reader { border: none !important; background: transparent !important; }
+        #reader > div { border: none !important; } /* Hides the library's default white box */
+        #reader video { 
+            border-radius: 1.5rem; 
+            object-fit: cover !important; 
+            width: 100% !important;
+            height: 100% !important;
+        }
         #reader__dashboard_section_csr button { 
             background: #E5D5B3 !important; 
             color: black !important; 
-            border-radius: 0.75rem !important;
-            font-weight: 800 !important;
-            padding: 0.5rem 1rem !important;
+            border-radius: 1rem !important;
+            font-weight: 900 !important;
+            padding: 12px 24px !important;
             border: none !important;
             text-transform: uppercase;
-            font-size: 0.75rem;
-            letter-spacing: 0.05em;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            margin-top: 10px;
+        }
+        #reader__status_span {
+            display: none !important;
+        }
+        #reader__header_message {
+            display: none !important;
         }
       `}</style>
     </div>
   );
 };
+
+const AlertCircle = ({ size }: { size: number }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
+);
 
 export default QRScanner;

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, History, ChevronUp } from 'lucide-react';
+import { Home, History, ChevronUp, QrCode } from 'lucide-react';
 
 const BottomNav: React.FC = () => {
     const location = useLocation();
@@ -10,6 +10,7 @@ const BottomNav: React.FC = () => {
     // Hide BottomNav on these routes
     if (
         path === '/send' ||
+        path === '/scan' ||
         path === '/receive' ||
         path === '/family' ||
         path === '/profile' ||
@@ -30,10 +31,11 @@ const BottomNav: React.FC = () => {
 
             <div className="relative -top-10 px-2 group">
                 <Link
-                    to="/send"
+                    to="/scan"
                     className="w-16 h-16 gold-gradient rounded-2xl flex flex-col items-center justify-center shadow-xl group-hover:scale-105 active:scale-95 transition-all text-black border-4 border-[#1A1A1A]"
                 >
-                    <ChevronUp size={20} className="mb-[-2px]" />
+                    {/* <ChevronUp size={20} className="mb-[-2px]" /> */}
+                    <QrCode size={20} className="mb-[2px]" />
                     <span className="text-[10px] font-black uppercase tracking-widest leading-none">Pay</span>
                 </Link>
             </div>
