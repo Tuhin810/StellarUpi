@@ -5,7 +5,7 @@ import { getUserById, recordTransaction, getTransactions, updateFamilySpend, get
 import { sendPayment, getBalance } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, CheckCircle2, Search, User, Wallet, Shield, Sparkles, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Send, CheckCircle2, Search, User, Wallet, Shield, Sparkles, ChevronRight, X } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
@@ -46,6 +46,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [isUpiDrawerOpen, setIsUpiDrawerOpen] = useState(false);
+  const [upiInput, setUpiInput] = useState('');
 
   useEffect(() => {
     const loadBalances = async () => {
@@ -407,7 +409,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
       </div>
 
-      <div className="px-5 mb-10 mt-3">
+      <div className="px-5 mb-10 mt-8">
         <div className="relative group">
           <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-500 group-focus-within:text-[#E5D5B3] transition-colors" size={20} />
           <input
@@ -423,8 +425,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       <div className="px-5 mb-12">
         <button
           onClick={() => {
-            const id = prompt("Enter UPI ID:");
-            if (id) setSelectedContact({ id, name: id.split('@')[0] });
+            setIsUpiDrawerOpen(true);
+            setUpiInput('');
           }}
           className="w-full flex items-center justify-between p-3 bg-zinc-900/80 border border-white/5 rounded-2xl shadow-xl active:scale-[0.98] transition-all group"
         >
@@ -440,6 +442,85 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           <ChevronRight size={20} className="text-zinc-700 group-hover:text-[#E5D5B3] transition-all" />
         </button>
       </div>
+
+      {/* UPI Bottom Drawer */}
+      <div
+        className={`fixed inset-0 z-50 transition-opacity duration-300 ${isUpiDrawerOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={() => setIsUpiDrawerOpen(false)}
+        />
+
+        {/* Drawer */}
+        <div
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2rem] transition-transform duration-300 ease-out ${isUpiDrawerOpen ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ height: '50vh', minHeight: '320px' }}
+        >
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 bg-zinc-700 rounded-full" />
+          </div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pb-6">
+            <h3 className="text-xl font-black text-white tracking-tight">Enter UPI ID</h3>
+            <button
+              onClick={() => setIsUpiDrawerOpen(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <div className="px-6 flex flex-col gap-6">
+            {/* Input Field */}
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                <User size={20} className="text-zinc-500" />
+              </div>
+              <input
+                type="text"
+                placeholder="example@upi"
+                value={upiInput}
+                onChange={(e) => setUpiInput(e.target.value)}
+                autoFocus={isUpiDrawerOpen}
+                className="w-full pl-12 pr-4 py-4 bg-zinc-800/60 border border-white/10 rounded-2xl text-white text-lg font-medium placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/40 focus:ring-2 focus:ring-[#E5D5B3]/20 transition-all"
+              />
+            </div>
+
+            {/* Search Button */}
+            <button
+              onClick={async () => {
+                if (upiInput.trim()) {
+                  const id = upiInput.trim();
+                  const profile = await getProfileByStellarId(id);
+                  setSelectedContact({
+                    id,
+                    name: profile?.displayName || id.split('@')[0],
+                    avatarSeed: profile?.avatarSeed || id
+                  });
+                  setIsUpiDrawerOpen(false);
+                }
+              }}
+              disabled={!upiInput.trim()}
+              className="w-full gold-gradient text-black py-4 rounded-2xl font-black text-lg shadow-xl active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
+            >
+              <Search size={20} />
+              <span>Search & Continue</span>
+            </button>
+
+            {/* Hint Text */}
+            <p className="text-zinc-500 text-xs font-medium text-center">
+              Enter a valid UPI ID to send money directly
+            </p>
+          </div>
+        </div>
+      </div>
+
+
 
       <div className="px-8 pb-32">
         <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6">Recent Ledger</h3>
