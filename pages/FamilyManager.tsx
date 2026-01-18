@@ -157,46 +157,101 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
         </div>
       </div>
 
-      {/* Add Member Form (Slide down) */}
-      {showAddForm && (
-        <div className="px-6 mb-6 animate-in slide-in-from-top-4 duration-300">
-          <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-3xl p-6">
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div className="relative">
-                <User size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30" />
-                <input
-                  type="text"
-                  placeholder="Member Stellar ID"
-                  required
-                  className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm placeholder:text-white/30 outline-none focus:border-[#E5D5B3]/30 transition-all"
-                  value={newMemberId}
-                  onChange={(e) => setNewMemberId(e.target.value)}
-                />
-              </div>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30 text-sm">₹</span>
-                <input
-                  type="number"
-                  placeholder="Daily Limit"
-                  required
-                  className="w-full pl-11 pr-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-sm placeholder:text-white/30 outline-none focus:border-[#E5D5B3]/30 transition-all"
-                  value={newLimit}
-                  onChange={(e) => setNewLimit(e.target.value)}
-                />
-              </div>
-              {error && (
-                <p className="text-rose-400 text-xs px-2">{error}</p>
-              )}
-              <button
-                disabled={loading}
-                className="w-full py-4 rounded-2xl bg-[#E5D5B3] text-black font-bold text-sm hover:bg-[#d4c4a2] transition-all disabled:opacity-50"
-              >
-                {loading ? 'Adding...' : 'Add Member'}
-              </button>
-            </form>
+      {/* Add Member Bottom Drawer */}
+      <div
+        className={`fixed inset-0 z-50 transition-opacity duration-300 ${showAddForm ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowAddForm(false)}
+        />
+
+        {/* Drawer */}
+        <div
+          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2rem] transition-transform duration-300 ease-out ${showAddForm ? 'translate-y-0' : 'translate-y-full'}`}
+          style={{ height: '50vh', minHeight: '380px' }}
+        >
+          {/* Handle */}
+          <div className="flex justify-center pt-3 pb-2">
+            <div className="w-10 h-1 bg-zinc-700 rounded-full" />
           </div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 pb-4 pt-3">
+            <div>
+              <h3 className="text-xl font-black text-white tracking-tight">Add Family Member</h3>
+              <p className="text-[14px] font-black text-zinc-500 mt-1">Share your wallet access</p>
+            </div>
+            <button
+              onClick={() => setShowAddForm(false)}
+              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          {/* Content */}
+          <form onSubmit={handleAdd} className="px-6 flex flex-col gap-5">
+            {/* Member ID Input */}
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                <User size={20} className="text-zinc-500" />
+              </div>
+              <input
+                type="text"
+                placeholder="Member Stellar ID"
+                required
+                value={newMemberId}
+                onChange={(e) => setNewMemberId(e.target.value)}
+                autoFocus={showAddForm}
+                className="w-full pl-12 pr-4 py-4 bg-zinc-800/60 border border-white/10 rounded-2xl text-white text-lg font-medium placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/40 focus:ring-2 focus:ring-[#E5D5B3]/20 transition-all"
+              />
+            </div>
+
+            {/* Daily Limit Input */}
+            <div className="relative">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                <span className="text-zinc-500 text-xl font-medium">₹</span>
+              </div>
+              <input
+                type="number"
+                placeholder="Daily Limit"
+                required
+                value={newLimit}
+                onChange={(e) => setNewLimit(e.target.value)}
+                className="w-full pl-12 pr-4 py-4 bg-zinc-800/60 border border-white/10 rounded-2xl text-white text-lg font-medium placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/40 focus:ring-2 focus:ring-[#E5D5B3]/20 transition-all"
+              />
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <p className="text-rose-400 text-sm font-medium px-2">{error}</p>
+            )}
+
+            {/* Add Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full gold-gradient text-black py-4 rounded-2xl font-black text-lg shadow-xl active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
+            >
+              {loading ? (
+                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+              ) : (
+                <>
+                  <Plus size={20} />
+                  <span>Add Member</span>
+                </>
+              )}
+            </button>
+
+            {/* Hint Text */}
+            <p className="text-zinc-500 text-xs font-medium text-center">
+              Member will be able to spend from your wallet within the daily limit
+            </p>
+          </form>
         </div>
-      )}
+      </div>
 
       {/* Members List */}
       <div className="flex-1 px-6 pb-32">
