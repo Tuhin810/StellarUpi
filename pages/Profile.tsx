@@ -35,8 +35,8 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const [nickname, setNickname] = useState(profile?.displayName || profile?.stellarId.split('@')[0] || '');
     const [avatarSeed, setAvatarSeed] = useState(profile?.avatarSeed || profile?.stellarId || 'custom-seed');
     const [saving, setSaving] = useState(false);
-    const [isEditingLimit, setIsEditingLimit] = useState(false);
-    const [dailyLimit, setDailyLimit] = useState(profile?.dailyLimit || 0);
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [dailyLimitEntry, setDailyLimitEntry] = useState(profile?.dailyLimit || 0);
     const [showSecurityModal, setShowSecurityModal] = useState(false);
     const [pinEntry, setPinEntry] = useState('');
 
@@ -44,7 +44,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
         if (profile) {
             setNickname(profile.displayName || profile.stellarId.split('@')[0]);
             setAvatarSeed(profile.avatarSeed || profile.stellarId);
-            setDailyLimit(profile.dailyLimit || 0);
+            setDailyLimitEntry(profile.dailyLimit || 0);
         }
     }, [profile]);
 
@@ -62,10 +62,9 @@ const Profile: React.FC<Props> = ({ profile }) => {
             await updateUserDetails(profile.uid, {
                 displayName: nickname,
                 avatarSeed: avatarSeed,
-                dailyLimit: dailyLimit
+                dailyLimit: dailyLimitEntry
             });
             setIsEditingName(false);
-            setIsEditingLimit(false);
         } catch (err) {
             console.error("Failed to update profile", err);
         } finally {
@@ -197,28 +196,10 @@ const Profile: React.FC<Props> = ({ profile }) => {
                                     <div>
                                         <p className="text-[10px] uppercase tracking-wider text-white/30">Daily Spending Limit</p>
                                         <div className="flex items-center gap-2">
-                                            {isEditingLimit ? (
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-zinc-500 font-bold">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        value={dailyLimit}
-                                                        onChange={(e) => setDailyLimit(Number(e.target.value))}
-                                                        className="bg-white/5 border border-white/10 rounded-lg px-2 py-1 w-24 text-sm font-bold focus:border-[#E5D5B3]/50 outline-none"
-                                                        autoFocus
-                                                    />
-                                                    <button onClick={handleUpdateProfile} className="text-[#E5D5B3] hover:scale-110 transition-transform">
-                                                        <Save size={16} />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-2">
-                                                    <p className="font-bold text-lg">₹{profile.dailyLimit || 0}</p>
-                                                    <button onClick={() => setIsEditingLimit(true)} className="p-1 text-white/20 hover:text-[#E5D5B3] transition-colors">
-                                                        <Edit2 size={12} />
-                                                    </button>
-                                                </div>
-                                            )}
+                                            <p className="font-bold text-lg">₹{profile.dailyLimit || 0}</p>
+                                            <button onClick={() => setShowLimitModal(true)} className="p-1 text-white/20 hover:text-[#E5D5B3] transition-colors">
+                                                <Edit2 size={12} />
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -323,56 +304,103 @@ const Profile: React.FC<Props> = ({ profile }) => {
             </div>
 
             {/* Security Modal */}
-            {showSecurityModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                    <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowSecurityModal(false)}></div>
-                    <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-3xl p-8 flex flex-col items-center">
-                        <div className="w-16 h-16 bg-[#E5D5B3]/10 rounded-2xl flex items-center justify-center text-[#E5D5B3] mb-6">
-                            <Lock size={24} />
-                        </div>
-                        <h3 className="text-xl font-black mb-2 tracking-tight">Transaction PIN</h3>
-                        <p className="text-zinc-500 text-xs text-center mb-8">Set a 4-digit PIN to secure your payments. This PIN will be required for every transaction.</p>
+            <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showSecurityModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSecurityModal(false)}></div>
+                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] p-8 flex flex-col items-center transition-transform duration-300 ease-out ${showSecurityModal ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '60vh', minHeight: '400px' }}>
+                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8"></div>
+                    <div className="flex items-center justify-between w-full mb-8">
+                        <h3 className="text-2xl font-black tracking-tight">Security PIN</h3>
+                        <button onClick={() => setShowSecurityModal(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400">
+                            <Lock size={20} />
+                        </button>
+                    </div>
+                    <p className="text-zinc-500 text-sm text-center mb-8 px-6">Set a 4-digit PIN to secure your payments. Required for every transaction.</p>
 
-                        <div className="bg-black/40 w-full rounded-2xl p-4 border border-white/5 mb-8">
-                            <input
-                                type="password"
-                                maxLength={4}
-                                placeholder="ENTER 4 DIGIT PIN"
-                                value={pinEntry}
-                                onChange={(e) => setPinEntry(e.target.value.replace(/[^0-9]/g, ''))}
-                                className="w-full bg-transparent text-center text-2xl font-black tracking-[1em] outline-none text-[#E5D5B3] placeholder-zinc-800"
-                            />
-                        </div>
+                    <div className="bg-black/40 w-full max-w-sm rounded-3xl p-6 border border-white/5 mb-8">
+                        <input
+                            type="password"
+                            maxLength={4}
+                            placeholder="PIN"
+                            value={pinEntry}
+                            onChange={(e) => setPinEntry(e.target.value.replace(/[^0-9]/g, ''))}
+                            className="w-full bg-transparent text-center text-4xl font-black tracking-[1em] outline-none text-[#E5D5B3] placeholder-zinc-800"
+                        />
+                    </div>
 
-                        <div className="flex gap-4 w-full">
-                            <button
-                                onClick={() => setShowSecurityModal(false)}
-                                className="flex-1 py-4 bg-zinc-800 rounded-2xl text-zinc-500 font-bold uppercase tracking-widest text-[10px]"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={async () => {
-                                    if (pinEntry.length !== 4) return;
-                                    setSaving(true);
-                                    await updateUserDetails(profile.uid, { pin: pinEntry });
-                                    setSaving(false);
-                                    setShowSecurityModal(false);
-                                    setPinEntry('');
-                                }}
-                                disabled={pinEntry.length !== 4 || saving}
-                                className="flex-[2] py-4 bg-[#E5D5B3] text-black rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg disabled:opacity-30"
-                            >
-                                {saving ? <RefreshCw size={14} className="animate-spin" /> : 'Save PIN'}
-                            </button>
-                        </div>
+                    <div className="flex gap-4 w-full max-w-sm mt-auto">
+                        <button onClick={() => setShowSecurityModal(false)} className="flex-1 py-5 bg-zinc-800 rounded-2xl text-zinc-400 font-bold uppercase tracking-widest text-xs">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (pinEntry.length !== 4) return;
+                                setSaving(true);
+                                await updateUserDetails(profile.uid, { pin: pinEntry });
+                                setSaving(false);
+                                setShowSecurityModal(false);
+                                setPinEntry('');
+                            }}
+                            disabled={pinEntry.length !== 4 || saving}
+                            className="flex-[2] py-5 gold-gradient text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-30"
+                        >
+                            {saving ? <RefreshCw size={18} className="animate-spin" /> : 'Save PIN'}
+                        </button>
                     </div>
                 </div>
-            )}
+            </div>
+
+            {/* Limit Modal */}
+            <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showLimitModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLimitModal(false)}></div>
+                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] py-5 px-8 flex flex-col items-center transition-transform duration-300 ease-out ${showLimitModal ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '60vh', minHeight: '400px' }}>
+                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8"></div>
+                    <div className="flex items-center justify-between w-full mb-8">
+                        <h3 className="text-2xl font-black tracking-tight">Spending Limit</h3>
+                        <button onClick={() => setShowLimitModal(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400">
+                            <ShieldCheck size={20} />
+                        </button>
+                    </div>
+                    <p className="text-zinc-500 text-sm text-center mb-10 px-6">Set your daily transaction limit to stay within your budget.</p>
+
+                    <div className="bg-black/40 w-full max-w-sm rounded-[2rem] p-6 border border-white/5 mb-10 flex items-center justify-center gap-4">
+                        <span className="text-4xl font-black text-zinc-700">₹</span>
+                        <input
+                            type="number"
+                            placeholder="0"
+                            value={dailyLimitEntry}
+                            onChange={(e) => setDailyLimitEntry(Number(e.target.value))}
+                            className="bg-transparent text-center text-4xl font-black outline-none text-[#E5D5B3] placeholder-zinc-800 w-full"
+                            autoFocus
+                        />
+                    </div>
+
+                    <div className="flex gap-4 w-full max-w-sm mt-auto mb-4">
+                        <button
+                            onClick={() => setShowLimitModal(false)}
+                            className="flex-1 py-5 bg-zinc-800 rounded-2xl text-zinc-400 font-bold uppercase tracking-widest text-xs"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                setSaving(true);
+                                await updateUserDetails(profile.uid, { dailyLimit: dailyLimitEntry });
+                                setSaving(false);
+                                setShowLimitModal(false);
+                            }}
+                            disabled={saving}
+                            className="flex-[2] py-5 gold-gradient text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-30"
+                        >
+                            {saving ? <RefreshCw size={18} className="animate-spin" /> : 'Update Limit'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             {showQR && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
-                    <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setShowQR(false)}></div>
-                    <div className="relative w-full max-w-sm bg-gradient-to-b from-[#1a2520] to-[#0d1510] border border-white/10 rounded-3xl p-8 flex flex-col items-center">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowQR(false)}></div>
+                    <div className="relative w-full max-w-sm bg-gradient-to-b from-[#1a2520] to-[#0d1510] border border-white/10 rounded-3xl p-8 flex flex-col items-center animate-in zoom-in-95 duration-300">
                         <button
                             onClick={() => setShowQR(false)}
                             className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-white/5 text-white/60"
