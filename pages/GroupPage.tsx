@@ -2,10 +2,25 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, SplitGroup, SplitExpense } from '../types';
-import { ArrowLeft, Plus, Users, Receipt, Send, ChevronRight, CheckCircle2, IndianRupee, MessageCircle } from 'lucide-react';
+import {
+    ArrowLeft,
+    Plus,
+    Users,
+    Receipt,
+    Send,
+    ChevronRight,
+    CheckCircle2,
+    IndianRupee,
+    MessageCircle,
+    X,
+    Search,
+    Trash2,
+    RefreshCw,
+    UserPlus
+} from 'lucide-react';
 import { db } from '../services/firebase';
-import { doc, getDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
-import { recordSplitExpense } from '../services/db';
+import { doc, getDoc, collection, query, where, onSnapshot, addDoc, serverTimestamp, updateDoc } from 'firebase/firestore';
+import { recordSplitExpense, updateGroupMembers, searchUsers, getProfileByStellarId } from '../services/db';
 
 interface Props {
     profile: UserProfile | null;
@@ -17,23 +32,40 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
     const [group, setGroup] = useState<SplitGroup | null>(null);
     const [expenses, setExpenses] = useState<any[]>([]);
     const [showSplitModal, setShowSplitModal] = useState(false);
+    const [showMembersModal, setShowMembersModal] = useState(false);
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
     const [inputText, setInputText] = useState('');
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [savingMembers, setSavingMembers] = useState(false);
+    const [memberProfiles, setMemberProfiles] = useState<Record<string, UserProfile>>({});
     const scrollRef = React.useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!group?.members?.length) return;
+        const fetchProfiles = async () => {
+            const profiles: Record<string, UserProfile> = {};
+            await Promise.all(group.members.map(async (mId) => {
+                const p = await getProfileByStellarId(mId);
+                if (p) profiles[mId] = p;
+            }));
+            setMemberProfiles(profiles);
+        };
+        fetchProfiles();
+    }, [group?.members]);
 
     useEffect(() => {
         if (!groupId) return;
 
-        // Fetch Group Details
-        const fetchGroup = async () => {
-            const snap = await getDoc(doc(db, 'groups', groupId));
+        // Fetch Group Details with Real-time listener
+        const unsubGroup = onSnapshot(doc(db, 'groups', groupId), (snap) => {
             if (snap.exists()) {
                 setGroup({ id: snap.id, ...snap.data() } as SplitGroup);
             }
-        };
-        fetchGroup();
+        });
 
         const chatsRef = { current: [] as any[] };
         const expensesRef = { current: [] as any[] };
@@ -64,6 +96,7 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
         });
 
         return () => {
+            unsubGroup();
             unsubChats();
             unsubExpenses();
         };
@@ -142,7 +175,10 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
                     >
                         <Plus size={16} strokeWidth={3} /> Create Split
                     </button>
-                    <button className="p-4 bg-zinc-800 rounded-2xl border border-white/5 text-zinc-400">
+                    <button
+                        onClick={() => setShowMembersModal(true)}
+                        className="p-4 bg-zinc-800 rounded-2xl border border-white/5 text-zinc-400 hover:text-[#E5D5B3] transition-all"
+                    >
                         <Users size={20} />
                     </button>
                 </div>
@@ -170,46 +206,60 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
                         const unpaidCount = item.participants.filter((p: any) => p.status === 'PENDING').length;
 
                         return (
-                            <div key={item.id} className={`flex ${isPayer ? 'justify-end' : 'justify-start'}`}>
-                                <div className="bg-zinc-900/80 border border-white/5 rounded-[1rem] p-6 shadow-2xl max-w-[85%]">
-                                    <div className="flex justify-between items-start mb-4 gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center text-[#E5D5B3]">
-                                                <Receipt size={20} />
+                            <div key={item.id} className={`flex ${isPayer ? 'justify-end' : 'justify-start'} w-full mb-2`}>
+                                <div className={`relative max-w-[90%] w-full sm:w-auto min-w-[320px] bg-gradient-to-br from-zinc-900 to-black border border-white/10 rounded-[2rem] p-6 shadow-2xl transition-all hover:border-[#E5D5B3]/20`}>
+                                    {/* Action Header */}
+                                    <div className="flex items-center justify-between mb-5">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-[#E5D5B3]/10 flex items-center justify-center text-[#E5D5B3]">
+                                                <Receipt size={20} strokeWidth={2.5} />
                                             </div>
                                             <div>
-                                                <h4 className="font-black text-white leading-tight capitalize text-sm">{item.description}</h4>
-                                                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                                                    Paid by {isPayer ? 'You' : item.paidBy.split('@')[0]}
-                                                </p>
+                                                <p className="text-[10px] font-black uppercase tracking-[0.1em] text-zinc-500 mb-0.5">Split Expense</p>
+                                                <h4 className="font-black text-white text-base leading-none capitalize">{item.description}</h4>
                                             </div>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-xl font-black tracking-tighter text-white">₹{item.totalAmount}</p>
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-[#E5D5B3]">{unpaidCount} Pending</p>
+                                            <p className="text-2xl font-black tracking-tighter text-white">₹{item.totalAmount}</p>
                                         </div>
                                     </div>
 
-                                    <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-4">
+                                    {/* Participants Summary */}
+                                    <div className="bg-white/5 rounded-2xl p-4 border border-white/5 flex items-center justify-between gap-4 mb-5">
                                         <div className="flex -space-x-3">
-                                            {item.participants.slice(0, 4).map((p: any) => (
-                                                <div key={p.stellarId} className={`w-8 h-8 rounded-full border-2 border-zinc-900 bg-zinc-800 overflow-hidden ${p.status === 'PAID' ? 'opacity-100' : 'opacity-40'}`}>
-                                                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.stellarId}`} className="w-full h-full" />
+                                            {item.participants.slice(0, 5).map((p: any) => (
+                                                <div key={p.stellarId} className={`w-8 h-8 rounded-full border-2 border-zinc-900 bg-zinc-800 p-0.5 transition-all ${p.status === 'PAID' ? 'ring-2 ring-emerald-500/20' : 'opacity-40 grayscale'}`}>
+                                                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.stellarId}`} className="w-full h-full rounded-full" />
                                                 </div>
                                             ))}
+                                            {item.participants.length > 5 && (
+                                                <div className="w-8 h-8 rounded-full border-2 border-zinc-900 bg-zinc-800 flex items-center justify-center text-[10px] font-black text-zinc-400">
+                                                    +{item.participants.length - 5}
+                                                </div>
+                                            )}
                                         </div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#E5D5B3]">
+                                            {unpaidCount === 0 ? <span className="text-emerald-400">FULLY SETTLED</span> : `${unpaidCount} PENDING`}
+                                        </p>
+                                    </div>
+
+                                    {/* Action Button */}
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest">
+                                            {isPayer ? 'You paid' : `${item.paidBy.split('@')[0]} paid`}
+                                        </p>
 
                                         {!isPayer && mySplit.status === 'PENDING' && (
                                             <button
                                                 onClick={() => navigate(`/send?to=${item.paidBy}&amt=${mySplit.amount}`)}
-                                                className="px-6 py-2 bg-white text-black rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-lg"
+                                                className="px-8 py-3 gold-gradient text-black rounded-xl font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all shadow-xl"
                                             >
-                                                Pay
+                                                Pay ₹{mySplit.amount}
                                             </button>
                                         )}
                                         {(isPayer || mySplit.status === 'PAID') && (
-                                            <div className="flex items-center gap-2 text-emerald-500/60 font-black text-[10px] uppercase tracking-widest">
-                                                <CheckCircle2 size={14} /> Settle
+                                            <div className="flex items-center gap-2 text-emerald-500/80 font-black text-[10px] uppercase tracking-[0.2em] px-4 py-2 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                                                <CheckCircle2 size={14} strokeWidth={3} /> Settled
                                             </div>
                                         )}
                                     </div>
@@ -219,17 +269,22 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
                     }
 
                     return (
-                        <div key={item.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-2`}>
+                        <div key={item.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-3 w-full group mb-1`}>
                             {!isMe && (
-                                <div className="w-6 h-6 rounded-lg bg-zinc-800 overflow-hidden border border-white/5 mb-1">
+                                <div className="w-8 h-8 rounded-xl bg-zinc-800/80 overflow-hidden border border-white/10 mb-1 flex-shrink-0 shadow-lg group-hover:scale-110 transition-transform">
                                     <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.senderId}`} className="w-full h-full" />
                                 </div>
                             )}
-                            <div className={`max-w-[75%] px-5 py-3 rounded-2xl font-bold text-sm shadow-xl ${isMe ? 'bg-[#E5D5B3] text-black rounded-tr-none' : 'bg-zinc-900 text-white rounded-tl-none border border-white/5'}`}>
-                                {!isMe && <p className="text-[9px] font-black uppercase tracking-widest opacity-40 mb-1">{item.senderId.split('@')[0]}</p>}
-                                {item.text}
-                                <div className="text-[8px] mt-1 opacity-40 text-right font-black">
-                                    {item.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            <div className={`max-w-[75%] shadow-2xl transition-all ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                                {!isMe && (
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-1.5 ml-1">{item.senderId.split('@')[0]}</p>
+                                )}
+                                <div className={`relative px-4 py-2 rounded-2xl font-medium text-[17.5px] leading-relaxed shadow-lg ${isMe ? 'bg-gradient-to-br from-[#E5D5B3] to-[#D4C4A3] text-zinc-950 rounded-tr-none' : 'bg-zinc-900 border border-white/5 text-white rounded-tl-none'}`}>
+                                    {item.text}
+                                    <div className={`text-[7px]  font-black uppercase tracking-tighter opacity-30 ${isMe ? 'text-black' : 'text-zinc-500'} flex justify-end items-center gap-1`}>
+                                        {item.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {isMe && <CheckCircle2 size={7} />}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -240,21 +295,21 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
 
             {/* Message Input */}
             <div className="p-6 pb-6 bg-zinc-900/80 backdrop-blur-xl border-t border-white/5 relative z-10">
-                <div className="relative">
+                <div className="relative ">
                     <input
                         type="text"
-                        placeholder="Message to group..."
+                        placeholder="Message..."
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                        className="w-full bg-zinc-950 border border-white/5 rounded-2xl py-4 pl-6 pr-16 font-bold text-sm focus:outline-none focus:border-[#E5D5B3]/20 transition-all placeholder-zinc-700 shadow-inner"
+                        className="w-full bg-zinc-950 border border-white/5 rounded-2xl py-5 pl-5 pr-12 font-bold text-md focus:outline-none focus:border-[#E5D5B3]/20 transition-all placeholder-zinc-800"
                     />
                     <button
                         onClick={handleSendMessage}
                         disabled={!inputText.trim()}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-[#E5D5B3] rounded-xl flex items-center justify-center text-black disabled:opacity-30 transition-all active:scale-90"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 bg-[#E5D5B3] rounded-xl flex items-center justify-center text-black disabled:opacity-30 transition-all active:scale-90"
                     >
-                        <Send size={18} />
+                        <Send size={22} />
                     </button>
                 </div>
             </div>
@@ -309,6 +364,127 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
                     </div>
                 </div>
             )}
+
+            {/* Members Management Drawer */}
+            <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showMembersModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowMembersModal(false)}></div>
+                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] transition-transform duration-300 ease-out flex flex-col ${showMembersModal ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '70vh', minHeight: '500px' }}>
+                    {/* Handle */}
+                    <div className="flex justify-center pt-3 pb-2">
+                        <div className="w-10 h-1 bg-zinc-700 rounded-full" />
+                    </div>
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 pb-6 pt-2">
+                        <div>
+                            <h3 className="text-2xl font-black text-white tracking-tight">Manage Members</h3>
+                            <p className="text-[12px] font-bold text-zinc-500 uppercase tracking-widest">{group.members.length} People in group</p>
+                        </div>
+                        <button
+                            onClick={() => setShowMembersModal(false)}
+                            className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400 hover:text-white"
+                        >
+                            <X size={20} />
+                        </button>
+                    </div>
+
+                    {/* Search Section */}
+                    <div className="px-6 mb-6">
+                        <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+                            <input
+                                type="text"
+                                placeholder="Add member by Stellar ID..."
+                                value={searchQuery}
+                                onChange={async (e) => {
+                                    const val = e.target.value;
+                                    setSearchQuery(val);
+                                    if (val.length > 2) {
+                                        setIsSearching(true);
+                                        const results = await searchUsers(val);
+                                        setSearchResults(results.filter(r => !group.members.includes(r.stellarId)));
+                                        setIsSearching(false);
+                                    } else {
+                                        setSearchResults([]);
+                                    }
+                                }}
+                                className="w-full bg-zinc-800/60 border border-white/5 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-[#E5D5B3]/40"
+                            />
+                            {isSearching && (
+                                <RefreshCw className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 animate-spin" size={16} />
+                            )}
+                        </div>
+
+                        {/* Search Results */}
+                        {searchResults.length > 0 && (
+                            <div className="mt-2 bg-zinc-800 rounded-2xl border border-white/10 overflow-hidden shadow-2xl animate-in fade-in slide-in-from-top-2">
+                                {searchResults.map(user => (
+                                    <button
+                                        key={user.uid}
+                                        onClick={async () => {
+                                            setSavingMembers(true);
+                                            await updateGroupMembers(group.id, [...group.members, user.stellarId]);
+                                            setSearchQuery('');
+                                            setSearchResults([]);
+                                            setSavingMembers(false);
+                                        }}
+                                        className="w-full flex items-center gap-3 p-4 hover:bg-white/5 transition-all text-left border-b border-white/5 last:border-0"
+                                    >
+                                        <div className="w-10 h-10 rounded-full overflow-hidden bg-zinc-700">
+                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.avatarSeed}`} className="w-full h-full" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-sm">{user.displayName || user.stellarId.split('@')[0]}</p>
+                                            <p className="text-[10px] text-zinc-500">{user.stellarId}</p>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-lg bg-[#E5D5B3]/10 flex items-center justify-center text-[#E5D5B3]">
+                                            <UserPlus size={16} />
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Member List */}
+                    <div className="flex-1 overflow-y-auto px-6 pb-20 no-scrollbar">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-4 px-1">Current Members</p>
+                        <div className="space-y-3">
+                            {group.members.map(memberId => {
+                                const isMe = memberId === profile.stellarId;
+                                return (
+                                    <div key={memberId} className="flex items-center gap-4 p-4 bg-white/5 border border-white/5 rounded-2xl">
+                                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 border border-white/5">
+                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${memberId}`} className="w-full h-full" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-sm flex items-center gap-2">
+                                                {memberProfiles[memberId]?.displayName || memberId.split('@')[0]}
+                                                {isMe && <span className="text-[8px] bg-[#E5D5B3] text-black px-2.5  rounded-full font-black uppercase ">You</span>}
+                                            </p>
+                                            <p className="text-[10px] text-zinc-500">{memberId}</p>
+                                        </div>
+                                        {!isMe && (
+                                            <button
+                                                onClick={async () => {
+                                                    const displayName = memberProfiles[memberId]?.displayName || memberId.split('@')[0];
+                                                    if (window.confirm(`Remove ${displayName} from group?`)) {
+                                                        const newMembers = group.members.filter(m => m !== memberId);
+                                                        await updateGroupMembers(group.id, newMembers);
+                                                    }
+                                                }}
+                                                className="w-10 h-10 flex items-center justify-center rounded-xl bg-rose-500/10 text-rose-500 hover:bg-rose-500 transition-all hover:text-white"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

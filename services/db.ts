@@ -150,6 +150,11 @@ export const createGroup = async (groupData: any) => {
   return docRef.id;
 };
 
+export const updateGroupMembers = async (groupId: string, members: string[]) => {
+  const groupRef = doc(db, 'groups', groupId);
+  await updateDoc(groupRef, { members });
+};
+
 export const getGroups = async (stellarId: string) => {
   const q = query(
     collection(db, 'groups'),
