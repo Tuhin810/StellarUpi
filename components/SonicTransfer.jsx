@@ -89,9 +89,17 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             streamRef.current = stream;
 
             const source = context.createMediaStreamSource(stream);
+
+            // High-pass filter to remove background rumble/noise
+            const filter = context.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(8000, context.currentTime); // Filter everything below 8kHz
+
             const analyser = context.createAnalyser();
-            analyser.fftSize = 2048; // Higher resolution for frequency detection
-            source.connect(analyser);
+            analyser.fftSize = 4096; // Double resolution for ultra-long range detection
+
+            source.connect(filter);
+            filter.connect(analyser);
             analyserRef.current = analyser;
 
             setStatus('listening');

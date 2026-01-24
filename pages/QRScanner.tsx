@@ -144,7 +144,7 @@ const QRScanner: React.FC = () => {
           <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-all backdrop-blur-lg">
             <Radio size={24} className="animate-pulse" />
           </div>
-          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Sonic</span>
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">NFC</span>
         </button>
       </div>
 

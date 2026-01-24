@@ -5,11 +5,11 @@
  */
 
 const CONFIG = {
-    START_FREQ: 17500,
-    FREQ_BASE: 14000,
-    FREQ_STEP: 100,     // Increased step for better separation at distance
-    BIT_DURATION: 0.25, // Slower (250ms) = Much higher range/reliability
-    MARGIN: 50          // Wider tolerance for distance fading
+    START_FREQ: 16000,  // Lowered for better distance travel
+    FREQ_BASE: 10000,   // Lowered base to 10kHz (audible but extremely robust)
+    FREQ_STEP: 150,     // Wider gap for clearer detection from afar
+    BIT_DURATION: 0.35, // 350ms - The "Sweet Spot" for range vs speed
+    MARGIN: 70          // Higher tolerance for noisy environments
 };
 
 // Binary mapping for characters (simplified for UPI IDs)
