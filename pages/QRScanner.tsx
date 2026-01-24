@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Waves } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Waves, AlertCircle } from 'lucide-react';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [isFlashOn, setIsFlashOn] = useState(false);
+  const [upiData, setUpiData] = useState<{ pa: string, pn: string, am?: string } | null>(null);
+  const [scannerInstance, setScannerInstance] = useState<Html5QrcodeScanner | null>(null);
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
@@ -15,39 +17,54 @@ const QRScanner: React.FC = () => {
         fps: 20,
         qrbox: (viewfinderWidth, viewfinderHeight) => {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const qrboxSize = Math.max(50, Math.floor(minEdge * 0.7)); // Minimum 50px required
+          const qrboxSize = Math.max(50, Math.floor(minEdge * 0.7));
           return { width: qrboxSize, height: qrboxSize };
         },
         aspectRatio: 1.0,
-        // Use rear camera (environment) by default on mobile devices
         videoConstraints: {
           facingMode: { ideal: "environment" }
         },
-        // Prefer back camera when listing cameras
         rememberLastUsedCamera: true,
         showTorchButtonIfSupported: true
       },
-      /* verbose= */ false
+      false
     );
 
+    setScannerInstance(scanner);
     scanner.render(onScanSuccess, onScanFailure);
 
     function onScanSuccess(decodedText: string) {
-      scanner.clear();
+      if (decodedText.startsWith('upi://pay')) {
+        try {
+          const url = new URL(decodedText);
+          const pa = url.searchParams.get('pa') || '';
+          const pn = url.searchParams.get('pn') || '';
+          const am = url.searchParams.get('am') || '';
+          setUpiData({ pa, pn, am });
+          return;
+        } catch (e) {
+          console.error("UPI Parse Error", e);
+        }
+      }
+
       try {
         const url = new URL(decodedText);
         const to = url.searchParams.get('to');
         const amt = url.searchParams.get('amt') || '';
         if (to) {
+          scanner.clear();
           navigate(`/send?to=${to}&amt=${amt}`);
         } else {
           setError("Invalid QR Code Format");
+          setTimeout(() => setError(''), 3000);
         }
       } catch (e) {
         if (decodedText.includes('@')) {
+          scanner.clear();
           navigate(`/send?to=${decodedText}`);
         } else {
           setError("Unknown QR type");
+          setTimeout(() => setError(''), 3000);
         }
       }
     }
@@ -57,7 +74,7 @@ const QRScanner: React.FC = () => {
     return () => {
       scanner.clear().catch(e => console.error("Scanner clear failed", e));
     };
-  }, []);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden font-sans">
@@ -116,6 +133,46 @@ const QRScanner: React.FC = () => {
           )}
         </div>
 
+        {/* UPI Data Modal */}
+        {upiData && (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6">
+            <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={() => setUpiData(null)}></div>
+            <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-[2.5rem] p-8 animate-in zoom-in-95 duration-300">
+              <div className="w-16 h-16 gold-gradient rounded-3xl flex items-center justify-center text-black mb-6 mx-auto shadow-xl">
+                <QrCode size={32} />
+              </div>
+
+              <h3 className="text-xl font-black text-center mb-1">Standard UPI Found</h3>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center mb-8">Metadata Handshake Success</p>
+
+              <div className="space-y-4 mb-8">
+                <div className="bg-black/40 border border-white/5 p-4 rounded-2xl">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1">Payee Name</p>
+                  <p className="text-white font-bold">{upiData.pn || "Unknown Merchant"}</p>
+                </div>
+                <div className="bg-black/40 border border-white/5 p-4 rounded-2xl">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1">UPI Address</p>
+                  <p className="text-[#E5D5B3] font-mono text-sm">{upiData.pa}</p>
+                </div>
+              </div>
+
+              <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl mb-8 flex items-start gap-3">
+                <div className="mt-0.5"><AlertCircle size={14} className="text-orange-500" /></div>
+                <p className="text-[10px] font-bold text-orange-400 leading-normal">
+                  You are currently on <span className="underline">Stellar Testnet</span>. Bridge to Mainnet to send funds to external UPI nodes.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setUpiData(null)}
+                className="w-full py-4 gold-gradient text-black font-black rounded-2xl text-xs uppercase tracking-widest active:scale-95 transition-all"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Instructions */}
         <div className="mt-12 text-center max-w-[200px]">
           <p className="text-zinc-400 text-sm font-medium leading-relaxed">
@@ -144,7 +201,7 @@ const QRScanner: React.FC = () => {
           <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-all backdrop-blur-lg">
             <Radio size={24} className="animate-pulse" />
           </div>
-          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">NFC</span>
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Sonic Pulse</span>
         </button>
       </div>
 
@@ -189,9 +246,5 @@ const QRScanner: React.FC = () => {
     </div>
   );
 };
-
-const AlertCircle = ({ size }: { size: number }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-alert-circle"><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></svg>
-);
 
 export default QRScanner;

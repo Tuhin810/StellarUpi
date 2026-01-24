@@ -35,12 +35,24 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     };
 
     const getPaymentLink = () => {
-        const baseUrl = window.location.origin;
-        let link = `${baseUrl}/#/pay/${profile.stellarId}`;
+        // Get absolute base URL (e.g., https://site.com/ or https://site.com/app/)
+        const currentUrl = window.location.href;
+        const base = currentUrl.split('#')[0].split('?')[0];
+        const normalizedBase = base.endsWith('/') ? base : base + '/';
+
+        // Construct the hash route
+        let link = `${normalizedBase}#/pay/${profile.stellarId}`;
+
+        // Add query parameters after the hash route
         const params = new URLSearchParams();
         if (linkAmount) params.append('amount', linkAmount);
         if (linkNote) params.append('note', linkNote);
-        if (params.toString()) link += `?${params.toString()}`;
+
+        const queryString = params.toString();
+        if (queryString) {
+            link += `?${queryString}`;
+        }
+
         return link;
     };
 
@@ -155,7 +167,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     className="mt-4 flex items-center gap-3 px-6 py-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 font-bold hover:bg-green-500/20 transition-all w-full max-w-sm justify-center"
                 >
                     <Radio size={18} className="animate-pulse" />
-                    NFC
+                    Sonic Pulse (Offline)
                 </button>
 
                 <p className="mt-12 text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] text-center max-w-[200px] leading-loose">

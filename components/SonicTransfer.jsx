@@ -3,7 +3,7 @@ import { useSonic } from '../hooks/useSonic';
 import { StellarPulse } from '../utils/StellarPulse';
 import { useNavigate } from 'react-router-dom';
 import {
-    Nfc,
+    Waves,
     WifiOff,
     Mic,
     MicOff,
@@ -58,14 +58,14 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             const context = initAudio();
             setIsSending(true);
             setStatus('sending');
-            setMessage('Establishing NFC Link...');
+            setMessage('Establishing Sonic Link...');
 
             const duration = await StellarPulse.transmit(context, payload);
 
             setTimeout(() => {
                 setIsSending(false);
                 setStatus('success');
-                setMessage('NFC Data Transferred');
+                setMessage('Sonic Pulse Transferred');
 
                 // Reset state after a delay
                 setTimeout(() => {
@@ -103,7 +103,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             analyserRef.current = analyser;
 
             setStatus('listening');
-            setMessage('Waiting for NFC proximity...');
+            setMessage('Ready for Sonic Pulse...');
             lastDetectedChars.current = [];
 
             const bufferLength = analyser.frequencyBinCount;
@@ -137,7 +137,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                                     return;
                                 }
                                 charSequence += char;
-                                console.log("NFC Captured:", charSequence);
+                                console.log("Sonic Captured:", charSequence);
                             }
                         }
                     } else {
@@ -161,14 +161,14 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
     const handleSuccess = (result) => {
         handleStop();
         setStatus('success');
-        setMessage(`NFC Link Verified`);
+        setMessage(`Sonic Link Verified`);
 
         if ('vibrate' in navigator) {
             navigator.vibrate([100, 50, 100]);
         }
 
         setTimeout(() => {
-            if (window.confirm(`Stellar NFC Detected!\nIdentity: ${result}\n\nProceed to secure transfer?`)) {
+            if (window.confirm(`Stellar Sonic Pulse Detected!\nIdentity: ${result}\n\nProceed to secure transfer?`)) {
                 navigate(`/send?to=${result}`);
             } else {
                 setStatus('idle');
@@ -197,13 +197,13 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     onClick={() => { handleStop(); setMode('send'); }}
                     className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'send' ? 'bg-zinc-100 text-zinc-900 shadow-xl' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                    Contactless Send
+                    Sonic Send
                 </button>
                 <button
                     onClick={() => { handleStop(); setMode('receive'); }}
                     className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'receive' ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)]' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                    NFC Receive
+                    Sonic Receive
                 </button>
             </div>
 
@@ -224,9 +224,9 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                         </>
                     )}
                     {status === 'sending' ? (
-                        <Nfc className="w-10 h-10 text-indigo-400 animate-pulse" />
+                        <Waves className="w-10 h-10 text-indigo-400 animate-pulse" />
                     ) : status === 'listening' ? (
-                        <Radio className="w-10 h-10 text-indigo-300 animate-pulse" />
+                        <Activity className="w-10 h-10 text-indigo-300 animate-pulse" />
                     ) : status === 'success' ? (
                         <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                     ) : (
@@ -238,12 +238,12 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             {/* Info Section */}
             <div className="text-center space-y-2">
                 <h3 className="text-2xl font-bold tracking-tight text-zinc-100">
-                    {mode === 'send' ? 'NFC Identity' : 'Secure Proximity Pay'}
+                    {mode === 'send' ? 'Sonic Pulse Identity' : 'Sonic Pulse Receiver'}
                 </h3>
                 <p className="text-zinc-400 text-sm max-w-[250px] mx-auto leading-relaxed">
                     {mode === 'send'
-                        ? 'Tap phones or bring within 1-meter range to sync wirelessly.'
-                        : 'Hold device near sender to establish NFC secure link.'}
+                        ? 'Bring devices within range to sync via encrypted sonic pulses.'
+                        : 'Hold device near sender to establish sonic link.'}
                 </p>
             </div>
 
@@ -285,7 +285,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     <div className="space-y-4">
                         {isSending ? (
                             <div className="p-4 bg-zinc-900 border border-indigo-500/30 rounded-2xl text-center shadow-[0_0_20px_rgba(79,70,229,0.1)]">
-                                <span className="text-xs text-indigo-500 block mb-1 uppercase font-black tracking-tighter">NFC Sync Active</span>
+                                <span className="text-xs text-indigo-500 block mb-1 uppercase font-black tracking-tighter">Sonic Pulse Active</span>
                                 <span className="text-xl font-mono text-indigo-400 tracking-wider">
                                     {payload}
                                 </span>
@@ -309,12 +309,12 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                             {isSending ? (
                                 <>
                                     <Share2 className="w-6 h-6 animate-pulse" />
-                                    NFC STREAMING...
+                                    SONIC STREAMING...
                                 </>
                             ) : (
                                 <>
-                                    <Nfc className="w-6 h-6" />
-                                    SEND VIA NFC
+                                    <Waves className="w-6 h-6" />
+                                    SEND SONIC PULSE
                                 </>
                             )}
                         </button>
@@ -331,12 +331,12 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                             {status === 'listening' ? (
                                 <>
                                     <MicOff className="w-6 h-6" />
-                                    CANCEL NFC SCAN
+                                    CANCEL SCAN
                                 </>
                             ) : (
                                 <>
-                                    <Nfc className="w-6 h-6" />
-                                    READY FOR NFC SYNC
+                                    <Waves className="w-6 h-6" />
+                                    READY FOR SONIC SYNC
                                 </>
                             )}
                         </button>
@@ -352,7 +352,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                 </div>
                 <div className="flex items-center gap-1.5 grayscale">
                     <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
-                    <span className="text-[10px] font-bold tracking-widest uppercase">Stellar NFC v2.0</span>
+                    <span className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">Stellar Sonic Pulse v2.0</span>
                 </div>
             </div>
         </div>

@@ -34,13 +34,14 @@ const PaymentLink: React.FC = () => {
             }
 
             try {
-                const profile = await getProfileByStellarId(stellarId);
+                // Ensure ID is lowercase for consistent database lookup
+                const profile = await getProfileByStellarId(stellarId.toLowerCase());
                 if (profile) {
                     setRecipient(profile);
                 } else {
                     setError('Recipient not found');
                 }
-            } catch (e) {
+            } catch (a) {
                 setError('Failed to load recipient');
             }
             setLoading(false);
