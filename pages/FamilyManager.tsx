@@ -1,10 +1,11 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { UserProfile, FamilyMember } from '../types';
-import { getFamilyMembers, addFamilyMember, removeFamilyMember } from '../services/db';
+import { getFamilyMembers, addFamilyMember, removeFamilyMember, getProfileByStellarId } from '../services/db';
 import { ArrowLeft, Plus, User, X, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { decryptSecret, encryptSecret } from '../services/encryption';
+import { getAvatarUrl } from '../services/avatars';
 import { getUserById } from '../services/db';
 
 interface Props {
@@ -14,6 +15,7 @@ interface Props {
 const FamilyManager: React.FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
   const [members, setMembers] = useState<FamilyMember[]>([]);
+  const [memberProfiles, setMemberProfiles] = useState<Record<string, UserProfile>>({});
   const [newMemberId, setNewMemberId] = useState('');
   const [newLimit, setNewLimit] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,6 +26,13 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
     if (profile) {
       const m = await getFamilyMembers(profile.uid);
       setMembers(m);
+
+      const profiles: Record<string, UserProfile> = {};
+      await Promise.all(m.map(async (member) => {
+        const p = await getProfileByStellarId(member.stellarId);
+        if (p) profiles[member.stellarId] = p;
+      }));
+      setMemberProfiles(profiles);
     }
   };
 
@@ -123,7 +132,7 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
                   className="w-9 h-9 rounded-full border-2 border-[#0d1510] overflow-hidden bg-zinc-800"
                 >
                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.stellarId}`}
+                    src={getAvatarUrl(memberProfiles[member.stellarId]?.avatarSeed || member.stellarId)}
                     className="w-full h-full object-cover"
                     alt={member.stellarId}
                   />
@@ -277,13 +286,14 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
               >
                 <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0">
                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${member.stellarId}`}
+                    src={getAvatarUrl(memberProfiles[member.stellarId]?.avatarSeed || member.stellarId)}
                     className="w-full h-full object-cover"
                     alt={member.stellarId}
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{member.stellarId.split('@')[0]}</p>
+                  <p className="font-semibold text-sm truncate">{memberProfiles[member.stellarId]?.displayName || member.stellarId.split('@')[0]}</p>
+                  <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-tight">@{member.stellarId.split('@')[0]}</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="text-[#E5D5B3] text-xs font-medium">₹{member.spentToday.toLocaleString()}</span>
                     <span className="text-white/20 text-xs">/</span>

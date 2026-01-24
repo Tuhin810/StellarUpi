@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Wallet, ArrowRight, User, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
+import { getAvatarUrl } from '../services/avatars';
 import { getProfileByStellarId } from '../services/db';
 import { UserProfile } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -82,7 +83,7 @@ const PaymentLink: React.FC = () => {
     };
 
     const avatarUrl = recipient
-        ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${recipient.avatarSeed || recipient.stellarId}`
+        ? getAvatarUrl(recipient.avatarSeed || recipient.stellarId)
         : '';
 
     // Not logged in - show login prompt

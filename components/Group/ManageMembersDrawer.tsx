@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { X, Search, RefreshCw, UserPlus, Trash2 } from 'lucide-react';
 import { UserProfile, SplitGroup } from '../../types';
 import { searchUsers, updateGroupMembers } from '../../services/db';
+import { getAvatarUrl } from '../../services/avatars';
 
 interface Props {
     isOpen: boolean;
@@ -108,7 +109,7 @@ const ManageMembersDrawer: React.FC<Props> = ({ isOpen, onClose, group, profile,
                                         className="w-full flex items-center gap-3 p-4 hover:bg-white/[0.03] transition-all text-left border-b border-white/5 last:border-0"
                                     >
                                         <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 border border-white/5">
-                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.avatarSeed || user.uid}`} className="w-full h-full" />
+                                            <img src={getAvatarUrl(user.avatarSeed || user.uid)} className="w-full h-full" />
                                         </div>
                                         <div className="flex-1">
                                             <p className="font-bold text-white text-sm leading-none mb-1">{user.displayName || user.stellarId.split('@')[0]}</p>
@@ -141,7 +142,7 @@ const ManageMembersDrawer: React.FC<Props> = ({ isOpen, onClose, group, profile,
                                     >
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-900 border border-white/10">
-                                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${memberId}`} className="w-full h-full rounded-lg" />
+                                                <img src={getAvatarUrl(mProfile?.avatarSeed || memberId)} className="w-full h-full rounded-lg" />
                                             </div>
                                             <div className="flex flex-col">
                                                 <div className="flex items-center gap-2 mb-0.5">

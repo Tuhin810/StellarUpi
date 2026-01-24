@@ -5,6 +5,7 @@ import { UserProfile, TransactionRecord } from '../types';
 import { getTransactionById, getProfileByStellarId } from '../services/db';
 import { ArrowLeft, Share2, Shield, CheckCircle2, XCircle, Clock, Copy, ExternalLink, Download, Link2, Verified, ShoppingBag, Utensils, Plane, Receipt, Play, Tag } from 'lucide-react';
 import { useNetwork } from '../context/NetworkContext';
+import { getAvatarUrl } from '../services/avatars';
 
 interface Props {
     profile: UserProfile | null;
@@ -122,7 +123,7 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                     <div className="flex items-center justify-between mb-10">
                         <div className="flex flex-col items-center gap-2 flex-1">
                             <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-white/5 p-1 overflow-hidden shadow-inner">
-                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${isSent ? profile.stellarId : tx.fromId}`} className="w-full h-full" />
+                                <img src={getAvatarUrl(isSent ? profile.avatarSeed : (otherProfile?.avatarSeed || tx.fromId))} className="w-full h-full" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 truncate w-20 text-center">{isSent ? 'You' : (otherProfile?.displayName || tx.fromId.split('@')[0])}</span>
                         </div>
@@ -133,7 +134,7 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                         </div>
                         <div className="flex flex-col items-center gap-2 flex-1">
                             <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-white/5 p-1 overflow-hidden shadow-inner">
-                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${isSent ? tx.toId : profile.stellarId}`} className="w-full h-full" />
+                                <img src={getAvatarUrl(isSent ? (otherProfile?.avatarSeed || tx.toId) : profile.avatarSeed)} className="w-full h-full" />
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 truncate w-20 text-center">{isSent ? (otherProfile?.displayName || tx.toId.split('@')[0]) : 'You'}</span>
                         </div>

@@ -2,6 +2,7 @@
 import React from 'react';
 import { Receipt, CheckCircle2, ChevronRight } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { getAvatarUrl } from '../../services/avatars';
 
 interface Props {
     item: any;
@@ -47,7 +48,7 @@ const ActivityItem: React.FC<Props> = ({ item, profile, navigate, memberProfiles
                         <div className="flex -space-x-3 items-center">
                             {item.participants.slice(0, 5).map((p: any) => (
                                 <div key={p.stellarId} className={`w-9 h-9 rounded-xl border-2 border-[#121212] bg-zinc-800 p-0.5 transition-all shadow-lg ${p.status === 'PAID' ? 'ring-2 ring-emerald-500/20 opacity-100' : 'opacity-40 grayscale'}`}>
-                                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.stellarId}`} className="w-full h-full rounded-lg" />
+                                    <img src={getAvatarUrl(memberProfiles[p.stellarId]?.avatarSeed || p.stellarId)} className="w-full h-full rounded-lg" />
                                 </div>
                             ))}
                             {item.participants.length > 5 && (
@@ -99,7 +100,7 @@ const ActivityItem: React.FC<Props> = ({ item, profile, navigate, memberProfiles
         <div className={`flex ${isMe ? 'justify-end' : 'justify-start'} items-end gap-3 w-full group mb-2 animate-in fade-in slide-in-from-bottom-1 duration-300`}>
             {!isMe && (
                 <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-white/5 overflow-hidden mb-1 flex-shrink-0 shadow-2xl transition-transform group-hover:scale-110">
-                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${item.senderId}`} className="w-full h-full" />
+                    <img src={getAvatarUrl(memberProfiles[item.senderId]?.avatarSeed || item.senderId)} className="w-full h-full" />
                 </div>
             )}
             <div className={`max-w-[80%] shadow-2xl transition-all ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
