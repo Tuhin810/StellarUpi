@@ -1,4 +1,4 @@
-const CACHE_NAME = 'stellarpay-v3';
+const CACHE_NAME = 'stellarpay-v4-push';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
