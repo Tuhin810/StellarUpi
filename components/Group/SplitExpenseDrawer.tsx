@@ -4,6 +4,8 @@ import { X, Check, Users, IndianRupee, PieChart, Activity, ChevronRight, AlertCi
 import { UserProfile, SplitGroup } from '../../types';
 import { recordSplitExpense } from '../../services/db';
 import { getAvatarUrl } from '../../services/avatars';
+import { NotificationService } from '../../services/notification';
+
 
 interface Props {
     isOpen: boolean;
@@ -72,9 +74,23 @@ const SplitExpenseDrawer: React.FC<Props> = ({ isOpen, onClose, group, profile, 
             };
 
             await recordSplitExpense(expenseData as any);
+
+            // Trigger remote notifications for all participants except the sender
+            const others = selectedMembers.filter(mId => mId !== profile.stellarId);
+            if (others.length > 0) {
+                NotificationService.triggerRemoteNotification(
+                    others,
+                    totalNum.toString(),
+                    profile.displayName || profile.stellarId.split('@')[0],
+                    `New Split in ${group.name} 👥`,
+                    `${description}: Total ₹${totalNum} split with you.`
+                );
+            }
+
             setAmount('');
             setDescription('');
             onClose();
+
         } catch (e) {
             console.error(e);
         } finally {

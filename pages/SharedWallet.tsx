@@ -4,6 +4,8 @@ import { UserProfile, FamilyMember } from '../types';
 import { getProfile, getUserById, updateFamilySpend, recordTransaction } from '../services/db';
 import { sendPayment } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
+import { NotificationService } from '../services/notification';
+
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Shield, Send, CreditCard } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
@@ -92,7 +94,15 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
         spenderId: profile.stellarId
       });
 
+      // Trigger remote notification
+      NotificationService.triggerRemoteNotification(
+        recipientId,
+        amtNum.toString(),
+        ownerData.displayName || ownerData.stellarId.split('@')[0]
+      );
+
       navigate('/transactions');
+
     } catch (err: any) {
       setError(err.message || "Shared payment failed");
     } finally {

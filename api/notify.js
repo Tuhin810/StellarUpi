@@ -8,7 +8,10 @@ export default async function handler(req, res) {
     }
 
     // 1. Get transaction details from the request
-    const { recipientUserId, amount, senderName } = req.body;
+    const { recipientUserId, amount, senderName, title, message } = req.body;
+
+    // Convert to array if it's a single string
+    const targetIds = Array.isArray(recipientUserId) ? recipientUserId : [recipientUserId];
 
     // 2. Send to OneSignal
     const options = {
@@ -16,16 +19,15 @@ export default async function handler(req, res) {
         url: 'https://onesignal.com/api/v1/notifications',
         headers: {
             accept: 'application/json',
-            Authorization: `Basic ${process.env.ONESIGNAL_REST_API_KEY}`, // From OneSignal Settings > Keys
+            Authorization: `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
             'content-type': 'application/json',
         },
         data: {
             app_id: process.env.VITE_ONESIGNAL_APP_ID,
-            // This targets the specific user using their "External User ID" (stellarId)
-            include_external_user_ids: [recipientUserId],
-            contents: { en: `You received ₹${amount} from ${senderName}!` },
-            headings: { en: 'Money Received 💸' },
-            url: 'https://stellar-pay.vercel.app/history' // Opens this page on click
+            include_external_user_ids: targetIds,
+            contents: { en: message || `You received ₹${amount} from ${senderName}!` },
+            headings: { en: title || 'Money Received 💸' },
+            url: 'https://stellar-pay.vercel.app/history'
         },
     };
 

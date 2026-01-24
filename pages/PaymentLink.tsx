@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { sendPayment } from '../services/stellar';
 import { recordTransaction } from '../services/db';
 import { decryptSecret } from '../services/encryption';
+import { NotificationService } from '../services/notification';
 
 const PaymentLink: React.FC = () => {
     const { stellarId } = useParams<{ stellarId: string }>();
@@ -74,6 +75,14 @@ const PaymentLink: React.FC = () => {
                 txHash,
                 isFamilySpend: false
             });
+
+            // Trigger remote notification
+            NotificationService.triggerRemoteNotification(
+                recipient.stellarId,
+                amount,
+                senderProfile.displayName || senderProfile.stellarId.split('@')[0]
+            );
+
 
             setSuccess(true);
         } catch (e: any) {

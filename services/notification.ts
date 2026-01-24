@@ -127,14 +127,22 @@ export const NotificationService = {
   /**
    * Trigger a remote push notification via Vercel Serverless Function
    */
-  async triggerRemoteNotification(targetStellarId: string, amount: string, senderName: string) {
+  async triggerRemoteNotification(
+    targetStellarId: string | string[],
+    amount?: string,
+    senderName?: string,
+    title?: string,
+    message?: string
+  ) {
     try {
       console.log(`Triggering remote push for ${targetStellarId}...`);
 
       const response = await axios.post('/api/notify', {
         recipientUserId: targetStellarId,
-        amount: amount,
-        senderName: senderName
+        amount,
+        senderName,
+        title,
+        message
       });
 
       console.log('Notification API response:', response.data);
@@ -144,6 +152,7 @@ export const NotificationService = {
       return { success: false, error: (error as any).message };
     }
   },
+
 
   async sendLocalNotification(title: string, body: string, icon: string = '/icon-192.png') {
     console.log('Sending local notification:', title);
