@@ -19,6 +19,7 @@ interface Contact {
   name: string;
   avatarSeed: string;
   isGroup?: boolean;
+  memberAvatars?: string[];
 }
 
 const Dashboard: React.FC<Props> = ({ profile }) => {
@@ -54,11 +55,21 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
         // Fetch Groups
         const userGroups = await getGroups(profile.stellarId);
 
-        const groupItems = userGroups.map((g: any) => ({
-          id: g.id,
-          name: g.name,
-          avatarSeed: g.avatarSeed || g.name,
-          isGroup: true
+        const groupItems = await Promise.all(userGroups.map(async (g: any) => {
+          // Fetch avatars for up to 4 members
+          const membersToFetch = g.members.slice(0, 4);
+          const memberProfiles = await Promise.all(membersToFetch.map(async (mId: string) => {
+            const p = await getProfileByStellarId(mId);
+            return p?.avatarSeed || mId;
+          }));
+
+          return {
+            id: g.id,
+            name: g.name,
+            avatarSeed: g.avatarSeed || g.name,
+            isGroup: true,
+            memberAvatars: memberProfiles
+          };
         }));
 
         setContacts([...groupItems, ...contactProfiles]);
