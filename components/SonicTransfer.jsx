@@ -15,11 +15,12 @@ import {
     AlertCircle
 } from 'lucide-react';
 
-const SonicTransfer = ({ mode = 'send', payload = '' }) => {
+const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
     const { isReady, startRecording, stopRecording } = useSonic();
     const navigate = useNavigate();
 
     // State management
+    const [mode, setMode] = useState(initialMode);
     const [status, setStatus] = useState('idle'); // idle, sending, listening, success, error
     const [message, setMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -99,9 +100,11 @@ const SonicTransfer = ({ mode = 'send', payload = '' }) => {
             const bufferLength = analyser.frequencyBinCount;
             const dataArray = new Float32Array(bufferLength);
 
-            let lastChar = null;
             let charSequence = "";
             let startDetected = false;
+            let lastConfirmedChar = "";
+            let charHits = 0; // Number of consecutive hits for the same character
+            const REQUIRED_HITS = 2; // Hits needed to confirm a char
 
             const detect = () => {
                 analyser.getFloatFrequencyData(dataArray);
@@ -114,14 +117,24 @@ const SonicTransfer = ({ mode = 'send', payload = '' }) => {
                         charSequence = "";
                         console.log("StellarPulse: Frame Start Detected");
                     } else if (charSequence.length > 3) {
-                        // End of frame
+                        // End of frame detected after receiving some data
                         handleSuccess(charSequence);
                         return;
                     }
-                } else if (startDetected && char && char !== lastChar) {
-                    charSequence += char;
-                    lastChar = char;
-                    setDecodedString(charSequence);
+                } else if (startDetected && char) {
+                    if (char === lastConfirmedChar) {
+                        charHits++;
+                        if (charHits === REQUIRED_HITS) {
+                            if (charSequence[charSequence.length - 1] !== char) {
+                                charSequence += char;
+                                setDecodedString(charSequence);
+                                console.log("Pulse Stream:", charSequence);
+                            }
+                        }
+                    } else {
+                        lastConfirmedChar = char;
+                        charHits = 1;
+                    }
                 }
 
                 animationFrameRef.current = requestAnimationFrame(detect);
@@ -169,15 +182,33 @@ const SonicTransfer = ({ mode = 'send', payload = '' }) => {
 
     return (
         <div className="flex flex-col items-center justify-center space-y-8 w-full max-w-md mx-auto p-6 rounded-3xl bg-zinc-900/50 border border-zinc-800 backdrop-blur-xl">
+            {/* Mode Toggle */}
+            <div className="w-full flex p-1 bg-zinc-950 rounded-2xl border border-zinc-800/50">
+                <button
+                    onClick={() => { handleStop(); setMode('send'); }}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'send' ? 'bg-zinc-100 text-zinc-900 shadow-xl' : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                >
+                    Broadcast
+                </button>
+                <button
+                    onClick={() => { handleStop(); setMode('receive'); }}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'receive' ? 'bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]' : 'text-zinc-500 hover:text-zinc-300'
+                        }`}
+                >
+                    Receive
+                </button>
+            </div>
+
             {/* Visual Header */}
             <div className="relative group">
                 <div className={`absolute -inset-4 rounded-full blur-3xl transition-all duration-700 opacity-20 ${status === 'sending' ? 'bg-cyan-500 animate-pulse' :
-                        status === 'listening' ? 'bg-purple-500 animate-pulse' :
-                            status === 'success' ? 'bg-emerald-500' : 'bg-zinc-700'
+                    status === 'listening' ? 'bg-purple-500 animate-pulse' :
+                        status === 'success' ? 'bg-emerald-500' : 'bg-zinc-700'
                     }`}></div>
                 <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center transition-all duration-500 ${status === 'sending' ? 'border-cyan-500 scale-110 shadow-[0_0_20px_rgba(6,182,212,0.5)]' :
-                        status === 'listening' ? 'border-purple-500 scale-110 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
-                            status === 'success' ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-zinc-700'
+                    status === 'listening' ? 'border-purple-500 scale-110 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
+                        status === 'success' ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-zinc-700'
                     }`}>
                     {status === 'sending' ? (
                         <Wifi className="w-10 h-10 text-cyan-400 animate-bounce" />
@@ -206,8 +237,8 @@ const SonicTransfer = ({ mode = 'send', payload = '' }) => {
             {/* Status Feedback */}
             {message && (
                 <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${status === 'error' ? 'bg-red-500/10 text-red-400 border border-red-500/20' :
-                        status === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                            'bg-zinc-800 text-zinc-300'
+                    status === 'success' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                        'bg-zinc-800 text-zinc-300'
                     }`}>
                     {status === 'error' ? <AlertCircle className="w-4 h-4" /> :
                         status === 'success' ? <CheckCircle2 className="w-4 h-4" /> :
@@ -219,26 +250,43 @@ const SonicTransfer = ({ mode = 'send', payload = '' }) => {
             {/* Action Area */}
             <div className="w-full pt-4">
                 {mode === 'send' ? (
-                    <button
-                        onClick={handleSend}
-                        disabled={isSending || !payload}
-                        className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${isSending
-                                ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                                : 'bg-zinc-100 text-zinc-900 hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]'
-                            }`}
-                    >
+                    <div className="space-y-4">
                         {isSending ? (
-                            <>
-                                <Share2 className="w-6 h-6 animate-pulse" />
-                                BROADCASTING...
-                            </>
+                            <div className="p-4 bg-zinc-900 border border-cyan-500/30 rounded-2xl text-center animate-pulse">
+                                <span className="text-xs text-cyan-500 block mb-1">BROADCASTING ID...</span>
+                                <span className="text-xl font-mono text-cyan-400 tracking-wider">
+                                    {payload}
+                                </span>
+                            </div>
                         ) : (
-                            <>
-                                <Smartphone className="w-6 h-6" />
-                                SEND PURITY PULSE
-                            </>
+                            <div className="p-4 bg-zinc-950 border border-zinc-800 rounded-2xl text-center opacity-60">
+                                <span className="text-xs text-zinc-600 block mb-1">READY TO SYNC</span>
+                                <span className="text-lg font-mono text-zinc-400">
+                                    {payload}
+                                </span>
+                            </div>
                         )}
-                    </button>
+                        <button
+                            onClick={handleSend}
+                            disabled={isSending || !payload}
+                            className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${isSending
+                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
+                                : 'bg-white text-black hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
+                                }`}
+                        >
+                            {isSending ? (
+                                <>
+                                    <Share2 className="w-6 h-6 animate-pulse" />
+                                    BROADCASTING...
+                                </>
+                            ) : (
+                                <>
+                                    <Smartphone className="w-6 h-6" />
+                                    SEND PURITY PULSE
+                                </>
+                            )}
+                        </button>
+                    </div>
                 ) : (
                     <div className="space-y-4">
                         {decodedString && (
@@ -252,8 +300,8 @@ const SonicTransfer = ({ mode = 'send', payload = '' }) => {
                         <button
                             onClick={status === 'listening' ? handleStop : handleListen}
                             className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${status === 'listening'
-                                    ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
-                                    : 'bg-purple-600 text-white shadow-lg shadow-purple-900/40 hover:bg-purple-500 hover:shadow-purple-500/50'
+                                ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
+                                : 'bg-purple-600 text-white shadow-lg shadow-purple-900/40 hover:bg-purple-500 hover:shadow-purple-500/50'
                                 }`}
                         >
                             {status === 'listening' ? (

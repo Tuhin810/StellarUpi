@@ -7,9 +7,9 @@
 const CONFIG = {
     START_FREQ: 18500, // Start of frame signal
     FREQ_BASE: 17000,  // Base frequency for data
-    FREQ_STEP: 100,    // Space between bits (1bit = 100Hz)
-    BIT_DURATION: 0.1, // Duration of each bit in seconds
-    MARGIN: 50         // Tolerance margin for decoding
+    FREQ_STEP: 80,     // Reduced gap slightly for compact range
+    BIT_DURATION: 0.15, // Increased duration (150ms) for higher reliability
+    MARGIN: 40         // Tighter tolerance for better precision
 };
 
 // Binary mapping for characters (simplified for UPI IDs)
