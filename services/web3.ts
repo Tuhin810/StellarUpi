@@ -19,8 +19,8 @@ const mainnet = {
 const metadata = {
   name: 'StellarPay',
   description: 'The New Web3 UPI Payment System',
-  url: 'https://stellarupi.netlify.app', // Use a real URL or current origin
-  icons: ['https://raw.githubusercontent.com/Tuhin810/StellarUpi/main/public/icon-192.png'] // Use absolute URLs for better wallet support
+  url: typeof window !== 'undefined' ? window.location.origin : 'https://stellarupi.netlify.app',
+  icons: [typeof window !== 'undefined' ? `${window.location.origin}/icon-192.png` : 'https://stellarupi.netlify.app/icon-192.png']
 };
 
 // Create the Web3Modal with ethers config
