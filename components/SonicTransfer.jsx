@@ -206,10 +206,16 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     status === 'listening' ? 'bg-purple-500 animate-pulse' :
                         status === 'success' ? 'bg-emerald-500' : 'bg-zinc-700'
                     }`}></div>
-                <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center transition-all duration-500 ${status === 'sending' ? 'border-cyan-500 scale-110 shadow-[0_0_20px_rgba(6,182,212,0.5)]' :
-                    status === 'listening' ? 'border-purple-500 scale-110 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
-                        status === 'success' ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-zinc-700'
+                <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center transition-all duration-500 z-10 ${status === 'sending' ? 'border-cyan-500 scale-110 shadow-[0_0_20px_rgba(6,182,212,0.5)]' :
+                        status === 'listening' ? 'border-purple-500 scale-110 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
+                            status === 'success' ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-zinc-700'
                     }`}>
+                    {status === 'sending' && (
+                        <>
+                            <div className="absolute inset-0 bg-cyan-500/20 rounded-full animate-ping"></div>
+                            <div className="absolute -inset-4 bg-cyan-500/10 rounded-full animate-ping [animation-delay:0.2s]"></div>
+                        </>
+                    )}
                     {status === 'sending' ? (
                         <Wifi className="w-10 h-10 text-cyan-400 animate-bounce" />
                     ) : status === 'listening' ? (
@@ -246,6 +252,26 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     {message}
                 </div>
             )}
+
+            <button
+                onClick={() => {
+                    const ctx = initAudio();
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.frequency.value = 880; // High A note
+                    g.gain.setValueAtTime(0, ctx.currentTime);
+                    g.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
+                    g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
+                    osc.connect(g);
+                    g.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.5);
+                    console.log("Audio Test Triggered. Context State:", ctx.state);
+                }}
+                className="text-[10px] uppercase tracking-widest text-zinc-600 hover:text-zinc-400 underline decoration-zinc-800 underline-offset-4"
+            >
+                🔇 Verify Device Audio (Test Beep)
+            </button>
 
             {/* Action Area */}
             <div className="w-full pt-4">

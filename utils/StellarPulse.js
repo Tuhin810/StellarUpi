@@ -5,11 +5,11 @@
  */
 
 const CONFIG = {
-    START_FREQ: 18500, // Start of frame signal
-    FREQ_BASE: 17000,  // Base frequency for data
-    FREQ_STEP: 80,     // Reduced gap slightly for compact range
-    BIT_DURATION: 0.15, // Increased duration (150ms) for higher reliability
-    MARGIN: 40         // Tighter tolerance for better precision
+    START_FREQ: 17500, // Reduced from 18.5kHz for better speaker support
+    FREQ_BASE: 15000,  // Reduced from 17kHz for ultra-reliability
+    FREQ_STEP: 60,     // Frequency gap per character
+    BIT_DURATION: 0.15, // Keep at 150ms for stability
+    MARGIN: 30         // Tighter tolerance
 };
 
 // Binary mapping for characters (simplified for UPI IDs)
@@ -38,29 +38,44 @@ export const StellarPulse = {
      * Plays the encoded sequence using Web Audio API
      */
     transmit: async (audioContext, payload) => {
+        if (audioContext.state === 'suspended') {
+            await audioContext.resume();
+        }
+
+        const nyquist = audioContext.sampleRate / 2;
+        console.log(`StellarPulse: Starting transmission... SampleRate: ${audioContext.sampleRate}, Nyquist: ${nyquist}`);
+
         const sequence = StellarPulse.encode(payload);
-        const startTime = audioContext.currentTime;
+        const startTime = audioContext.currentTime + 0.1; // Small buffer
+
+        // Create a master gain for the whole sequence
+        const masterGain = audioContext.createGain();
+        masterGain.gain.setValueAtTime(1.0, startTime); // MAX VOLUME
+        masterGain.connect(audioContext.destination);
 
         sequence.forEach((freq, i) => {
+            if (freq >= nyquist) return; // Hardware safety
+
             const osc = audioContext.createOscillator();
-            const gain = audioContext.createGain();
+            const bitGain = audioContext.createGain();
 
             osc.type = 'sine';
             osc.frequency.setValueAtTime(freq, startTime + (i * CONFIG.BIT_DURATION));
 
-            // Smoother volume transitions to avoid clicking
-            gain.gain.setValueAtTime(0, startTime + (i * CONFIG.BIT_DURATION));
-            gain.gain.linearRampToValueAtTime(0.5, startTime + (i * CONFIG.BIT_DURATION) + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.01, startTime + (i + 1) * CONFIG.BIT_DURATION);
+            // Envelope for each bit to prevent pops
+            bitGain.gain.setValueAtTime(0, startTime + (i * CONFIG.BIT_DURATION));
+            bitGain.gain.linearRampToValueAtTime(1, startTime + (i * CONFIG.BIT_DURATION) + 0.015);
+            bitGain.gain.setValueAtTime(1, startTime + (i + 1) * CONFIG.BIT_DURATION - 0.015);
+            bitGain.gain.linearRampToValueAtTime(0, startTime + (i + 1) * CONFIG.BIT_DURATION);
 
-            osc.connect(gain);
-            gain.connect(audioContext.destination);
+            osc.connect(bitGain);
+            bitGain.connect(masterGain);
 
             osc.start(startTime + (i * CONFIG.BIT_DURATION));
             osc.stop(startTime + (i + 1) * CONFIG.BIT_DURATION);
         });
 
-        return (sequence.length * CONFIG.BIT_DURATION) * 1000; // Return total duration in ms
+        return (sequence.length * CONFIG.BIT_DURATION + 0.2) * 1000;
     },
 
     /**
