@@ -2,18 +2,14 @@
 import axios from 'axios';
 
 export default async function handler(req, res) {
-    // Only allow POST requests
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
     }
 
-    // 1. Get transaction details from the request
     const { recipientUserId, amount, senderName, title, message } = req.body;
-
-    // Convert to array if it's a single string
     const targetIds = Array.isArray(recipientUserId) ? recipientUserId : [recipientUserId];
 
-    // 2. Send to OneSignal
+    // targeting external_id via aliases is the modern approach for OneSignal v16+
     const options = {
         method: 'POST',
         url: 'https://onesignal.com/api/v1/notifications',
@@ -24,18 +20,23 @@ export default async function handler(req, res) {
         },
         data: {
             app_id: process.env.VITE_ONESIGNAL_APP_ID,
-            include_external_user_ids: targetIds,
+            include_aliases: {
+                external_id: targetIds
+            },
+            target_channel: "push",
             contents: { en: message || `You received ₹${amount} from ${senderName}!` },
             headings: { en: title || 'Money Received 💸' },
-            url: 'https://stellar-pay.vercel.app/history'
+            url: 'https://stellar.netlify.app/history' // Updated to match your deploy URL
         },
     };
 
     try {
+        console.log(`Sending OneSignal notification to: ${targetIds}`);
         const response = await axios.request(options);
         res.status(200).json({ success: true, data: response.data });
     } catch (error) {
-        console.error('OneSignal Error:', error.response ? error.response.data : error.message);
-        res.status(500).json({ error: error.message, details: error.response ? error.response.data : {} });
+        const errorData = error.response ? error.response.data : error.message;
+        console.error('OneSignal Notification Error:', errorData);
+        res.status(500).json({ error: 'Notification delivery failed', details: errorData });
     }
 }
