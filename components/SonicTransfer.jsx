@@ -14,7 +14,7 @@ import {
     CheckCircle2,
     AlertCircle,
     Fingerprint,
-    Contactless
+    Radio
 } from 'lucide-react';
 
 const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
@@ -218,7 +218,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     {status === 'sending' ? (
                         <Nfc className="w-10 h-10 text-indigo-400 animate-pulse" />
                     ) : status === 'listening' ? (
-                        <Contactless className="w-10 h-10 text-indigo-300 animate-pulse" />
+                        <Radio className="w-10 h-10 text-indigo-300 animate-pulse" />
                     ) : status === 'success' ? (
                         <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                     ) : (
