@@ -65,7 +65,11 @@ const Profile: React.FC<Props> = ({ profile }) => {
         const checkNotif = async () => {
             const status = await NotificationService.checkStatus();
             if (status.permission === 'granted') {
-                setNotificationStatus('ACTIVE');
+                if (status.subscriptionId) {
+                    setNotificationStatus('ACTIVE');
+                } else {
+                    setNotificationStatus('ENABLE');
+                }
             } else if (status.permission === 'denied') {
                 setNotificationStatus('DISABLED');
             } else {

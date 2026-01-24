@@ -6,23 +6,27 @@ import { collection, query, where, onSnapshot, limit, orderBy, updateDoc, doc } 
 import axios from 'axios';
 
 export const NotificationService = {
+  _isInitialized: false,
+
   /**
    * Initialize OneSignal
    */
   async init(uid?: string) {
     try {
-      await OneSignal.init({
-        appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "28cc51dc-70f9-4f27-b879-53cf2c9fa84f",
-        safari_web_id: "web.onesignal.auto.12f40fc9-13d7-4ca9-8e4a-0a7d50f473bf",
-        allowLocalhostAsSecureOrigin: true,
-      });
+      if (!this._isInitialized) {
+        await OneSignal.init({
+          appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "28cc51dc-70f9-4f27-b879-53cf2c9fa84f",
+          safari_web_id: "web.onesignal.auto.12f40fc9-13d7-4ca9-8e4a-0a7d50f473bf",
+          allowLocalhostAsSecureOrigin: true,
+        });
+        this._isInitialized = true;
+        console.log('OneSignal initialized successfully');
+      }
 
       if (uid) {
         console.log('Logging in to OneSignal with UID:', uid);
         await OneSignal.login(uid);
       }
-
-      console.log('OneSignal initialized successfully');
     } catch (error) {
       console.error('Error initializing OneSignal:', error);
     }
