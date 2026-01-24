@@ -11,6 +11,7 @@ import { db } from '../services/firebase';
 import SuccessScreen from '../components/SuccessScreen';
 import UpiDrawer from '../components/UpiDrawer';
 import { NotificationService } from '../services/notification';
+import { getAvatarUrl } from '../services/avatars';
 
 interface Props {
   profile: UserProfile | null;
@@ -347,7 +348,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           <div className="flex flex-col items-center mb-10 text-center">
             <div className="w-24 h-24 rounded-[2rem] bg-zinc-900 border-2 border-white/5 overflow-hidden shadow-2xl mb-4">
               <img
-                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${selectedContact.avatarSeed || selectedContact.id}`}
+                src={getAvatarUrl(selectedContact.avatarSeed || selectedContact.id)}
                 alt={selectedContact.name}
                 className="w-full h-full object-cover"
               />
@@ -605,7 +606,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                 <div className="flex items-center gap-5">
                   <div className="w-12 h-12 bg-zinc-800 rounded-2xl overflow-hidden border border-white/5 group-hover:border-[#E5D5B3]/50 transition-all shadow-lg">
                     <img
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.avatarSeed || contact.id}`}
+                      src={getAvatarUrl(contact.avatarSeed || contact.id)}
                       alt={contact.name}
                       className="w-full h-full object-cover"
                     />

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
 import { createGroup } from '../services/db';
+import { getAvatarUrl } from '../services/avatars';
 
 interface Contact {
     id: string;
@@ -110,7 +111,7 @@ const CreateGroupModal: React.FC<CreateGroupModalProps> = ({ contacts, stellarId
                                         className="flex flex-col items-center gap-2 min-w-[60px] relative"
                                     >
                                         <div className={`w-14 h-14 rounded-2xl overflow-hidden border-2 transition-all ${isSelected ? 'border-[#E5D5B3] scale-95' : 'border-white/5 opacity-50'}`}>
-                                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.avatarSeed}`} className="w-full h-full" alt={c.name} />
+                                            <img src={getAvatarUrl(c.avatarSeed)} className="w-full h-full" alt={c.name} />
                                         </div>
                                         {isSelected && (
                                             <div className="absolute top-0 right-0 w-5 h-5 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black shadow-lg">

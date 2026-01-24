@@ -2,6 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus } from 'lucide-react';
+import { getAvatarUrl } from '../services/avatars';
 
 interface Contact {
     id: string;
@@ -58,7 +59,7 @@ const PeopleList: React.FC<PeopleListProps> = ({ contacts, loading, onCreateGrou
                     >
                         <div className={`w-16 h-16 rounded-[2rem] ${contact.isGroup ? 'bg-zinc-900 border-[#E5D5B3]/40' : 'bg-zinc-800 border-white/5'} border overflow-hidden group-hover-:border-[#E5D5B3]/80 transition-all shadow-2xl shadow-black/60 group-hover-:scale-105 active:scale-95 flex items-center justify-center relative`}>
                             <img
-                                src={`https://api.dicebear.com/7.x/${contact.isGroup ? 'shapes' : 'avataaars'}/svg?seed=${contact.avatarSeed}`}
+                                src={getAvatarUrl(contact.avatarSeed, contact.isGroup)}
                                 alt={contact.name}
                                 className="w-full h-full object-cover"
                             />

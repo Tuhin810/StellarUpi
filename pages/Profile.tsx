@@ -18,10 +18,18 @@ import {
     ChevronRight,
     Sparkles,
     Lock,
-    Bell
+    Bell,
+    Camera,
+    Image as ImageIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NotificationService } from '../services/notification';
+
+declare global {
+    interface Window {
+        cloudinary: any;
+    }
+}
 
 interface Props {
     profile: UserProfile | null;
@@ -77,9 +85,61 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const generateRandomSeed = () => {
         const randomSeed = Math.random().toString(36).substring(7);
         setAvatarSeed(randomSeed);
+        // Automatically save if we change seed
+        updateUserDetails(profile.uid, { avatarSeed: randomSeed });
     };
 
-    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`;
+    const handleUploadClick = () => {
+        if (!window.cloudinary) {
+            console.error('Cloudinary widget not loaded');
+            alert('Cloudinary is still loading, please wait a moment...');
+            return;
+        }
+
+        const widget = window.cloudinary.createUploadWidget(
+            {
+                cloudName: 'diecfwnp9',
+                uploadPreset: 'jo9pp2yd',
+                sources: ['local', 'url', 'camera'],
+                folder: 'stellar_profiles',
+                cropping: true,
+                multiple: false,
+                maxFileSize: 50000000,
+                maxFiles: 1,
+                resourceType: 'image',
+                clientAllowedFormats: ['png', 'jpg', 'jpeg', 'webp'],
+                styles: {
+                    palette: {
+                        window: "#0A0F0A",
+                        windowBorder: "#E5D5B3",
+                        tabIcon: "#E5D5B3",
+                        menuIcons: "#E5D5B3",
+                        textDark: "#000000",
+                        textLight: "#FFFFFF",
+                        link: "#E5D5B3",
+                        action: "#E5D5B3",
+                        inactiveTabIcon: "#444444",
+                        error: "#F44235",
+                        inProgress: "#E5D5B3",
+                        complete: "#20B832",
+                        sourceBg: "#0A0F0A"
+                    }
+                }
+            },
+            (error: any, result: any) => {
+                if (!error && result && result.event === "success") {
+                    const url = result.info.secure_url;
+                    setAvatarSeed(url);
+                    updateUserDetails(profile.uid, { avatarSeed: url });
+                }
+            }
+        );
+        widget.open();
+    };
+
+    const avatarUrl = avatarSeed.startsWith('http')
+        ? avatarSeed
+        : `https://api.dicebear.com/7.x/lorelei/svg?seed=${avatarSeed}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=stellar:pay?to=${profile.stellarId}&color=1A1A1A&bgcolor=E5D5B3`;
 
     const [notificationStatus, setNotificationStatus] = useState<string>('');
@@ -117,12 +177,22 @@ const Profile: React.FC<Props> = ({ profile }) => {
                         <div className="absolute inset-0 bg-gradient-to-br from-[#E5D5B3]/30 to-transparent rounded-full blur-2xl scale-150 opacity-50"></div>
                         <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-[#1a2520] to-[#0d1510] border-2 border-white/10 overflow-hidden shadow-2xl">
                             <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
-                            <button
-                                onClick={generateRandomSeed}
-                                className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                                <RefreshCw size={20} className="text-white" />
-                            </button>
+                            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2">
+                                <button
+                                    onClick={generateRandomSeed}
+                                    className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all"
+                                    title="Random Avatar"
+                                >
+                                    <RefreshCw size={18} className="text-[#E5D5B3]" />
+                                </button>
+                                <button
+                                    onClick={handleUploadClick}
+                                    className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition-all"
+                                    title="Upload Photo"
+                                >
+                                    <Camera size={18} className="text-[#E5D5B3]" />
+                                </button>
+                            </div>
                         </div>
                         <div className="absolute -bottom-1 -right-1 bg-emerald-500 p-1.5 rounded-full border-4 border-[#0d1510]">
                             <Check size={12} />

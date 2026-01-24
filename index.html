@@ -25,10 +25,10 @@
   <!-- External Assets -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript"></script>
 
-  <meta http-equiv="Content-Security-Policy"
-    content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh/ https://www.gstatic.com/ https://*.firebaseio.com https://www.googletagmanager.com; connect-src 'self' https://horizon-testnet.stellar.org https://horizon.stellar.org https://friendbot.stellar.org https://api.coingecko.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://www.google-analytics.com wss://*.walletconnect.com https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://rpc.walletconnect.com https://rpc.walletconnect.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
-
+  <link rel="icon" type="image/svg+xml" href="https://res.cloudinary.com/diecfwnp9/image/upload/v1761055638/hobiwithbg_eucjae.png" />
+ 
   <style>
     body {
       font-family: 'Inter', sans-serif;
@@ -55,7 +55,7 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
           .then(reg => console.log('StellarPay Service Worker Live'))
           .catch(err => console.log('SW registration failed:', err));
       });

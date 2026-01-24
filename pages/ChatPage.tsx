@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, ChatMessage, TransactionRecord } from '../types';
 import { getProfileByStellarId } from '../services/db';
+import { getAvatarUrl } from '../services/avatars';
 import {
     collection,
     query,
@@ -133,8 +134,6 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
         }
     };
 
-    const avatarUrl = (seed: string) => `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
-
     if (!profile || !contactId) return null;
 
     return (
@@ -147,7 +146,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                     </button>
                     <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-white/5 overflow-hidden">
-                            <img src={avatarUrl(contactId)} alt="" className="w-full h-full" />
+                            <img src={getAvatarUrl(targetProfile?.avatarSeed || contactId)} alt="" className="w-full h-full" />
                         </div>
                         <div>
                             <h2 className="text-sm font-black tracking-tight capitalize leading-none mb-1">

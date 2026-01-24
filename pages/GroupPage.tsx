@@ -12,6 +12,7 @@ import {
 import { db } from '../services/firebase';
 import { doc, collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getProfileByStellarId } from '../services/db';
+import { getAvatarUrl } from '../services/avatars';
 
 // Modular Components
 import SplitExpenseDrawer from '../components/Group/SplitExpenseDrawer';
@@ -118,7 +119,7 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
                         </button>
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center overflow-hidden shadow-2xl relative">
-                                <img src={`https://api.dicebear.com/7.x/shapes/svg?seed=${group.avatarSeed}`} className="w-full h-full object-cover" />
+                                <img src={getAvatarUrl(group.avatarSeed, true)} className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 bg-gradient-to-tr from-[#E5D5B3]/10 to-transparent" />
                             </div>
                             <div className="flex flex-col">

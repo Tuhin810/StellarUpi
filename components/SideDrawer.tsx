@@ -3,6 +3,7 @@ import React from 'react';
 import { X, User, Settings, HelpCircle, Shield, LogOut, ChevronRight, Zap, ToggleLeft, ToggleRight, ArrowDownToLine, Repeat } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useNetwork } from '../context/NetworkContext';
+import { getAvatarUrl } from '../services/avatars';
 
 interface Props {
     isOpen: boolean;
@@ -15,7 +16,7 @@ interface Props {
 const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, avatarSeed }) => {
     const navigate = useNavigate();
     const { isMainnet, networkName, toggleNetwork } = useNetwork();
-    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed || stellarId}`;
+    const avatarUrl = getAvatarUrl(avatarSeed || stellarId);
 
     const menuItems = [
         { icon: <User size={22} />, label: 'My Profile', path: '/profile' },
@@ -51,14 +52,20 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
                 className={`fixed top-0 left-0 h-full w-[80%] max-w-[320px] bg-[#1A1A1A] z-[70] transition-transform duration-300 ease-out border-r border-white/5 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 {/* Header */}
-                <div className="p-8 pt-16 flex justify-between items-start mb-8 text-white">
-                    <div className="flex flex-col items-start">
-                        <h2 className="text-xl font-black tracking-tight capitalize">{profileName}</h2>
-                        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1">{stellarId}</p>
-                    </div>
-                    <button onClick={onClose} className="p-2 bg-zinc-900 rounded-xl text-zinc-500 hover:text-white transition-colors">
+                <div className="p-8 pt-16 flex flex-col mb-8 text-white relative">
+                    <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-zinc-900 rounded-xl text-zinc-500 hover:text-white transition-colors">
                         <X size={20} />
                     </button>
+
+                    <div className="flex items-center gap-4">
+                        <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/5 overflow-hidden">
+                            <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="flex flex-col items-start min-w-0">
+                            <h2 className="text-xl font-black tracking-tight capitalize truncate w-full">{profileName}</h2>
+                            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1 truncate w-full">{stellarId}</p>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Menu Items */}
