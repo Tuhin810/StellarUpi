@@ -19,7 +19,14 @@ const QRScanner: React.FC = () => {
           const qrboxSize = Math.max(50, Math.floor(minEdge * 0.7)); // Minimum 50px required
           return { width: qrboxSize, height: qrboxSize };
         },
-        aspectRatio: 1.0
+        aspectRatio: 1.0,
+        // Use rear camera (environment) by default on mobile devices
+        videoConstraints: {
+          facingMode: { ideal: "environment" }
+        },
+        // Prefer back camera when listing cameras
+        rememberLastUsedCamera: true,
+        showTorchButtonIfSupported: true
       },
       /* verbose= */ false
     );
