@@ -61,6 +61,22 @@ const Profile: React.FC<Props> = ({ profile }) => {
             setDailyLimitEntry(profile.dailyLimit || 0);
             setPhoneEntry(profile.phoneNumber || '');
         }
+
+        const checkNotif = async () => {
+            const status = await NotificationService.checkStatus();
+            if (status.permission === 'granted') {
+                if (status.subscriptionId) {
+                    setNotificationStatus('ACTIVE');
+                } else {
+                    setNotificationStatus('ENABLE');
+                }
+            } else if (status.permission === 'denied') {
+                setNotificationStatus('DISABLED');
+            } else {
+                setNotificationStatus('ENABLE');
+            }
+        };
+        checkNotif();
     }, [profile]);
 
     if (!profile) return null;
@@ -158,8 +174,13 @@ const Profile: React.FC<Props> = ({ profile }) => {
             await NotificationService.requestPermission();
             const status = await NotificationService.checkStatus();
 
-            if (status.permission === 'granted' || (status.permission as any) === true) {
-                setNotificationStatus('ACTIVE');
+            if (status.permission === 'granted') {
+                if (status.subscriptionId) {
+                    setNotificationStatus('ACTIVE');
+                } else {
+                    setNotificationStatus('SYNCING');
+                    if (profile) await NotificationService.init(profile.stellarId);
+                }
             } else {
                 setNotificationStatus('PROMPTED');
                 alert("If you didn't see a prompt: \n1. Check browser settings to unblock notifications.\n2. On iOS, you MUST Add to Home Screen first.");
@@ -168,6 +189,20 @@ const Profile: React.FC<Props> = ({ profile }) => {
             setNotificationStatus('FAILED');
         }
         setSaving(false);
+    };
+
+    const handleSendTestNotification = async () => {
+        if (!profile) return;
+        setSaving(true);
+        await NotificationService.triggerRemoteNotification(
+            profile.stellarId,
+            "0",
+            "System",
+            "Notification Test ✅",
+            "Great! Your premium notification system is fully operational."
+        );
+        setSaving(false);
+        alert("Test notification sent! It should arrive in a few seconds.");
     };
 
     return (
@@ -389,11 +424,30 @@ const Profile: React.FC<Props> = ({ profile }) => {
                             <span className="text-sm font-medium">Notifications</span>
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold text-[#E5D5B3] uppercase">
-                                    {notificationStatus || (profile.fcmToken ? 'ACTIVE' : 'ENABLE')}
+                                    {notificationStatus || 'ENABLE'}
                                 </span>
                                 <ChevronRight size={16} className="text-white/30" />
                             </div>
                         </button>
+
+                        {notificationStatus === 'ACTIVE' && (
+                            <button
+                                onClick={handleSendTestNotification}
+                                disabled={saving}
+                                className="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-emerald-500/5 transition-all text-left"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center text-emerald-500">
+                                        <Bell size={14} />
+                                    </div>
+                                    <span className="text-sm font-medium">Send Test Notification</span>
+                                </div>
+                                <div className="px-2 py-0.5 bg-emerald-500/20 rounded-md">
+                                    <span className="text-[10px] font-bold text-emerald-500 uppercase">Verify</span>
+                                </div>
+                            </button>
+                        )}
+
                         <button
                             onClick={() => setShowSecurityModal(true)}
                             className="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-all text-left"
