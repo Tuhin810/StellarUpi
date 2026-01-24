@@ -30,11 +30,10 @@ export const NotificationService = {
 
   async checkStatus() {
     try {
-      // In newer SDKs, many properties are nested under User or Notifications
       return {
         permission: OneSignal.Notifications?.permission || 'unknown',
+        subscriptionId: OneSignal.User?.PushSubscription?.id || null,
         isLoaded: true,
-        // We use login state to track user
       };
     } catch (e) {
       return { permission: 'error', isLoaded: false };
