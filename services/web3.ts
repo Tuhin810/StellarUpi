@@ -19,7 +19,7 @@ const mainnet = {
 const metadata = {
   name: 'StellarPay',
   description: 'The New Web3 UPI Payment System',
-  url: 'https://stellarpay.vercel.app', // Use a real URL or current origin
+  url: 'https://stellarupi.netlify.app', // Use a real URL or current origin
   icons: ['https://raw.githubusercontent.com/Tuhin810/StellarUpi/main/public/icon-192.png'] // Use absolute URLs for better wallet support
 };
 

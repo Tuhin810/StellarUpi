@@ -78,11 +78,29 @@ const Login: React.FC = () => {
 
   const handleConnectWallet = async () => {
     try {
-      // Open Web3Modal - it handles both desktop MetaMask and mobile WalletConnect
-      await open();
+      setStatus('Connecting...');
+
+      // Check if MetaMask (or any injected wallet) is available
+      if (typeof window.ethereum !== 'undefined') {
+        const provider = new BrowserProvider(window.ethereum as any);
+        await provider.send("eth_requestAccounts", []);
+        // Web3Modal hooks will automatically update and trigger the useEffect flow
+      } else {
+        // Handle Mobile Deep Linking
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        if (isMobile) {
+          // Deep link to this dApp inside MetaMask's internal browser
+          const dappUrl = window.location.host + window.location.pathname;
+          window.location.href = `https://metamask.app.link/dapp/${dappUrl}`;
+        } else {
+          // On desktop without MetaMask, use the selection modal
+          await open();
+        }
+      }
     } catch (err: any) {
       console.error("Connect Error:", err);
-      setStatus(err.message || "Failed to open wallet");
+      setStatus(err.message || "Failed to connect");
+      setLoading(false);
     }
   };
 
