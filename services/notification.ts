@@ -1,54 +1,46 @@
 
-import { getToken, onMessage } from "firebase/messaging";
-import { messaging, db } from "./firebase";
-import { doc, updateDoc, collection, query, where, onSnapshot, limit, orderBy, getDocs } from "firebase/firestore";
+/// <reference types="vite/client" />
+import OneSignal from 'react-onesignal';
+import { db } from "./firebase";
+import { collection, query, where, onSnapshot, limit, orderBy, updateDoc, doc } from "firebase/firestore";
+import axios from 'axios';
 
 export const NotificationService = {
   /**
-   * Request permission for notifications and get the FCM token
+   * Initialize OneSignal
    */
-  async requestPermission(uid: string) {
-    if (!messaging) {
-      console.log('Messaging not available (check browser support)');
-      return;
-    }
+  async init(uid?: string) {
+    try {
+      await OneSignal.init({
+        appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "YOUR-ONESIGNAL-APP-ID",
+        allowLocalhostAsSecureOrigin: true,
+      });
 
+
+      if (uid) {
+        await OneSignal.login(uid);
+      }
+    } catch (error) {
+      console.error('Error initializing OneSignal:', error);
+    }
+  },
+
+  /**
+   * Request permission for notifications
+   */
+  async requestPermission() {
     try {
       console.log('Requesting notification permission...');
-      const permission = await Notification.requestPermission();
-      console.log('Permission status:', permission);
-      
-      if (permission === 'granted') {
-        const registration = await navigator.serviceWorker.ready;
-        console.log('Service Worker ready for push registration');
-        
-        const token = await getToken(messaging, {
-          vapidKey: 'BD2eeczB-UOqN16mh7QgoKrERRHYVheswpnCqQpU5-qXT2ik4DVAU5ga3maYv-NfBwEv43160Z6ACK-tkhWyR2E',
-          serviceWorkerRegistration: registration
-        });
-
-        if (token) {
-          console.log('FCM Token generated successfully');
-          await updateDoc(doc(db, 'upiAccounts', uid), {
-            fcmToken: token,
-            notificationsEnabled: true,
-            lastTokenUpdate: new Date().toISOString()
-          });
-          return token;
-        } else {
-          console.warn('No FCM token generated');
-        }
-      } else {
-        console.warn('Notification permission NOT granted');
-      }
+      await OneSignal.Slidedown.promptPush();
+      console.log('Permission prompt shown');
     } catch (error) {
       console.error('Error in NotificationService.requestPermission:', error);
     }
-    return null;
   },
 
   /**
    * Listener for incoming payments and group splits
+   * (Keeping this as it uses Firestore for real-time UI updates/local notifications)
    */
   setupRealtimeNotifications(stellarId: string) {
     if (!("Notification" in window)) return;
@@ -91,7 +83,6 @@ export const NotificationService = {
 
     const groupSubs: (() => void)[] = [];
     const unsubGroups = onSnapshot(groupQuery, (snap) => {
-      // For each group, listen to expenses
       snap.docs.forEach((groupDoc) => {
         const expenseQuery = query(
           collection(db, 'splitExpenses'),
@@ -133,72 +124,24 @@ export const NotificationService = {
     };
   },
 
-  onForegroundMessage(callback: (payload: any) => void) {
-    if (!messaging) return;
-    return onMessage(messaging, (payload) => {
-      console.log('FCM Foreground message received:', payload);
-      callback(payload);
-    });
-  },
-
   /**
-   * Manually trigger a remote push notification via Netlify Functions
+   * Trigger a remote push notification via Vercel Serverless Function
    */
-  async triggerRemoteNotification(targetStellarId: string, title: string, body: string, extraData: any = {}) {
+  async triggerRemoteNotification(targetStellarId: string, amount: string, senderName: string) {
     try {
-      if (!db) return;
       console.log(`Triggering remote push for ${targetStellarId}...`);
-      
-      // 1. Get the target user's token from Firestore
-      const userDoc = await getDocs(query(collection(db, 'upiAccounts'), where('stellarId', '==', targetStellarId), limit(1)));
-      
-      if (userDoc.empty) {
-        console.warn(`User ${targetStellarId} not found in Firestore for push notification.`);
-        return;
-      }
-      const userData = userDoc.docs[0].data();
-      
-      if (!userData.fcmToken) {
-        console.warn(`User ${targetStellarId} has no fcmToken registered.`);
-        return;
-      }
 
-      if (!userData.notificationsEnabled) {
-        console.warn(`User ${targetStellarId} has notifications disabled.`);
-        return;
-      }
-
-      // 2. Call the Netlify function
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const functionUrl = '/.netlify/functions/notify';
-      
-      console.log(`Calling notification function at ${functionUrl}...`);
-      if (isLocalhost) {
-        console.warn('⚠️ You are on localhost. This fetch will FAIL unless you are running "netlify dev". If you are using "npm run dev", the Netlify function is not active locally.');
-      }
-
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          token: userData.fcmToken,
-          title,
-          body,
-          data: extraData
-        })
+      const response = await axios.post('/api/notify', {
+        recipientUserId: targetStellarId,
+        amount: amount,
+        senderName: senderName
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error(`Netlify function failed with status ${response.status}:`, errText);
-        return { success: false, error: errText };
-      }
-
-      const result = await response.json();
-      console.log('Netlify function response:', result);
-      return result;
+      console.log('Notification API response:', response.data);
+      return response.data;
     } catch (error) {
       console.error('Failed to trigger remote notification:', error);
+      return { success: false, error: (error as any).message };
     }
   },
 
@@ -228,3 +171,4 @@ export const NotificationService = {
     }
   }
 };
+

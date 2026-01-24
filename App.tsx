@@ -14,23 +14,17 @@ const AppContent: React.FC = () => {
 
   React.useEffect(() => {
     if (isAuthenticated && profile) {
-      // 1. Request permission and register token
-      NotificationService.requestPermission(profile.uid);
+      // 1. Initialize OneSignal and login user
+      NotificationService.init(profile.stellarId);
 
-      // 2. Setup real-time listeners for payments/splits
+      // 2. Request permission (OneSignal Slidedown)
+      NotificationService.requestPermission();
+
+      // 3. Setup real-time listeners for payments/splits (Firestore logic remains)
       const cleanup = NotificationService.setupRealtimeNotifications(profile.stellarId);
-
-      // 3. Listen for direct foreground FCM messages
-      const unsubForeground = NotificationService.onForegroundMessage((payload) => {
-        NotificationService.sendLocalNotification(
-          payload.notification?.title || "New Update",
-          payload.notification?.body || "Check your vault."
-        );
-      });
 
       return () => {
         if (cleanup) cleanup();
-        if (unsubForeground) unsubForeground();
       };
     }
   }, [isAuthenticated, profile]);

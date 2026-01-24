@@ -207,8 +207,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         // Trigger remote notification
         NotificationService.triggerRemoteNotification(
           selectedContact.id,
-          "Payment Received! 💰",
-          `You received ₹${amtNum} from ${selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]}`
+          amtNum.toString(),
+          selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]
         );
       } else {
         if (profile.dailyLimit && profile.dailyLimit > 0) {
@@ -241,8 +241,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         // Trigger remote notification
         NotificationService.triggerRemoteNotification(
           selectedContact.id,
-          "Payment Received! 💰",
-          `You received ₹${amtNum} from ${profile.displayName || profile.stellarId.split('@')[0]}`
+          amtNum.toString(),
+          profile.displayName || profile.stellarId.split('@')[0]
         );
       }
       setSuccess(true);
