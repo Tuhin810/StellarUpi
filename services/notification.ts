@@ -169,8 +169,15 @@ export const NotificationService = {
       }
 
       // 2. Call the Netlify function
-      console.log('Calling Netlify notification function...');
-      const response = await fetch('/.netlify/functions/notify', {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const functionUrl = '/.netlify/functions/notify';
+      
+      console.log(`Calling notification function at ${functionUrl}...`);
+      if (isLocalhost) {
+        console.warn('⚠️ You are on localhost. This fetch will FAIL unless you are running "netlify dev". If you are using "npm run dev", the Netlify function is not active locally.');
+      }
+
+      const response = await fetch(functionUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -180,6 +187,12 @@ export const NotificationService = {
           data: extraData
         })
       });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error(`Netlify function failed with status ${response.status}:`, errText);
+        return { success: false, error: errText };
+      }
 
       const result = await response.json();
       console.log('Netlify function response:', result);
