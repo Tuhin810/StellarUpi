@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Waves, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Waves, AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
@@ -133,42 +133,74 @@ const QRScanner: React.FC = () => {
           )}
         </div>
 
-        {/* UPI Data Modal */}
+        {/* UPI Data Modal - Premium Redesign */}
         {upiData && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center px-6">
-            <div className="absolute inset-0 bg-black/95 backdrop-blur-xl" onClick={() => setUpiData(null)}></div>
-            <div className="relative w-full max-w-sm bg-zinc-900 border border-white/10 rounded-[2.5rem] p-8 animate-in zoom-in-95 duration-300">
-              <div className="w-16 h-16 gold-gradient rounded-3xl flex items-center justify-center text-black mb-6 mx-auto shadow-xl">
-                <QrCode size={32} />
-              </div>
+            <div className="absolute inset-0 bg-black/90 backdrop-blur-2xl" onClick={() => setUpiData(null)}></div>
 
-              <h3 className="text-xl font-black text-center mb-1">Standard UPI Found</h3>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 text-center mb-8">Metadata Handshake Success</p>
+            {/* Background Glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/20 rounded-full blur-[100px] pointer-events-none"></div>
 
-              <div className="space-y-4 mb-8">
-                <div className="bg-black/40 border border-white/5 p-4 rounded-2xl">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1">Payee Name</p>
-                  <p className="text-white font-bold">{upiData.pn || "Unknown Merchant"}</p>
+            <div className="relative w-full max-w-sm bg-zinc-950/50 border border-white/10 rounded-[3rem] overflow-hidden shadow-[0_30px_100px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom-10 duration-500">
+              {/* Modal Header Area */}
+              <div className="relative h-32 bg-indigo-600 flex flex-col items-center justify-center overflow-hidden">
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,white_0%,transparent_70%)] animate-pulse"></div>
                 </div>
-                <div className="bg-black/40 border border-white/5 p-4 rounded-2xl">
-                  <p className="text-[8px] font-black uppercase tracking-widest text-zinc-600 mb-1">UPI Address</p>
-                  <p className="text-[#E5D5B3] font-mono text-sm">{upiData.pa}</p>
+                <div className="relative z-10 flex flex-col items-center">
+                  <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-indigo-600 shadow-xl mb-2">
+                    <Smartphone size={24} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/60">UPI Node Found</span>
                 </div>
               </div>
 
-              <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl mb-8 flex items-start gap-3">
-                <div className="mt-0.5"><AlertCircle size={14} className="text-orange-500" /></div>
-                <p className="text-[10px] font-bold text-orange-400 leading-normal">
-                  You are currently on <span className="underline">Stellar Testnet</span>. Bridge to Mainnet to send funds to external UPI nodes.
-                </p>
-              </div>
+              <div className="p-8 pt-10">
+                {/* Merchant Identity Card */}
+                <div className="relative mb-8 text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full mb-3">
+                    <CheckCircle2 size={12} className="text-indigo-400" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">Verified VPA Node</span>
+                  </div>
+                  <h3 className="text-2xl font-black tracking-tighter text-white mb-1">
+                    {upiData.pn || "Unknown Merchant"}
+                  </h3>
+                  <p className="text-zinc-500 font-mono text-xs tracking-tight">{upiData.pa}</p>
+                </div>
 
-              <button
-                onClick={() => setUpiData(null)}
-                className="w-full py-4 gold-gradient text-black font-black rounded-2xl text-xs uppercase tracking-widest active:scale-95 transition-all"
-              >
-                Dismiss
-              </button>
+                <div className="space-y-4 mb-8">
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Network</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">Unified Payments</span>
+                  </div>
+                  {upiData.am && (
+                    <div className="flex items-center justify-between p-4 bg-indigo-500/10 rounded-2xl border border-indigo-500/20">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Requested</span>
+                      <span className="text-xl font-black text-white">₹{upiData.am}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Testnet Warning */}
+                <div className="p-5 bg-amber-500/10 border border-amber-500/20 rounded-3xl mb-8 flex gap-4">
+                  <div className="mt-1 w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <AlertCircle size={20} className="text-amber-500" />
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">Testnet Protocol Active</p>
+                    <p className="text-[11px] font-medium text-amber-500/70 leading-relaxed">
+                      External UPI payments are disabled in <span className="font-bold text-amber-500">v1.4 Development</span>. Bridge assets to Mainnet for real-world settlement.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setUpiData(null)}
+                  className="w-full py-5 bg-white text-black font-black rounded-[1.5rem] text-sm uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-xl hover:bg-zinc-100"
+                >
+                  Got It
+                </button>
+              </div>
             </div>
           </div>
         )}
