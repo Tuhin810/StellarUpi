@@ -12,6 +12,9 @@ export const NotificationService = {
    * Initialize OneSignal
    */
   async init(uid?: string) {
+    // Check if we are on the authorized domain defined in OneSignal dashboard
+    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
     try {
       if (!this._isInitialized) {
         await OneSignal.init({
@@ -23,12 +26,21 @@ export const NotificationService = {
         console.log('OneSignal initialized successfully');
       }
 
-      if (uid) {
+      if (uid && this._isInitialized) {
         console.log('Logging in to OneSignal with UID:', uid);
         await OneSignal.login(uid);
       }
-    } catch (error) {
-      console.error('Error initializing OneSignal:', error);
+    } catch (error: any) {
+      if (error.message?.includes('only be used on')) {
+        console.warn('OneSignal Domain Mismatch:', error.message);
+        if (isLocalhost) {
+          console.error('ACTION REQUIRED: To test notifications on localhost, you must enable "Local Testing" in OneSignal Dashboard > Settings > Web Push.');
+        }
+      } else if (error.message?.includes('already initialized')) {
+        this._isInitialized = true;
+      } else {
+        console.error('Error initializing OneSignal:', error);
+      }
     }
   },
 
