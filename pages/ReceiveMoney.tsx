@@ -2,8 +2,9 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Share2, QrCode, Link2, IndianRupee, X } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Share2, QrCode, Link2, IndianRupee, X, Radio } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
+import { NFCService } from '../services/nfc';
 
 interface Props {
     profile: UserProfile | null;
@@ -16,6 +17,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     const [showLinkModal, setShowLinkModal] = useState(false);
     const [linkAmount, setLinkAmount] = useState('');
     const [linkNote, setLinkNote] = useState('');
+    const [nfcStatus, setNfcStatus] = useState<'idle' | 'beaming' | 'success' | 'error'>('idle');
 
     if (!profile) return null;
 
@@ -61,6 +63,24 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                 text: `Send money to my Stellar UPI ID: ${profile.stellarId}`,
                 url: window.location.href,
             });
+        }
+    };
+
+    const handleStartNfcBeam = async () => {
+        if (!NFCService.isSupported()) {
+            alert("NFC is not supported on this device/browser. Use Chrome on Android for NFC features.");
+            return;
+        }
+
+        try {
+            setNfcStatus('beaming');
+            await NFCService.writeText(profile.stellarId);
+            setNfcStatus('success');
+            setTimeout(() => setNfcStatus('idle'), 3000);
+        } catch (err) {
+            console.error(err);
+            setNfcStatus('error');
+            setTimeout(() => setNfcStatus('idle'), 3000);
         }
     };
 
@@ -140,6 +160,51 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     <Link2 size={18} className="text-[#E5D5B3]" />
                     Create Payment Link
                 </button>
+
+                {/* NFC Beam Section */}
+                <div className="mt-8 w-full max-w-sm px-4">
+                    <button
+                        onClick={handleStartNfcBeam}
+                        disabled={nfcStatus === 'beaming'}
+                        className={`w-full group relative overflow-hidden flex flex-col items-center gap-4 p-8 rounded-[2.5rem] border transition-all duration-500 ${nfcStatus === 'beaming'
+                            ? 'bg-[#E5D5B3] border-[#E5D5B3] scale-105'
+                            : nfcStatus === 'success'
+                                ? 'bg-emerald-500 border-emerald-500'
+                                : 'bg-zinc-900/40 border-white/5 hover:bg-zinc-900/60'
+                            }`}
+                    >
+                        {/* Ripple Animation for Beaming */}
+                        {nfcStatus === 'beaming' && (
+                            <>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-20 h-20 bg-black/10 rounded-full animate-ping"></div>
+                                </div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-40 h-40 bg-black/5 rounded-full animate-ping [animation-delay:0.5s]"></div>
+                                </div>
+                            </>
+                        )}
+
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors duration-500 ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'bg-black text-[#E5D5B3]' : 'bg-white/5 text-[#E5D5B3]'
+                            }`}>
+                            {nfcStatus === 'success' ? <Check size={32} strokeWidth={3} /> : <Radio size={32} className={nfcStatus === 'beaming' ? 'animate-pulse' : ''} />}
+                        </div>
+
+                        <div className="text-center relative z-10">
+                            <h3 className={`text-sm font-black uppercase tracking-[0.2em] mb-1 ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'text-black' : 'text-white'
+                                }`}>
+                                {nfcStatus === 'beaming' ? 'Ready to Beam' : nfcStatus === 'success' ? 'ID Transmitted' : 'Tap to Pay (NFC)'}
+                            </h3>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'text-black/60' : 'text-zinc-500'
+                                }`}>
+                                {nfcStatus === 'beaming' ? 'Hold phones close' : nfcStatus === 'success' ? 'Connection Established' : 'Share ID via physical touch'}
+                            </p>
+                        </div>
+
+                        {/* Glossy overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                    </button>
+                </div>
 
                 <p className="mt-12 text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] text-center max-w-[200px] leading-loose">
                     Secure Instant Payment <br /> via Stellar Vault

@@ -2,12 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio } from 'lucide-react';
+import { NFCService } from '../services/nfc';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [isFlashOn, setIsFlashOn] = useState(false);
+  const [isNfcScanning, setIsNfcScanning] = useState(false);
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
@@ -30,6 +32,31 @@ const QRScanner: React.FC = () => {
       },
       /* verbose= */ false
     );
+
+    const handleNfcResult = (text: string) => {
+      setIsNfcScanning(false);
+      if (text.includes('@')) {
+        navigate(`/send?to=${text}`);
+      } else {
+        try {
+          const url = new URL(text);
+          const to = url.searchParams.get('to');
+          if (to) navigate(`/send?to=${to}`);
+        } catch (e) {
+          setError("Invalid NFC data");
+        }
+      }
+    };
+
+    if (isNfcScanning) {
+      NFCService.startScan(
+        (msg) => handleNfcResult(msg),
+        (err) => {
+          setError(err.message);
+          setIsNfcScanning(false);
+        }
+      );
+    }
 
     scanner.render(onScanSuccess, onScanFailure);
 
@@ -134,11 +161,29 @@ const QRScanner: React.FC = () => {
           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Flash</span>
         </button>
 
-        <button className="flex flex-col items-center gap-3 group">
-          <div className="w-20 h-20 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(229,213,179,0.3)] active:scale-95 transition-all">
-            <QrCode size={30} />
+        <button
+          className={`flex flex-col items-center gap-3 group transition-all duration-500 ${isNfcScanning ? 'scale-110' : ''}`}
+          onClick={() => {
+            if (!NFCService.isSupported()) {
+              setError("NFC not supported on this device");
+              return;
+            }
+            setIsNfcScanning(!isNfcScanning);
+            setError('');
+          }}
+        >
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-500 relative ${isNfcScanning ? 'bg-emerald-500 text-black shadow-[0_0_40px_rgba(16,185,129,0.4)]' : 'bg-[#E5D5B3] text-black shadow-[0_0_30px_rgba(229,213,179,0.3)]'
+            }`}>
+            {isNfcScanning ? (
+              <>
+                <Radio size={30} className="animate-pulse" />
+                <div className="absolute inset-0 bg-black/5 rounded-full animate-ping"></div>
+              </>
+            ) : <Radio size={30} />}
           </div>
-          <span className="text-[10px] font-black text-white uppercase tracking-widest">Gallery</span>
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isNfcScanning ? 'text-emerald-400' : 'text-white'}`}>
+            {isNfcScanning ? 'Scanning...' : 'Tap to Pay'}
+          </span>
         </button>
 
         <button className="flex flex-col items-center gap-3 group" onClick={() => navigate("/help")}>
