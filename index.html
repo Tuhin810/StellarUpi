@@ -38,7 +38,6 @@
       overscroll-behavior-y: contain;
     }
 
-    /* PWA Splash Screen */
     html,
     body {
       overscroll-behavior: none;
@@ -52,15 +51,6 @@
 <body class="bg-[#050505] text-zinc-100">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('StellarPay Service Worker Live'))
-          .catch(err => console.log('SW registration failed:', err));
-      });
-    }
-  </script>
 </body>
 
 </html>
