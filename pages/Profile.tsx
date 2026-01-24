@@ -17,9 +17,11 @@ import {
     RefreshCw,
     ChevronRight,
     Sparkles,
-    Lock
+    Lock,
+    Bell
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { NotificationService } from '../services/notification';
 
 interface Props {
     profile: UserProfile | null;
@@ -79,6 +81,19 @@ const Profile: React.FC<Props> = ({ profile }) => {
 
     const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=stellar:pay?to=${profile.stellarId}&color=1A1A1A&bgcolor=E5D5B3`;
+
+    const [notificationStatus, setNotificationStatus] = useState<string>('');
+
+    const handleEnableNotifications = async () => {
+        setSaving(true);
+        const token = await NotificationService.requestPermission(profile.uid);
+        if (token) {
+            setNotificationStatus('Enabled');
+        } else {
+            setNotificationStatus('Denied/Blocked');
+        }
+        setSaving(false);
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white pb-32 relative overflow-hidden">
@@ -268,9 +283,17 @@ const Profile: React.FC<Props> = ({ profile }) => {
                     <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4 px-1">Settings</p>
 
                     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
-                        <button className="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-all">
+                        <button
+                            onClick={handleEnableNotifications}
+                            className="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-all"
+                        >
                             <span className="text-sm font-medium">Notifications</span>
-                            <ChevronRight size={16} className="text-white/30" />
+                            <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-bold text-[#E5D5B3] uppercase">
+                                    {notificationStatus || (profile.fcmToken ? 'ACTIVE' : 'ENABLE')}
+                                </span>
+                                <ChevronRight size={16} className="text-white/30" />
+                            </div>
                         </button>
                         <button
                             onClick={() => setShowSecurityModal(true)}

@@ -13,6 +13,8 @@ export interface UserProfile {
   dailyLimit?: number;
   spentToday?: number;
   lastSpentDate?: string;
+  fcmToken?: string;
+  notificationsEnabled?: boolean;
 }
 
 export interface FamilyMember {
