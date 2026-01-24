@@ -1,15 +1,10 @@
-
-declare global {
-  interface Window {
-    ethereum: any;
-  }
-}
+// Ethereum fallback is handled by ethers BrowserProvider casting
 
 import { createWeb3Modal, defaultConfig } from '@web3modal/ethers/react';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
 
 // WalletConnect Project ID - Get one free at https://cloud.walletconnect.com
-const projectId = '50852508e4819bee415eac1fda478758'; // TODO: Replace with your Project ID
+const projectId = '50852508e4819bee415eac1fda478758';
 
 // Ethereum Mainnet config
 const mainnet = {
@@ -17,24 +12,25 @@ const mainnet = {
   name: 'Ethereum',
   currency: 'ETH',
   explorerUrl: 'https://etherscan.io',
-  rpcUrl: 'https://cloudflare-eth.com'
+  rpcUrl: 'https://rpc.ankr.com/eth' // More reliable public RPC
 };
 
 // Metadata for the dApp shown in wallets
 const metadata = {
-  name: 'StellarPay UPI',
+  name: 'StellarPay',
   description: 'The New Web3 UPI Payment System',
-  url: window.location.origin,
-  icons: [`${window.location.origin}/icon-192.png`]
+  url: 'https://stellarpay.vercel.app', // Use a real URL or current origin
+  icons: ['https://raw.githubusercontent.com/Tuhin810/StellarUpi/main/public/icon-192.png'] // Use absolute URLs for better wallet support
 };
 
 // Create the Web3Modal with ethers config
 const ethersConfig = defaultConfig({
   metadata,
-  enableEIP6963: true, // Enables injected wallets (MetaMask, etc)
+  enableEIP6963: true,
   enableInjected: true,
   enableCoinbase: true,
-  enableWalletConnect: true, // Enables WalletConnect for mobile
+  rpcUrl: mainnet.rpcUrl,
+  defaultChainId: 1
 });
 
 // Initialize Web3Modal
@@ -42,18 +38,25 @@ createWeb3Modal({
   ethersConfig,
   chains: [mainnet],
   projectId,
-  enableAnalytics: false,
+  enableAnalytics: true, // Helpful for debugging connection issues
   themeMode: 'dark',
+  featuredWalletIds: [
+    'c57caac7112c3e66d5850ee853e2300d65bf254d198758830250fc57ae813e33', // MetaMask
+    '4622a2b2d6ad1397f42f7661cdc2ad121a0077227005f560abba7482811a2f1a', // Trust Wallet
+    'fd20dc426fb37566d803205b19bbc1d4096b248ac04544e3cfb647b087283302', // Coinbase Wallet
+  ],
   themeVariables: {
     '--w3m-accent': '#E5D5B3',
+    '--w3m-color-mix': '#E5D5B3',
+    '--w3m-color-mix-strength': 20
   }
 });
 
 export { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount } from '@web3modal/ethers/react';
 
 export const getMetaMaskProvider = () => {
-  if (typeof window.ethereum !== 'undefined') {
-    return new BrowserProvider(window.ethereum);
+  if (typeof window.ethereum !== 'undefined' && window.ethereum) {
+    return new BrowserProvider(window.ethereum as any);
   }
   return null;
 };
@@ -61,11 +64,11 @@ export const getMetaMaskProvider = () => {
 export const connectWallet = async () => {
   const provider = getMetaMaskProvider();
   if (!provider) throw new Error("MetaMask not found");
-  
+
   const accounts = await provider.send("eth_requestAccounts", []);
   const signer = await provider.getSigner();
   const address = await signer.getAddress();
-  
+
   return { address, signer };
 };
 
