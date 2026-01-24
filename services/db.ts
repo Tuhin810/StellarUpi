@@ -1,13 +1,13 @@
 
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDoc, 
-  query, 
-  where, 
-  getDocs, 
-  addDoc, 
+import {
+  collection,
+  doc,
+  setDoc,
+  getDoc,
+  query,
+  where,
+  getDocs,
+  addDoc,
   serverTimestamp,
   orderBy,
   limit,
@@ -25,9 +25,9 @@ export const saveUser = async (profile: UserProfile) => {
   await setDoc(doc(db, 'ids', profile.stellarId), { uid: profile.uid, publicKey: profile.publicKey });
 };
 
-export const getUserById = async (stellarId: string): Promise<{uid: string, publicKey: string} | null> => {
+export const getUserById = async (stellarId: string): Promise<{ uid: string, publicKey: string } | null> => {
   const snap = await getDoc(doc(db, 'ids', stellarId));
-  if (snap.exists()) return snap.data() as {uid: string, publicKey: string};
+  if (snap.exists()) return snap.data() as { uid: string, publicKey: string };
   return null;
 };
 
@@ -65,7 +65,7 @@ export const getTransactions = async (stellarId: string) => {
   );
 
   const [s1, s2] = await Promise.all([getDocs(q), getDocs(q2)]);
-  const txs = [...s1.docs.map(d => ({id: d.id, ...d.data()})), ...s2.docs.map(d => ({id: d.id, ...d.data()}))];
+  const txs = [...s1.docs.map(d => ({ id: d.id, ...d.data() })), ...s2.docs.map(d => ({ id: d.id, ...d.data() }))];
   return (txs as TransactionRecord[]).sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
 };
 
@@ -108,15 +108,15 @@ export const updateFamilySpend = async (memberDocId: string, amount: number) => 
   const ref = doc(db, 'family', memberDocId);
   const snap = await getDoc(ref);
   const data = snap.data() as FamilyMember;
-  
+
   if (data.lastSpentDate !== today) {
-    await updateDoc(ref, { 
-      spentToday: amount, 
-      lastSpentDate: today 
+    await updateDoc(ref, {
+      spentToday: amount,
+      lastSpentDate: today
     });
   } else {
-    await updateDoc(ref, { 
-      spentToday: increment(amount) 
+    await updateDoc(ref, {
+      spentToday: increment(amount)
     });
   }
 };
@@ -130,15 +130,15 @@ export const updatePersonalSpend = async (uid: string, amount: number) => {
   const ref = doc(db, 'upiAccounts', uid);
   const snap = await getDoc(ref);
   const data = snap.data() as UserProfile;
-  
+
   if (data.lastSpentDate !== today) {
-    await updateDoc(ref, { 
-      spentToday: amount, 
-      lastSpentDate: today 
+    await updateDoc(ref, {
+      spentToday: amount,
+      lastSpentDate: today
     });
   } else {
-    await updateDoc(ref, { 
-      spentToday: increment(amount) 
+    await updateDoc(ref, {
+      spentToday: increment(amount)
     });
   }
 };
@@ -166,26 +166,26 @@ export const getGroups = async (stellarId: string) => {
 };
 
 export const recordSplitExpense = async (expense: any) => {
-    await addDoc(collection(db, 'splitExpenses'), {
-        ...expense,
-        timestamp: serverTimestamp()
-    });
+  await addDoc(collection(db, 'splitExpenses'), {
+    ...expense,
+    timestamp: serverTimestamp()
+  });
 };
 
 export const getGroupExpenses = async (groupId: string) => {
-    const q = query(
-        collection(db, 'splitExpenses'),
-        where('groupId', '==', groupId),
-        orderBy('timestamp', 'desc')
-    );
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const q = query(
+    collection(db, 'splitExpenses'),
+    where('groupId', '==', groupId),
+    orderBy('timestamp', 'desc')
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
 export const searchUsers = async (searchTerm: string): Promise<UserProfile[]> => {
   if (!searchTerm) return [];
   const term = searchTerm.toLowerCase();
-  
+
   // 1. Check exact stellarId
   const qId = query(collection(db, 'upiAccounts'), where('stellarId', '==', term));
   const sId = await getDocs(qId);
@@ -213,7 +213,7 @@ export const updateSplitPayment = async (splitId: string, payerStellarId: string
   const snap = await getDoc(ref);
   if (snap.exists()) {
     const data = snap.data();
-    const participants = data.participants.map((p: any) => 
+    const participants = data.participants.map((p: any) =>
       p.stellarId === payerStellarId ? { ...p, status: 'PAID' } : p
     );
     await updateDoc(ref, { participants });
@@ -225,60 +225,3 @@ export const updateRequestStatus = async (requestId: string, status: 'PAID' | 'R
   await updateDoc(ref, { status });
 };
 
-// --- Stellar Aura Proximity Discovery ---
-
-export const updateAuraPresence = async (stellarId: string, profile: any, coords: { lat: number, lng: number }, active: boolean) => {
-    const ref = doc(db, 'aura', stellarId);
-    if (!active) {
-        await setDoc(ref, { active: false, timestamp: serverTimestamp() }, { merge: true });
-        return;
-    }
-    await setDoc(ref, {
-        stellarId,
-        displayName: profile.displayName || stellarId.split('@')[0],
-        avatarSeed: profile.avatarSeed || stellarId,
-        location: coords,
-        timestamp: serverTimestamp(),
-        active: true
-    });
-};
-
-export const getNearbyAuras = async (myCoords: { lat: number, lng: number }, radiusKm: number = 0.5) => {
-    try {
-        const q = query(
-            collection(db, 'aura'),
-            where('active', '==', true),
-            limit(20)
-        );
-        const snap = await getDocs(q);
-        const now = Date.now();
-        
-        console.log(`[Aura] Found ${snap.docs.length} active users globally. Filtering by proximity...`);
-
-        return snap.docs
-            .map(d => ({ id: d.id, ...d.data() } as any))
-            .filter(aura => {
-                // Ignore self
-                if (aura.id === myCoords.lat + '-' + myCoords.lng) return false; // Rough check
-
-                // Filter by 5-minute freshness
-                const auraTime = aura.timestamp?.toMillis() || now; // Fallback to now if not synced yet
-                if (Math.abs(now - auraTime) > 300000) return false;
-                
-                // Filter by distance (Haversine formula roughly)
-                const dLat = (aura.location.lat - myCoords.lat) * Math.PI / 180;
-                const dLng = (aura.location.lng - myCoords.lng) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                          Math.cos(myCoords.lat * Math.PI / 180) * Math.cos(aura.location.lat * Math.PI / 180) *
-                          Math.sin(dLng/2) * Math.sin(dLng/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                const distance = 6371 * c; // Km
-                
-                console.log(`[Aura] User ${aura.displayName} is ${distance.toFixed(3)}km away`);
-                return distance <= radiusKm;
-            });
-    } catch (err) {
-        console.error("[Aura] Fetch error:", err);
-        return [];
-    }
-};
