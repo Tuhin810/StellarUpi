@@ -1,8 +1,8 @@
-
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getAnalytics } from 'firebase/analytics';
+import { getMessaging } from 'firebase/messaging';
 
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
@@ -15,7 +15,8 @@ const firebaseConfig = {
   measurementId: "G-M0YJ6963MG"
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;

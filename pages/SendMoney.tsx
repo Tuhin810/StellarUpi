@@ -10,6 +10,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import SuccessScreen from '../components/SuccessScreen';
 import UpiDrawer from '../components/UpiDrawer';
+import { NotificationService } from '../services/notification';
 
 interface Props {
   profile: UserProfile | null;
@@ -191,8 +192,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         await recordTransaction({
           fromId: selectedFamilyWallet.ownerProfile.stellarId,
           toId: selectedContact.id,
-          fromName: selectedFamilyWallet.ownerProfile.stellarId,
-          toName: selectedContact.id,
+          fromName: selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId,
+          toName: selectedContact.name,
           amount: amtNum,
           currency: 'INR',
           status: 'SUCCESS',
@@ -201,6 +202,13 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           spenderId: profile.stellarId,
           category: category
         });
+
+        // Trigger remote notification
+        NotificationService.triggerRemoteNotification(
+          selectedContact.id,
+          "Payment Received! 💰",
+          `You received ₹${amtNum} from ${selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]}`
+        );
       } else {
         if (profile.dailyLimit && profile.dailyLimit > 0) {
           const remaining = Math.max(0, profile.dailyLimit - (profile.spentToday || 0));
@@ -219,8 +227,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         await recordTransaction({
           fromId: profile.stellarId,
           toId: selectedContact.id,
-          fromName: profile.stellarId,
-          toName: selectedContact.id,
+          fromName: profile.displayName || profile.stellarId,
+          toName: selectedContact.name,
           amount: amtNum,
           currency: 'INR',
           status: 'SUCCESS',
@@ -228,6 +236,13 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           isFamilySpend: false,
           category: category
         });
+
+        // Trigger remote notification
+        NotificationService.triggerRemoteNotification(
+          selectedContact.id,
+          "Payment Received! 💰",
+          `You received ₹${amtNum} from ${profile.displayName || profile.stellarId.split('@')[0]}`
+        );
       }
       setSuccess(true);
     } catch (err: any) {

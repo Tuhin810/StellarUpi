@@ -42,6 +42,13 @@ The application supports Web3 wallet authentication, family spending controls, g
 - **Auto-Generated UPI IDs** - Human-readable payment IDs derived from your Ethereum address (e.g., `0xab12cd@stellar`)
 - **Session Persistence** - Secure session management with automatic wallet change detection
 
+### 🔔 **Native Push Notifications**
+- **Real-Time Payment Alerts** - Get notified instantly when you receive money, even if the app is in the foreground or background.
+- **Group Split Notifications** - Stay updated when a new split expense is created in one of your groups.
+- **Service Worker Integration** - Background notification handling using Firebase Cloud Messaging (FCM).
+- **Foreground Alert System** - In-app notification banners for active users.
+- **Custom Haptics & Branding** - Notifications include the StellarPay logo and vibration support for a native feel.
+
 ### 💸 **Send & Receive Payments**
 - **UPI-Style Transfers** - Send money using simple `name@stellar` addresses
 - **QR Code Payments** - Generate and scan QR codes for instant payments

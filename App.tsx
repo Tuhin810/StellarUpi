@@ -6,8 +6,33 @@ import { NetworkProvider } from './context/NetworkContext';
 import AppRoutes from './routes/AppRoutes';
 import BottomNav from './components/BottomNav';
 
+import { NotificationService } from './services/notification';
+
 const AppContent: React.FC = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, profile } = useAuth();
+
+  React.useEffect(() => {
+    if (isAuthenticated && profile) {
+      // 1. Request permission and register token
+      NotificationService.requestPermission(profile.uid);
+
+      // 2. Setup real-time listeners for payments/splits
+      const cleanup = NotificationService.setupRealtimeNotifications(profile.stellarId);
+
+      // 3. Listen for direct foreground FCM messages
+      const unsubForeground = NotificationService.onForegroundMessage((payload) => {
+        NotificationService.sendLocalNotification(
+          payload.notification?.title || "New Update",
+          payload.notification?.body || "Check your vault."
+        );
+      });
+
+      return () => {
+        if (cleanup) cleanup();
+        if (unsubForeground) unsubForeground();
+      };
+    }
+  }, [isAuthenticated, profile]);
 
   if (loading) {
     return (
