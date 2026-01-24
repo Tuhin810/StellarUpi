@@ -1,63 +1,84 @@
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-    <title>Stellar Pay</title>
-    
-    <!-- PWA Meta Tags -->
-    <meta name="theme-color" content="#0a0f0a">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="StellarPay">
-    <meta name="description" content="The New Web3 UPI Payment System - Fast, secure, decentralized payments">
-    
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="/icon-192.png">
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/icon-192.png">
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh/ https://www.gstatic.com/ https://*.firebaseio.com https://www.googletagmanager.com; connect-src 'self' https://horizon-testnet.stellar.org https://horizon.stellar.org https://friendbot.stellar.org https://api.coingecko.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://www.google-analytics.com wss://*.walletconnect.com https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://rpc.walletconnect.com https://rpc.walletconnect.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        /* PWA Splash Screen */
-        html, body { 
-          overscroll-behavior: none;
-          -webkit-overflow-scrolling: touch;
-        }
-    </style>
-    <script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0, viewport-fit=cover" />
+  <title>Stellar Pay</title>
 
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyBblnw7n6iGLBEq88A41bmj6hj2bRVA9Xk",
-    authDomain: "raze-e0182.firebaseapp.com",
-    projectId: "raze-e0182",
-    storageBucket: "raze-e0182.firebasestorage.app",
-    messagingSenderId: "28918634771",
-    appId: "1:28918634771:web:530545178257781c9122e6",
-    measurementId: "G-E5QX60YDS0"
-  };
+  <!-- PWA / Mobile Native Meta Tags -->
+  <meta name="theme-color" content="#050505" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="StellarPay" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-</script>
+  <!-- Windows / Microsoft Integration -->
+  <meta name="msapplication-TileImage" content="/icon-512.png" />
+  <meta name="msapplication-TileColor" content="#050505" />
+  <meta name="msapplication-config" content="none" />
+  <meta name="application-name" content="StellarPay" />
 
-<link rel="stylesheet" href="/index.css">
+  <!-- External Assets -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <meta http-equiv="Content-Security-Policy"
+    content="script-src 'self' 'unsafe-eval' 'unsafe-inline' https://cdn.tailwindcss.com https://esm.sh/ https://www.gstatic.com/ https://*.firebaseio.com https://www.googletagmanager.com; connect-src 'self' https://horizon-testnet.stellar.org https://horizon.stellar.org https://friendbot.stellar.org https://api.coingecko.com https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://www.gstatic.com https://www.google-analytics.com wss://*.walletconnect.com https://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org https://rpc.walletconnect.com https://rpc.walletconnect.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;">
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      margin: 0;
+      overflow-x: hidden;
+      overscroll-behavior-y: contain;
+    }
+
+    /* PWA Splash Screen */
+    html,
+    body {
+      overscroll-behavior: none;
+      -webkit-overflow-scrolling: touch;
+    }
+  </style>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyBblnw7n6iGLBEq88A41bmj6hj2bRVA9Xk",
+      authDomain: "raze-e0182.firebaseapp.com",
+      projectId: "raze-e0182",
+      storageBucket: "raze-e0182.firebasestorage.app",
+      messagingSenderId: "28918634771",
+      appId: "1:28918634771:web:530545178257781c9122e6",
+      measurementId: "G-E5QX60YDS0"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+  </script>
+
+  <link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-[#050505]">
-    <div id="root"></div>
-<script type="module" src="/index.tsx"></script>
+
+<body class="bg-[#050505] text-zinc-100">
+  <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('StellarPay Service Worker Live'))
+          .catch(err => console.log('SW registration failed:', err));
+      });
+    }
+  </script>
 </body>
+
 </html>
