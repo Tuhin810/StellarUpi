@@ -5,11 +5,11 @@
  */
 
 const CONFIG = {
-    START_FREQ: 17500, // Reduced from 18.5kHz for better speaker support
-    FREQ_BASE: 14000,  // Lowered further for ultra-reliability
-    FREQ_STEP: 80,     // Better separation between characters
-    BIT_DURATION: 0.2, // Increased to 200ms per bit for 100% reliability
-    MARGIN: 40         // Tolerance
+    START_FREQ: 17500,
+    FREQ_BASE: 14000,
+    FREQ_STEP: 100,     // Increased step for better separation at distance
+    BIT_DURATION: 0.25, // Slower (250ms) = Much higher range/reliability
+    MARGIN: 50          // Wider tolerance for distance fading
 };
 
 // Binary mapping for characters (simplified for UPI IDs)
@@ -20,20 +20,24 @@ export const StellarPulse = {
      * Encodes a string into a sequence of frequencies
      */
     encode: (payload) => {
-        const sequence = [CONFIG.START_FREQ, CONFIG.START_FREQ]; // Double start signal
+        const sequence = [CONFIG.START_FREQ, CONFIG.START_FREQ];
         const lowerPayload = payload.toLowerCase();
 
-        for (let char of lowerPayload) {
+        // Only encode the unique part before @stellar
+        const uniquePart = lowerPayload.split('@')[0];
+
+        for (let char of uniquePart) {
             const index = CHAR_MAP.indexOf(char);
             if (index !== -1) {
                 sequence.push(CONFIG.FREQ_BASE + (index * CONFIG.FREQ_STEP));
             }
         }
 
-        // Extended tail signal (3 bits) to ensure last characters are decoded before we stop
-        sequence.push(CONFIG.START_FREQ);
-        sequence.push(CONFIG.START_FREQ);
-        sequence.push(CONFIG.START_FREQ);
+        // The '@' character is our universal terminator
+        const atIndex = CHAR_MAP.indexOf('@');
+        sequence.push(CONFIG.FREQ_BASE + (atIndex * CONFIG.FREQ_STEP));
+        sequence.push(CONFIG.FREQ_BASE + (atIndex * CONFIG.FREQ_STEP)); // Double terminator for safety
+
         return sequence;
     },
 

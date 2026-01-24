@@ -104,9 +104,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             let startDetected = false;
             let lastConfirmedChar = "";
             let charHits = 0;
-            let endHits = 0; // Number of consecutive hits for end signal
             const REQUIRED_HITS = 2;
-            const REQUIRED_END_HITS = 5; // More patience for the end signal
 
             const detect = () => {
                 analyser.getFloatFrequencyData(dataArray);
@@ -117,23 +115,18 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     if (!startDetected) {
                         startDetected = true;
                         charSequence = "";
-                        console.log("StellarPulse: Signal detected");
-                    } else if (charSequence.length > 5) {
-                        // Debounce the end signal too
-                        endHits++;
-                        if (endHits >= REQUIRED_END_HITS) {
-                            handleSuccess(charSequence);
-                            return;
-                        }
+                        console.log("StellarPulse: Scanning...");
                     }
                 } else if (startDetected && char) {
-                    endHits = 0; // Reset end hits if we see a data char
                     if (char === lastConfirmedChar) {
                         charHits++;
                         if (charHits === REQUIRED_HITS) {
-                            // Only add if it's different FROM THE LAST ADDED character
-                            // To handle longer pulse durations correctly
                             if (charSequence[charSequence.length - 1] !== char) {
+                                // If we hit '@', we finish immediately
+                                if (char === '@') {
+                                    handleSuccess(charSequence + "@stellar");
+                                    return;
+                                }
                                 charSequence += char;
                                 setDecodedString(charSequence);
                             }
