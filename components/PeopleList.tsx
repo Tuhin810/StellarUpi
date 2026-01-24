@@ -84,7 +84,7 @@ const PeopleList: React.FC<PeopleListProps> = ({ contacts, loading, onCreateGrou
     };
 
     return (
-        <div className="mt-12">
+        <div className="mt-10">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-xl font-black tracking-tight">People</h3>
                 {hasMore && (

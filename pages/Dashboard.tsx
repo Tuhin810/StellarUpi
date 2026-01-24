@@ -6,6 +6,7 @@ import BalanceCard from '../components/BalanceCard';
 import SideDrawer from '../components/SideDrawer';
 import DashboardHeader from '../components/DashboardHeader';
 import QuickActions from '../components/QuickActions';
+import RewardsCTA from '../components/RewardsCTA';
 import PeopleList from '../components/PeopleList';
 import ReceiveQRModal from '../components/ReceiveQRModal';
 import CreateGroupModal from '../components/CreateGroupModal';
@@ -103,11 +104,15 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
 
       <QuickActions onReceiveClick={() => navigate('/receive')} />
 
+
       <PeopleList
         contacts={contacts}
         loading={loading}
         onCreateGroupClick={() => setShowCreateGroup(true)}
       />
+
+      <RewardsCTA />
+
 
       {showCreateGroup && (
         <CreateGroupModal
