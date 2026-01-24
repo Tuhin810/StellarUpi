@@ -15,7 +15,8 @@ import {
     Sparkles,
     Shield,
     Zap,
-    Navigation2
+    Navigation2,
+    Info
 } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 import { NFCService } from '../services/nfc';
@@ -87,34 +88,51 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
         }
     };
 
-    const handleStartNfcBeam = async () => {
-        if (!NFCService.isSupported()) {
-            alert("NFC is not supported on this device/browser. Use Chrome on Android for NFC features.");
-            return;
-        }
-
+    const handleActivateAura = async () => {
         try {
             setNfcStatus('beaming');
-            await NFCService.writeText(profile.stellarId);
-            setNfcStatus('success');
 
+            // Start Aura Discovery Broadcast (GPS Matching)
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     await updateAuraPresence(profile.stellarId, profile, {
                         lat: pos.coords.latitude,
                         lng: pos.coords.longitude
                     }, true);
-                });
-            }
+                    setNfcStatus('success');
 
-            setTimeout(async () => {
+                    // Keep active for 30s then auto-cleanup
+                    setTimeout(async () => {
+                        setNfcStatus('idle');
+                        await updateAuraPresence(profile.stellarId, profile, { lat: 0, lng: 0 }, false);
+                    }, 30000);
+                }, (err) => {
+                    console.error("Location error", err);
+                    setNfcStatus('error');
+                    setTimeout(() => setNfcStatus('idle'), 3000);
+                }, { enableHighAccuracy: true });
+            } else {
+                alert("Location services required for Stellar Aura.");
                 setNfcStatus('idle');
-                await updateAuraPresence(profile.stellarId, profile, { lat: 0, lng: 0 }, false);
-            }, 30000);
+            }
         } catch (err) {
             console.error(err);
             setNfcStatus('error');
             setTimeout(() => setNfcStatus('idle'), 3000);
+        }
+    };
+
+    const handleWriteToTag = async () => {
+        if (!NFCService.isSupported()) {
+            alert("NFC is not supported on this device/browser.");
+            return;
+        }
+        try {
+            alert("Ready! Hold your phone against a physical NFC tag/sticker to write your ID.");
+            await NFCService.writeText(profile.stellarId);
+            alert("Success! Your ID has been written to the tag.");
+        } catch (err) {
+            console.error("NFC Write failed", err);
         }
     };
 
@@ -214,43 +232,56 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     </div>
 
                     <button
-                        onClick={handleStartNfcBeam}
-                        disabled={nfcStatus === 'beaming'}
+                        onClick={handleActivateAura}
+                        disabled={nfcStatus === 'beaming' || nfcStatus === 'success'}
                         className={`w-full group relative overflow-hidden flex items-center gap-5 p-6 rounded-[2.5rem] border transition-all duration-500 ${nfcStatus === 'beaming'
-                                ? 'bg-[#E5D5B3] border-[#E5D5B3] scale-[1.02] shadow-[0_20px_40px_-5px_rgba(229,213,179,0.3)]'
-                                : nfcStatus === 'success'
-                                    ? 'bg-emerald-500 border-emerald-500 shadow-[0_20px_40px_-5px_rgba(16,185,129,0.3)]'
-                                    : 'bg-zinc-900/60 border-white/5 hover:bg-zinc-900/80'
+                            ? 'bg-zinc-800 border-white/10 scale-[1.02]'
+                            : nfcStatus === 'success'
+                                ? 'bg-emerald-500 border-emerald-500 shadow-[0_20px_40px_-5px_rgba(16,185,129,0.3)]'
+                                : 'bg-zinc-900/60 border-white/5 hover:bg-zinc-900/80 shadow-[0_20px_40px_-10px_rgba(0,0,0,0.5)]'
                             }`}
                     >
-                        {/* Ripple Animation for Beaming */}
-                        {nfcStatus === 'beaming' && (
-                            <div className="absolute inset-0 flex items-center justify-center opacity-40">
-                                <div className="w-20 h-20 border-[2px] border-black/20 rounded-full animate-ping" />
-                                <div className="w-40 h-40 border-[2px] border-black/10 rounded-full animate-ping [animation-delay:0.5s]" />
+                        {/* Aura Pulse Effect */}
+                        {nfcStatus === 'success' && (
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-full h-full bg-black/10 rounded-full animate-ping" />
                             </div>
                         )}
 
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'bg-black text-[#E5D5B3]' : 'bg-[#E5D5B3]/10 text-[#E5D5B3]'
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 ${nfcStatus === 'success' ? 'bg-black text-[#E5D5B3]' : 'bg-[#E5D5B3]/10 text-[#E5D5B3]'
                             }`}>
                             {nfcStatus === 'success' ? <Check size={26} strokeWidth={3} /> : <Sparkles size={26} className={nfcStatus === 'beaming' ? 'animate-pulse' : ''} />}
                         </div>
 
                         <div className="text-left relative z-10 flex-1">
-                            <h3 className={`text-[13px] font-black uppercase tracking-[0.1em] mb-0.5 ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'text-black' : 'text-white'
+                            <h3 className={`text-[13px] font-black uppercase tracking-[0.1em] mb-0.5 ${nfcStatus === 'success' ? 'text-black' : 'text-white'
                                 }`}>
-                                {nfcStatus === 'beaming' ? 'Activating Aura' : nfcStatus === 'success' ? 'Aura Broadcasting' : 'Stellar Aura Discovery'}
+                                {nfcStatus === 'beaming' ? 'Pinpointing...' : nfcStatus === 'success' ? 'Aura Broadcasting' : 'Stellar Aura (Touchless)'}
                             </h3>
-                            <p className={`text-[10px] font-bold tracking-tight ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'text-black/60' : 'text-zinc-500'
+                            <p className={`text-[10px] font-bold tracking-tight ${nfcStatus === 'success' ? 'text-black/60' : 'text-zinc-500'
                                 }`}>
-                                {nfcStatus === 'beaming' ? 'Pinpointing location...' : nfcStatus === 'success' ? 'Others can find you nearby' : 'Let nearby payers find you instantly'}
+                                {nfcStatus === 'beaming' ? 'Securing location' : nfcStatus === 'success' ? 'Nearby phones can find you' : 'Best for phone-to-phone Pay'}
                             </p>
                         </div>
-
-                        <div className={`mr-2 transition-all ${nfcStatus === 'beaming' ? 'animate-bounce' : ''}`}>
-                            <Navigation2 size={16} className={nfcStatus === 'beaming' || nfcStatus === 'success' ? 'text-black/40' : 'text-zinc-700'} />
-                        </div>
                     </button>
+
+                    {/* Secondary NFC Option for physical tags */}
+                    <div className="mt-6 p-4 rounded-3xl bg-zinc-900/40 border border-white/5">
+                        <div className="flex items-start gap-4 mb-4">
+                            <div className="w-8 h-8 rounded-xl bg-white/5 flex items-center justify-center text-zinc-500 flex-shrink-0 mt-1">
+                                <Info size={16} />
+                            </div>
+                            <p className="text-[10px] font-medium text-zinc-500 leading-relaxed uppercase tracking-widest">
+                                Pro Tip: Aura uses GPS proximity to avoid Alipay/WeChat interference on some phones.
+                            </p>
+                        </div>
+                        <button
+                            onClick={handleWriteToTag}
+                            className="w-full py-4 bg-white/5 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] text-[#E5D5B3] hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+                        >
+                            <Radio size={14} /> Sync to physical NFC Tag
+                        </button>
+                    </div>
 
                     <button
                         onClick={() => setShowLinkModal(true)}
