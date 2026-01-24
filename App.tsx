@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { NetworkProvider } from './context/NetworkContext';
 import AppRoutes from './routes/AppRoutes';
 import BottomNav from './components/BottomNav';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -22,6 +23,7 @@ const AppContent: React.FC = () => {
       <div className="min-h-screen bg-[#1A1A1A] text-white max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-white/5">
         <AppRoutes />
         {isAuthenticated && <BottomNav />}
+        <PWAInstallPrompt />
       </div>
     </Router>
   );
