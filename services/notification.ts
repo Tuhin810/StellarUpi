@@ -12,7 +12,8 @@ export const NotificationService = {
   async init(uid?: string) {
     try {
       await OneSignal.init({
-        appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "YOUR-ONESIGNAL-APP-ID",
+        appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "28cc51dc-70f9-4f27-b879-53cf2c9fa84f",
+        safari_web_id: "web.onesignal.auto.12f40fc9-13d7-4ca9-8e4a-0a7d50f473bf",
         allowLocalhostAsSecureOrigin: true,
       });
 

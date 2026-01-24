@@ -61,6 +61,18 @@ const Profile: React.FC<Props> = ({ profile }) => {
             setDailyLimitEntry(profile.dailyLimit || 0);
             setPhoneEntry(profile.phoneNumber || '');
         }
+
+        const checkNotif = async () => {
+            const status = await NotificationService.checkStatus();
+            if (status.permission === 'granted') {
+                setNotificationStatus('ACTIVE');
+            } else if (status.permission === 'denied') {
+                setNotificationStatus('DISABLED');
+            } else {
+                setNotificationStatus('ENABLE');
+            }
+        };
+        checkNotif();
     }, [profile]);
 
     if (!profile) return null;
@@ -389,7 +401,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
                             <span className="text-sm font-medium">Notifications</span>
                             <div className="flex items-center gap-2">
                                 <span className="text-[10px] font-bold text-[#E5D5B3] uppercase">
-                                    {notificationStatus || (profile.fcmToken ? 'ACTIVE' : 'ENABLE')}
+                                    {notificationStatus || 'ENABLE'}
                                 </span>
                                 <ChevronRight size={16} className="text-white/30" />
                             </div>
