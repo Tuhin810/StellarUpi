@@ -52,26 +52,28 @@ const QRScanner: React.FC = () => {
     scanner.render(onScanSuccess, onScanFailure);
 
     function onScanSuccess(decodedText: string) {
-      scanner.clear();
-      try {
-        let url: URL;
+      if (decodedText.startsWith('upi://pay')) {
         try {
-          url = new URL(decodedText);
+          const url = new URL(decodedText);
+          const pa = url.searchParams.get('pa') || '';
+          const pn = url.searchParams.get('pn') || '';
+          const am = url.searchParams.get('am') || '';
+          const platform = getPlatform(pa);
+          setScanResult({ pa, pn, am, platform, type: 'upi' });
+          return;
         } catch (e) {
-          // Fallback for custom protocols that URL doesn't like
-          if (decodedText.includes('://')) {
-            const tempUrl = decodedText.replace('://', '://host/');
-            url = new URL(tempUrl);
-          } else {
-            throw e;
-          }
+          console.error("UPI Parse Error", e);
         }
+      }
 
-        let to = url.searchParams.get('to');
-        let planId = url.searchParams.get('planId');
+      try {
+        const url = new URL(decodedText);
+        const to = url.searchParams.get('to');
         const amt = url.searchParams.get('amt') || '';
         if (to) {
+          scanner.clear();
           navigate(`/send?to=${to}&amt=${amt}`);
+          return;
         } else {
           setError("Invalid QR Code Format");
           setTimeout(() => setError(''), 3000);
@@ -81,7 +83,6 @@ const QRScanner: React.FC = () => {
           scanner.clear();
           navigate(`/send?to=${decodedText}`);
         } else {
-          console.error("Scan error", e);
           setError("Unknown QR type");
           setTimeout(() => setError(''), 3000);
         }
@@ -132,9 +133,9 @@ const QRScanner: React.FC = () => {
           <div className="absolute -bottom-1 -left-1 w-12 h-12 border-b-[3px] border-l-[3px] border-[#E5D5B3] rounded-bl-3xl z-30"></div>
           <div className="absolute -bottom-1 -right-1 w-12 h-12 border-b-[3px] border-r-[3px] border-[#E5D5B3] rounded-br-3xl z-30"></div>
 
-          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#E5D5B3] to-transparent -[0_0_20px_rgba(229,213,179,0.8)] z-40 animate-scan-slow opacity-60"></div>
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#E5D5B3] to-transparent shadow-[0_0_20px_rgba(229,213,179,0.8)] z-40 animate-scan-slow opacity-60"></div>
           {/* Scanner Window */}
-          <div className="relative w-full h-full bg-zinc-950 rounded-[.5rem] overflow-hidden border border-white/10 -[0_0_50px_rgba(0,0,0,0.5)] z-10 group">
+          <div className="relative w-full h-full bg-zinc-950 rounded-[.5rem] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] z-10 group">
             <div id="reader" className="w-full h-full"></div>
 
             {/* Scan Line Animation */}
@@ -145,7 +146,7 @@ const QRScanner: React.FC = () => {
 
           {/* Error Message Tooltip */}
           {error && (
-            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-max max-w-[280px] px-6 py-4 bg-rose-500 text-white rounded-2xl font-bold text-xs -2xl z-50 flex items-center gap-3 animate-bounce">
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-max max-w-[280px] px-6 py-4 bg-rose-500 text-white rounded-2xl font-bold text-xs shadow-2xl z-50 flex items-center gap-3 animate-bounce">
               <AlertCircle size={18} />
               {error}
             </div>
@@ -305,7 +306,7 @@ const QRScanner: React.FC = () => {
             text-transform: uppercase;
             font-size: 0.7rem;
             letter-spacing: 0.1em;
-            box-: 0 10px 20px rgba(0,0,0,0.2);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
             margin-top: 10px;
         }
         #reader__status_span {
