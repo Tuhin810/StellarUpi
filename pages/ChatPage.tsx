@@ -233,7 +233,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
 
                                     {!isMe && msg.status === 'PENDING' ? (
                                         <button
-                                            onClick={() => navigate(`/send?to=${msg.senderId}&amt=${msg.amount}`)}
+                                            onClick={() => navigate(`/send?to=${msg.senderId}&amt=${msg.amount}&requestId=${msg.id}`)}
                                             className="w-full py-2.5 gold-gradient text-black rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg active:scale-95 transition-all"
                                         >
                                             Pay Now

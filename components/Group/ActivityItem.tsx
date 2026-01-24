@@ -78,7 +78,7 @@ const ActivityItem: React.FC<Props> = ({ item, profile, navigate, memberProfiles
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate(`/send?to=${item.paidBy}&amt=${mySplit.amount}`);
+                                    navigate(`/send?to=${item.paidBy}&amt=${mySplit.amount}&splitId=${item.id}`);
                                 }}
                                 className="px-8 py-3.5 gold-gradient text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-[0_10px_30px_-10px_rgba(229,213,179,0.4)] flex items-center gap-2"
                             >

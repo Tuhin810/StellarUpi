@@ -206,3 +206,20 @@ export const searchUsers = async (searchTerm: string): Promise<UserProfile[]> =>
   const sName = await getDocs(qName);
   return sName.docs.map(d => d.data() as UserProfile);
 };
+
+export const updateSplitPayment = async (splitId: string, payerStellarId: string) => {
+  const ref = doc(db, 'splitExpenses', splitId);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const data = snap.data();
+    const participants = data.participants.map((p: any) => 
+      p.stellarId === payerStellarId ? { ...p, status: 'PAID' } : p
+    );
+    await updateDoc(ref, { participants });
+  }
+};
+
+export const updateRequestStatus = async (requestId: string, status: 'PAID' | 'REJECTED') => {
+  const ref = doc(db, 'chats', requestId);
+  await updateDoc(ref, { status });
+};
