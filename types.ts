@@ -13,6 +13,7 @@ export interface UserProfile {
   dailyLimit?: number;
   spentToday?: number;
   lastSpentDate?: string;
+  phoneNumber?: string;
   fcmToken?: string;
   notificationsEnabled?: boolean;
 }

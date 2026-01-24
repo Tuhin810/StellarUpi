@@ -208,6 +208,24 @@ export const searchUsers = async (searchTerm: string): Promise<UserProfile[]> =>
   return sName.docs.map(d => d.data() as UserProfile);
 };
 
+export const getUsersByPhones = async (phoneNumbers: string[]): Promise<UserProfile[]> => {
+  if (!phoneNumbers || phoneNumbers.length === 0) return [];
+
+  // Firestore 'in' query supports up to 10 elements. 
+  // For larger contact lists, we need to batch the requests.
+  const users: UserProfile[] = [];
+  const batchSize = 10;
+
+  for (let i = 0; i < phoneNumbers.length; i += batchSize) {
+    const batch = phoneNumbers.slice(i, i + batchSize);
+    const q = query(collection(db, 'upiAccounts'), where('phoneNumber', 'in', batch));
+    const snap = await getDocs(q);
+    snap.docs.forEach(d => users.push(d.data() as UserProfile));
+  }
+
+  return users;
+};
+
 export const updateSplitPayment = async (splitId: string, payerStellarId: string) => {
   const ref = doc(db, 'splitExpenses', splitId);
   const snap = await getDoc(ref);
