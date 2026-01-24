@@ -109,7 +109,7 @@ const PaymentLink: React.FC = () => {
                     {amount && ` - ${amount} XLM`}
                 </p>
                 <button
-                    onClick={() => navigate('/login')}
+                    onClick={() => navigate('/login', { state: { from: `/pay/${stellarId}${searchParams.toString() ? '?' + searchParams.toString() : ''}` } })}
                     className="w-full max-w-xs py-4 gold-gradient text-black font-black rounded-2xl shadow-xl"
                 >
                     Login to Pay
@@ -195,21 +195,25 @@ const PaymentLink: React.FC = () => {
             </div>
 
             {/* Amount Input */}
-            <div className="bg-zinc-900/30 border border-white/5 rounded-3xl p-8 mb-6">
-                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4 text-center">Amount</p>
-                <div className="flex items-baseline justify-center gap-2">
-                    <span className={`text-4xl font-black ${amount ? 'text-[#E5D5B3]' : 'text-zinc-700'}`}>₹</span>
+            <div className="bg-zinc-900/30 border border-white/5 rounded-3xl p-8 mb-6 text-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Amount</p>
+                <div className="flex items-baseline justify-center gap-2 mb-2">
                     <input
                         type="text"
                         inputMode="numeric"
                         value={amount}
                         onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))}
                         placeholder="0"
-                        className="bg-transparent text-5xl font-black text-center w-full max-w-[200px] outline-none placeholder-zinc-800"
+                        className="bg-transparent text-5xl font-black text-center w-full max-w-[200px] outline-none placeholder-zinc-800 text-[#E5D5B3]"
                         autoFocus
                     />
                     <span className="text-zinc-500 font-bold">XLM</span>
                 </div>
+                {amount && (
+                    <p className="text-emerald-500/60 font-black text-xs uppercase tracking-widest">
+                        ≈ ₹{(parseFloat(amount) * 8.42).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                    </p>
+                )}
             </div>
 
             {/* Note */}

@@ -6,7 +6,7 @@ import { saveUser, getProfile } from '../services/db';
 import { createWallet } from '../services/stellar';
 import { encryptSecret } from '../services/encryption';
 import { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount, generateUPIFromAddress } from '../services/web3';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Wallet, Loader2, ArrowRight, ShieldCheck, Zap, Lock, Compass } from 'lucide-react';
 import { BrowserProvider } from 'ethers';
 
@@ -14,7 +14,9 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
   const [isConnectedLocally, setIsConnectedLocally] = useState(false);
+  const from = location.state?.from || '/';
 
   // Web3Modal hooks
   const { open } = useWeb3Modal();
@@ -33,7 +35,7 @@ const Login: React.FC = () => {
       const storedKey = localStorage.getItem('temp_vault_key');
 
       if (storedAddr === addressLower && storedKey) {
-        navigate('/');
+        navigate(from);
       }
     } else {
       setIsConnectedLocally(false);
@@ -85,7 +87,7 @@ const Login: React.FC = () => {
       localStorage.setItem('temp_vault_key', signature);
 
       setStatus('Success! Opening vault...');
-      setTimeout(() => navigate('/'), 800);
+      setTimeout(() => navigate(from), 800);
     } catch (err: any) {
       console.error("Login Error:", err);
       let errorMsg = err.message || "Connection failed";
