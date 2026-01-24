@@ -1,13 +1,17 @@
-
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Users } from 'lucide-react';
+import { NFCService } from '../services/nfc';
+import { getNearbyAuras } from '../services/db';
+import { getAvatarUrl } from '../services/avatars';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [isFlashOn, setIsFlashOn] = useState(false);
+  const [isNfcScanning, setIsNfcScanning] = useState(false);
+  const [nearbyPeople, setNearbyPeople] = useState<any[]>([]);
 
   useEffect(() => {
     const scanner = new Html5QrcodeScanner(
@@ -30,6 +34,57 @@ const QRScanner: React.FC = () => {
       },
       /* verbose= */ false
     );
+
+    const handleNfcResult = (text: string) => {
+      setIsNfcScanning(false);
+      if (text.includes('@')) {
+        navigate(`/send?to=${text}`);
+      } else {
+        try {
+          const url = new URL(text);
+          const to = url.searchParams.get('to');
+          if (to) navigate(`/send?to=${to}`);
+        } catch (e) {
+          setError("Invalid NFC data");
+        }
+      }
+    };
+
+    if (isNfcScanning) {
+      NFCService.startScan(
+        (msg) => handleNfcResult(msg),
+        (err) => {
+          // Fallback to Aura if NFC fails/not supported
+          console.warn("NFC Error, falling back to Aura:", err);
+        }
+      );
+
+      console.log("[Aura] Discovery Mode Active. Initializing Geolocation...");
+
+      const auraInterval = setInterval(async () => {
+        if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(async (pos) => {
+            console.log(`[Aura] My Location: ${pos.coords.latitude}, ${pos.coords.longitude}`);
+            const nearby = await getNearbyAuras({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude
+            });
+            console.log(`[Aura] Nearby results:`, nearby.length);
+            setNearbyPeople(nearby);
+          }, (err) => {
+            console.error("[Aura] Geo Error:", err.message);
+            setError("Location access required for Aura discovery.");
+          }, { enableHighAccuracy: true });
+        } else {
+          setError("Geolocation not supported on this browser.");
+        }
+      }, 3000);
+
+      return () => {
+        console.log("[Aura] Discovery Mode Disabled.");
+        clearInterval(auraInterval);
+      };
+    }
 
     scanner.render(onScanSuccess, onScanFailure);
 
@@ -134,12 +189,64 @@ const QRScanner: React.FC = () => {
           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Flash</span>
         </button>
 
-        <button className="flex flex-col items-center gap-3 group">
-          <div className="w-20 h-20 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(229,213,179,0.3)] active:scale-95 transition-all">
-            <QrCode size={30} />
+        <button
+          className={`flex flex-col items-center gap-3 group transition-all duration-500 ${isNfcScanning ? 'scale-110' : ''}`}
+          onClick={() => {
+            if (!NFCService.isSupported()) {
+              setError("NFC not supported on this device");
+              return;
+            }
+            setIsNfcScanning(!isNfcScanning);
+            setError('');
+          }}
+        >
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-500 relative ${isNfcScanning ? 'bg-emerald-500 text-black shadow-[0_0_40px_rgba(16,185,129,0.4)]' : 'bg-[#E5D5B3] text-black shadow-[0_0_30px_rgba(229,213,179,0.3)]'
+            }`}>
+            {isNfcScanning ? (
+              <>
+                <Radio size={30} className="animate-pulse" />
+                <div className="absolute inset-0 bg-black/5 rounded-full animate-ping"></div>
+              </>
+            ) : <Radio size={30} />}
           </div>
-          <span className="text-[10px] font-black text-white uppercase tracking-widest">Gallery</span>
+          <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${isNfcScanning ? 'text-emerald-400' : 'text-white'}`}>
+            {isNfcScanning ? 'Aura Active' : 'Stellar Aura'}
+          </span>
         </button>
+
+        {/* Nearby People Popup */}
+        {isNfcScanning && nearbyPeople.length > 0 && (
+          <div className="absolute bottom-40 left-6 right-6 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
+            <div className="bg-zinc-900/90 backdrop-blur-2xl border border-emerald-500/30 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+              <div className="flex items-center gap-2 mb-4 px-1">
+                <Users size={14} className="text-emerald-400" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">Nearby People Found</span>
+              </div>
+              <div className="space-y-3">
+                {nearbyPeople.map((person) => (
+                  <button
+                    key={person.stellarId}
+                    onClick={() => navigate(`/send?to=${person.stellarId}`)}
+                    className="w-full flex items-center justify-between p-3 bg-white/5 rounded-2xl hover:bg-white/10 transition-all border border-white/5 group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-zinc-800 border border-white/5 overflow-hidden">
+                        <img src={getAvatarUrl(person.avatarSeed)} className="w-full h-full" />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-white text-sm leading-none mb-1">{person.displayName}</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">{person.stellarId}</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-2 bg-emerald-500 rounded-lg text-black font-black text-[9px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                      Pay
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
 
         <button className="flex flex-col items-center gap-3 group" onClick={() => navigate("/help")}>
           <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-zinc-400 group-hover:bg-white/10 group-hover:text-white transition-all backdrop-blur-lg">

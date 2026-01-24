@@ -13,7 +13,8 @@ import {
   limit,
   updateDoc,
   increment,
-  deleteDoc
+  deleteDoc,
+  deleteField
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
@@ -205,4 +206,79 @@ export const searchUsers = async (searchTerm: string): Promise<UserProfile[]> =>
   );
   const sName = await getDocs(qName);
   return sName.docs.map(d => d.data() as UserProfile);
+};
+
+export const updateSplitPayment = async (splitId: string, payerStellarId: string) => {
+  const ref = doc(db, 'splitExpenses', splitId);
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const data = snap.data();
+    const participants = data.participants.map((p: any) => 
+      p.stellarId === payerStellarId ? { ...p, status: 'PAID' } : p
+    );
+    await updateDoc(ref, { participants });
+  }
+};
+
+export const updateRequestStatus = async (requestId: string, status: 'PAID' | 'REJECTED') => {
+  const ref = doc(db, 'chats', requestId);
+  await updateDoc(ref, { status });
+};
+
+// --- Stellar Aura Proximity Discovery ---
+
+export const updateAuraPresence = async (stellarId: string, profile: any, coords: { lat: number, lng: number }, active: boolean) => {
+    const ref = doc(db, 'aura', stellarId);
+    if (!active) {
+        await setDoc(ref, { active: false, timestamp: serverTimestamp() }, { merge: true });
+        return;
+    }
+    await setDoc(ref, {
+        stellarId,
+        displayName: profile.displayName || stellarId.split('@')[0],
+        avatarSeed: profile.avatarSeed || stellarId,
+        location: coords,
+        timestamp: serverTimestamp(),
+        active: true
+    });
+};
+
+export const getNearbyAuras = async (myCoords: { lat: number, lng: number }, radiusKm: number = 0.5) => {
+    try {
+        const q = query(
+            collection(db, 'aura'),
+            where('active', '==', true),
+            limit(20)
+        );
+        const snap = await getDocs(q);
+        const now = Date.now();
+        
+        console.log(`[Aura] Found ${snap.docs.length} active users globally. Filtering by proximity...`);
+
+        return snap.docs
+            .map(d => ({ id: d.id, ...d.data() } as any))
+            .filter(aura => {
+                // Ignore self
+                if (aura.id === myCoords.lat + '-' + myCoords.lng) return false; // Rough check
+
+                // Filter by 5-minute freshness
+                const auraTime = aura.timestamp?.toMillis() || now; // Fallback to now if not synced yet
+                if (Math.abs(now - auraTime) > 300000) return false;
+                
+                // Filter by distance (Haversine formula roughly)
+                const dLat = (aura.location.lat - myCoords.lat) * Math.PI / 180;
+                const dLng = (aura.location.lng - myCoords.lng) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(myCoords.lat * Math.PI / 180) * Math.cos(aura.location.lat * Math.PI / 180) *
+                          Math.sin(dLng/2) * Math.sin(dLng/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                const distance = 6371 * c; // Km
+                
+                console.log(`[Aura] User ${aura.displayName} is ${distance.toFixed(3)}km away`);
+                return distance <= radiusKm;
+            });
+    } catch (err) {
+        console.error("[Aura] Fetch error:", err);
+        return [];
+    }
 };

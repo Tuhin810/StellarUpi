@@ -23,8 +23,8 @@ const PeopleList: React.FC<PeopleListProps> = ({ contacts, loading, onCreateGrou
     const [isExpanded, setIsExpanded] = React.useState(false);
 
     // Initial view: 'New Group' + 7 contacts = 8 items (2 lines of 4)
-    const displayedContacts = isExpanded ? contacts : contacts.slice(0, 7);
-    const hasMore = contacts.length > 7;
+    const displayedContacts = isExpanded ? contacts : contacts.slice(0, 3);
+    const hasMore = contacts.length > 3;
 
     const renderGroupCollage = (memberAvatars: string[]) => {
         const count = Math.min(memberAvatars.length, 4);
@@ -131,7 +131,7 @@ const PeopleList: React.FC<PeopleListProps> = ({ contacts, loading, onCreateGrou
                         >
                             <div className={`w-16 h-16 rounded-[2.5rem] ${contact.isGroup ? 'bg-zinc-900 border-[#E5D5B3]/40 p-0.5' : 'bg-zinc-800 border-white/5 p-0'} border overflow-hidden group-hover:border-[#E5D5B3]/80 transition-all shadow-2xl shadow-black/60 group-hover:scale-105 active:scale-95 flex items-center justify-center relative`}>
                                 {contact.isGroup && contact.memberAvatars && contact.memberAvatars.length > 0 ? (
-                                    <div className="w-full h-full rounded-[1.25rem] overflow-hidden bg-zinc-900">
+                                    <div className="w-full h-full rounded-[2rem] overflow-hidden bg-zinc-900">
                                         {renderGroupCollage(contact.memberAvatars)}
                                     </div>
                                 ) : (

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
-import { getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend } from '../services/db';
+import { getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -32,6 +32,8 @@ interface FamilyWalletInfo {
 const SendMoney: React.FC<Props> = ({ profile }) => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const splitId = searchParams.get('splitId');
+  const requestId = searchParams.get('requestId');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [recentContacts, setRecentContacts] = useState<Contact[]>([]);
@@ -245,6 +247,15 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           profile.displayName || profile.stellarId.split('@')[0]
         );
       }
+
+      // Handle Split/Request updates
+      if (splitId) {
+        await updateSplitPayment(splitId, profile.stellarId);
+      }
+      if (requestId) {
+        await updateRequestStatus(requestId, 'PAID');
+      }
+
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || "Payment failed");
