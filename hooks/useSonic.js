@@ -2,60 +2,53 @@ import { useState, useEffect } from 'react';
 
 /**
  * useSonic Hook
- * Initializes the ggwave WASM module from the global window.ggwave_factory.
- * Provides { ggwave, isReady } to components.
+ * Handles robust initialization of the ggwave WASM module from a local file.
  */
 export const useSonic = () => {
     const [ggwave, setGgwave] = useState(null);
     const [isReady, setIsReady] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
 
-        const initGgwave = async () => {
-            // Check if ggwave_factory exists (provided by the CDN script in index.html)
-            if (typeof window.ggwave_factory === 'function') {
-                try {
-                    const instance = await window.ggwave_factory();
-                    if (isMounted) {
-                        setGgwave(instance);
-                        setIsReady(true);
-                        console.log('✅ Sonic Handshake (ggwave) WASM initialized');
+        const initEngine = async () => {
+            try {
+                if (!window.ggwave_factory) {
+                    // Wait a bit for the script to execute if it's still loading
+                    let retries = 0;
+                    while (!window.ggwave_factory && retries < 20) {
+                        await new Promise(r => setTimeout(r, 200));
+                        retries++;
                     }
-                } catch (error) {
-                    console.error('❌ Failed to initialize ggwave WASM:', error);
                 }
-            } else {
-                // If script hasn't loaded yet, try again in a few intervals
-                let retries = 0;
-                const interval = setInterval(async () => {
-                    retries++;
-                    if (typeof window.ggwave_factory === 'function') {
-                        clearInterval(interval);
-                        try {
-                            const instance = await window.ggwave_factory();
-                            if (isMounted) {
-                                setGgwave(instance);
-                                setIsReady(true);
-                                console.log('✅ Sonic Handshake (ggwave) WASM initialized (delayed)');
-                            }
-                        } catch (error) {
-                            console.error('❌ Failed to initialize ggwave WASM on retry:', error);
-                        }
-                    } else if (retries > 20) {
-                        clearInterval(interval);
-                        console.error('❌ ggwave_factory not found after 10 seconds');
-                    }
-                }, 500);
+
+                if (!window.ggwave_factory) {
+                    throw new Error('ggwave_factory not found. Ensure /ggwave.js is loaded.');
+                }
+
+                // Initialize ggwave instance
+                const instance = await window.ggwave_factory();
+
+                if (isMounted) {
+                    setGgwave(instance);
+                    setIsReady(true);
+                    console.log('✅ Sonic Engine (embedded WASM) initialized');
+                }
+            } catch (err) {
+                console.error('❌ Sonic Engine Error:', err);
+                if (isMounted) {
+                    setError(err.message);
+                }
             }
         };
 
-        initGgwave();
+        initEngine();
 
         return () => {
             isMounted = false;
         };
     }, []);
 
-    return { ggwave, isReady };
+    return { ggwave, isReady, error };
 };

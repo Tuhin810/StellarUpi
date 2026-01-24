@@ -5,7 +5,7 @@ import { Radio, Volume2, Mic, CheckCircle, AlertCircle, Loader2 } from 'lucide-r
 
 const SonicTransfer = ({ payload = "alex@stellar", initialMode = 'send' }) => {
     const navigate = useNavigate();
-    const { ggwave, isReady } = useSonic();
+    const { ggwave, isReady, error } = useSonic();
     const [mode, setMode] = useState(initialMode); // 'send' | 'receive'
     const [isListening, setIsListening] = useState(false);
     const [isSending, setIsSending] = useState(false);
@@ -169,6 +169,22 @@ const SonicTransfer = ({ payload = "alex@stellar", initialMode = 'send' }) => {
     useEffect(() => {
         return () => stopListening();
     }, []);
+
+    if (error) {
+        return (
+            <div className="flex flex-col items-center justify-center p-8 bg-red-500/10 rounded-3xl border border-red-500/20 backdrop-blur-sm">
+                <AlertCircle className="w-8 h-8 text-red-500 mb-4" />
+                <p className="text-red-500 text-sm font-bold">Sonic Engine Failed</p>
+                <p className="text-zinc-500 text-[10px] mt-2 text-center">{error}</p>
+                <button
+                    onClick={() => window.location.reload()}
+                    className="mt-6 px-6 py-2 bg-zinc-800 rounded-xl text-xs font-black uppercase tracking-widest"
+                >
+                    Retry Load
+                </button>
+            </div>
+        );
+    }
 
     if (!isReady) {
         return (
