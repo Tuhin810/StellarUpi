@@ -59,20 +59,31 @@ const QRScanner: React.FC = () => {
         }
       );
 
-      // --- Stellar Aura Polling ---
+      console.log("[Aura] Discovery Mode Active. Initializing Geolocation...");
+
       const auraInterval = setInterval(async () => {
         if ("geolocation" in navigator) {
           navigator.geolocation.getCurrentPosition(async (pos) => {
+            console.log(`[Aura] My Location: ${pos.coords.latitude}, ${pos.coords.longitude}`);
             const nearby = await getNearbyAuras({
               lat: pos.coords.latitude,
               lng: pos.coords.longitude
             });
+            console.log(`[Aura] Nearby results:`, nearby.length);
             setNearbyPeople(nearby);
-          });
+          }, (err) => {
+            console.error("[Aura] Geo Error:", err.message);
+            setError("Location access required for Aura discovery.");
+          }, { enableHighAccuracy: true });
+        } else {
+          setError("Geolocation not supported on this browser.");
         }
       }, 3000);
 
-      return () => clearInterval(auraInterval);
+      return () => {
+        console.log("[Aura] Discovery Mode Disabled.");
+        clearInterval(auraInterval);
+      };
     }
 
     scanner.render(onScanSuccess, onScanFailure);

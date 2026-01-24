@@ -243,32 +243,42 @@ export const updateAuraPresence = async (stellarId: string, profile: any, coords
     });
 };
 
-export const getNearbyAuras = async (myCoords: { lat: number, lng: number }, radiusKm: number = 0.05) => {
-    const q = query(
-        collection(db, 'aura'),
-        where('active', '==', true),
-        orderBy('timestamp', 'desc'),
-        limit(10)
-    );
-    const snap = await getDocs(q);
-    const now = Date.now();
-    
-    return snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as any))
-        .filter(aura => {
-            // Filter by 5-minute freshness
-            const auraTime = aura.timestamp?.toMillis() || 0;
-            if (now - auraTime > 300000) return false;
-            
-            // Filter by distance (Haversine formula roughly)
-            const dLat = (aura.location.lat - myCoords.lat) * Math.PI / 180;
-            const dLng = (aura.location.lng - myCoords.lng) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(myCoords.lat * Math.PI / 180) * Math.cos(aura.location.lat * Math.PI / 180) *
-                      Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = 6371 * c; // Km
-            
-            return distance <= radiusKm;
-        });
+export const getNearbyAuras = async (myCoords: { lat: number, lng: number }, radiusKm: number = 0.5) => {
+    try {
+        const q = query(
+            collection(db, 'aura'),
+            where('active', '==', true),
+            limit(20)
+        );
+        const snap = await getDocs(q);
+        const now = Date.now();
+        
+        console.log(`[Aura] Found ${snap.docs.length} active users globally. Filtering by proximity...`);
+
+        return snap.docs
+            .map(d => ({ id: d.id, ...d.data() } as any))
+            .filter(aura => {
+                // Ignore self
+                if (aura.id === myCoords.lat + '-' + myCoords.lng) return false; // Rough check
+
+                // Filter by 5-minute freshness
+                const auraTime = aura.timestamp?.toMillis() || now; // Fallback to now if not synced yet
+                if (Math.abs(now - auraTime) > 300000) return false;
+                
+                // Filter by distance (Haversine formula roughly)
+                const dLat = (aura.location.lat - myCoords.lat) * Math.PI / 180;
+                const dLng = (aura.location.lng - myCoords.lng) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(myCoords.lat * Math.PI / 180) * Math.cos(aura.location.lat * Math.PI / 180) *
+                          Math.sin(dLng/2) * Math.sin(dLng/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                const distance = 6371 * c; // Km
+                
+                console.log(`[Aura] User ${aura.displayName} is ${distance.toFixed(3)}km away`);
+                return distance <= radiusKm;
+            });
+    } catch (err) {
+        console.error("[Aura] Fetch error:", err);
+        return [];
+    }
 };
