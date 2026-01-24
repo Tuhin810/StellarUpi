@@ -46,23 +46,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 return;
             }
 
-            await signInAnonymously(auth);
-
-            // Check if Web3Modal is connected and the address matches
-            if (isConnected && address && address.toLowerCase() === loggedAddress.toLowerCase()) {
-                // Connection okay
-            } else if (!isConnected) {
-                // Restoring session without connection
-            } else {
-                // Address mismatch, logout
-                localStorage.removeItem('web3_address');
-                sessionStorage.removeItem('temp_vault_key');
-                setProfile(null);
-                setLoading(false);
-                return;
+            // Always try to sign in anonymously to Firebase if not already
+            if (!auth.currentUser) {
+                await signInAnonymously(auth);
             }
 
-            // Always setup listener if we have a logged address
+            // Only logout if there is a DEFINITIVE mismatch
+            if (isConnected && address) {
+                if (address.toLowerCase() !== loggedAddress.toLowerCase()) {
+                    console.warn("Address mismatch detected. Expected:", loggedAddress, "Got:", address);
+                    localStorage.removeItem('web3_address');
+                    localStorage.removeItem('temp_vault_key'); // Also clean up vault key
+                    setProfile(null);
+                    setLoading(false);
+                    return;
+                }
+            }
+
+            // If we have a logged address, setup listener
             const unsub = setupProfileListener(loggedAddress);
             return unsub;
         } catch (e) {
@@ -70,6 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         let unsub: (() => void) | undefined;

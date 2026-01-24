@@ -56,7 +56,7 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
     setLoading(true);
     setError('');
     try {
-      const vaultKey = sessionStorage.getItem('temp_vault_key');
+      const vaultKey = localStorage.getItem('temp_vault_key');
       if (!vaultKey) throw new Error("Vault locked. Unlock your own vault first.");
 
       const rawSecret = decryptSecret(profile.encryptedSecret, vaultKey);

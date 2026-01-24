@@ -178,7 +178,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         if ((selectedFamilyWallet.permission as any).sharedSecret) {
           ownerSecret = decryptSecret((selectedFamilyWallet.permission as any).sharedSecret, profile.uid.toLowerCase());
         } else {
-          const vaultKey = sessionStorage.getItem('temp_vault_key');
+          const vaultKey = localStorage.getItem('temp_vault_key');
           if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you in the Family Manager.");
           ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, vaultKey);
         }
@@ -218,7 +218,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           }
         }
 
-        const password = sessionStorage.getItem('temp_vault_key');
+        const password = localStorage.getItem('temp_vault_key');
         if (!password) throw new Error("Vault locked. Please login again.");
         const secret = decryptSecret(profile.encryptedSecret, password);
         const xlmAmount = (amtNum / 8.42).toFixed(7);

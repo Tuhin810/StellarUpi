@@ -24,6 +24,18 @@ const Login: React.FC = () => {
   useEffect(() => {
     const handleConnection = async () => {
       if (isConnected && address && walletProvider && !loading) {
+        const addressLower = address.toLowerCase();
+
+        // 1. Check if we already have a valid session and vault key for this address
+        const hasSession = localStorage.getItem('web3_address') === addressLower;
+        const hasVaultKey = localStorage.getItem('temp_vault_key'); // Switch to localStorage for mobile stability
+
+        if (hasSession && hasVaultKey) {
+          console.log("Session already active, redirecting...");
+          navigate('/');
+          return;
+        }
+
         setLoading(true);
         setStatus('Signing message...');
 
@@ -34,7 +46,6 @@ const Login: React.FC = () => {
           const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
           const signature = await signer.signMessage(message);
 
-          const addressLower = address.toLowerCase();
           setStatus('Verifying...');
 
           await signInAnonymously(auth);
@@ -60,9 +71,9 @@ const Login: React.FC = () => {
           }
 
           localStorage.setItem('web3_address', addressLower);
-          sessionStorage.setItem('temp_vault_key', signature);
+          localStorage.setItem('temp_vault_key', signature);
 
-          window.location.href = '/';
+          navigate('/');
         } catch (err: any) {
           console.error("Login Error:", err);
           let errorMsg = err.message || "Connection failed";
@@ -75,6 +86,7 @@ const Login: React.FC = () => {
 
     handleConnection();
   }, [isConnected, address, walletProvider]);
+
 
   const handleConnectWallet = async () => {
     try {

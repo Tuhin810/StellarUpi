@@ -146,11 +146,11 @@ const Profile: React.FC<Props> = ({ profile }) => {
 
     const handleEnableNotifications = async () => {
         setSaving(true);
-        const token = await NotificationService.requestPermission(profile.uid);
-        if (token) {
-            setNotificationStatus('Enabled');
-        } else {
-            setNotificationStatus('Denied/Blocked');
+        try {
+            await NotificationService.requestPermission();
+            setNotificationStatus('Prompt Shown');
+        } catch (e) {
+            setNotificationStatus('Failed');
         }
         setSaving(false);
     };
@@ -386,7 +386,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
                 <button
                     onClick={() => {
                         localStorage.removeItem('web3_address');
-                        sessionStorage.removeItem('temp_vault_key');
+                        localStorage.removeItem('temp_vault_key');
                         window.location.href = '/login';
                     }}
                     className="w-full p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-center justify-center gap-3 text-rose-400 hover:bg-rose-500/20 transition-all"

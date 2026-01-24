@@ -65,7 +65,7 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
       if ((familyPermission as any).sharedSecret) {
         ownerSecret = decryptSecret((familyPermission as any).sharedSecret, profile.uid.toLowerCase());
       } else {
-        const vaultKey = sessionStorage.getItem('temp_vault_key');
+        const vaultKey = localStorage.getItem('temp_vault_key');
         if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you.");
         ownerSecret = decryptSecret(ownerData.encryptedSecret, vaultKey);
       }

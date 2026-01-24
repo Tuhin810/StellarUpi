@@ -54,9 +54,10 @@ const PaymentLink: React.FC = () => {
 
         setSending(true);
         try {
-            const password = sessionStorage.getItem('temp_vault_key');
+            const password = localStorage.getItem('temp_vault_key');
             if (!password) {
                 setError('Vault locked. Please login again.');
+
                 setSending(false);
                 return;
             }
