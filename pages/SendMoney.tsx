@@ -139,6 +139,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       }
     };
     loadTarget();
+
+    // Load cached contacts for "Full Access" feel
+    const cachedStellar = localStorage.getItem('synced_stellar');
+    const cachedInvite = localStorage.getItem('invite_list');
+    if (cachedStellar) setOnStellarContacts(JSON.parse(cachedStellar));
+    if (cachedInvite) setInviteContacts(JSON.parse(cachedInvite));
   }, [profile, searchParams]);
 
   const syncContacts = async () => {
@@ -182,6 +188,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
         setOnStellarContacts(stellarContacts);
         setInviteContacts(inviteList);
+
+        // Persist to LocalStorage for "Full Access" experience
+        localStorage.setItem('synced_stellar', JSON.stringify(stellarContacts));
+        localStorage.setItem('invite_list', JSON.stringify(inviteList));
       }
     } catch (err) {
       console.error("Contact sync failed", err);
