@@ -1,10 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+<<<<<<< Updated upstream
 import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Users } from 'lucide-react';
 import { NFCService } from '../services/nfc';
 import { getNearbyAuras } from '../services/db';
 import { getAvatarUrl } from '../services/avatars';
+=======
+import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Waves } from 'lucide-react';
+>>>>>>> Stashed changes
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
@@ -214,6 +218,7 @@ const QRScanner: React.FC = () => {
           </span>
         </button>
 
+<<<<<<< Updated upstream
         {/* Nearby People Popup */}
         {isNfcScanning && nearbyPeople.length > 0 && (
           <div className="absolute bottom-40 left-6 right-6 z-50 animate-in slide-in-from-bottom-10 fade-in duration-500">
@@ -251,8 +256,13 @@ const QRScanner: React.FC = () => {
         <button className="flex flex-col items-center gap-3 group" onClick={() => navigate("/help")}>
           <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-zinc-400 group-hover:bg-white/10 group-hover:text-white transition-all backdrop-blur-lg">
             <Info size={24} />
+=======
+        <button className="flex flex-col items-center gap-3 group" onClick={() => navigate("/sonic?mode=receive")}>
+          <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-all backdrop-blur-lg">
+            <Radio size={24} className="animate-pulse" />
+>>>>>>> Stashed changes
           </div>
-          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Help</span>
+          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Sonic</span>
         </button>
       </div>
 

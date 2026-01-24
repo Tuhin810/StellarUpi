@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { useNavigate } from 'react-router-dom';
+<<<<<<< Updated upstream
 import {
     ArrowLeft,
     Copy,
@@ -18,6 +19,9 @@ import {
     Navigation2,
     Info
 } from 'lucide-react';
+=======
+import { ArrowLeft, Copy, Check, Share2, QrCode, Link2, IndianRupee, X, Radio } from 'lucide-react';
+>>>>>>> Stashed changes
 import { getAvatarUrl } from '../services/avatars';
 import { NFCService } from '../services/nfc';
 import { updateAuraPresence } from '../services/db';
@@ -224,6 +228,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     </div>
                 </div>
 
+<<<<<<< Updated upstream
                 {/* Discovery & Aura Section */}
                 <div className="w-full max-w-sm mt-12 space-y-4">
                     <div className="flex items-center gap-3 px-1 mb-2">
@@ -308,6 +313,29 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     </p>
                 </div>
             </main>
+=======
+                {/* Payment Link Button */}
+                <button
+                    onClick={() => setShowLinkModal(true)}
+                    className="mt-8 flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold hover:bg-white/10 transition-all w-full max-w-sm justify-center"
+                >
+                    <Link2 size={18} className="text-[#E5D5B3]" />
+                    Create Payment Link
+                </button>
+
+                <button
+                    onClick={() => navigate("/sonic?mode=send")}
+                    className="mt-4 flex items-center gap-3 px-6 py-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 font-bold hover:bg-green-500/20 transition-all w-full max-w-sm justify-center"
+                >
+                    <Radio size={18} className="animate-pulse" />
+                    Sonic Broadcast (Offline)
+                </button>
+
+                <p className="mt-12 text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] text-center max-w-[200px] leading-loose">
+                    Secure Instant Payment <br /> via Stellar Vault
+                </p>
+            </div>
+>>>>>>> Stashed changes
 
             {/* Payment Link Modal */}
             {showLinkModal && (

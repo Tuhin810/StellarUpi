@@ -21,6 +21,7 @@ import AddMoney from '../pages/AddMoney';
 import Withdraw from '../pages/Withdraw';
 import PaymentLink from '../pages/PaymentLink';
 import AutoPay from '../pages/AutoPay';
+import SonicHandshake from '../pages/SonicHandshake';
 
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, profile } = useAuth();
@@ -50,6 +51,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/add-money" element={<AddMoney profile={profile!} />} />
                 <Route path="/withdraw" element={<Withdraw profile={profile!} />} />
                 <Route path="/autopay" element={<AutoPay profile={profile!} />} />
+                <Route path="/sonic" element={<SonicHandshake profile={profile!} />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" />} />
