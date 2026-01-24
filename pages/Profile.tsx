@@ -20,7 +20,8 @@ import {
     Lock,
     Bell,
     Camera,
-    Image as ImageIcon
+    Image as ImageIcon,
+    Smartphone
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NotificationService } from '../services/notification';
@@ -50,11 +51,15 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const [showSecurityModal, setShowSecurityModal] = useState(false);
     const [pinEntry, setPinEntry] = useState('');
 
+    const [showPhoneModal, setShowPhoneModal] = useState(false);
+    const [phoneEntry, setPhoneEntry] = useState(profile?.phoneNumber || '');
+
     useEffect(() => {
         if (profile) {
             setNickname(profile.displayName || profile.stellarId.split('@')[0]);
             setAvatarSeed(profile.avatarSeed || profile.stellarId);
             setDailyLimitEntry(profile.dailyLimit || 0);
+            setPhoneEntry(profile.phoneNumber || '');
         }
     }, [profile]);
 
@@ -147,10 +152,20 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const handleEnableNotifications = async () => {
         setSaving(true);
         try {
+            // Re-init session just in case
+            if (profile) await NotificationService.init(profile.stellarId);
+
             await NotificationService.requestPermission();
-            setNotificationStatus('Prompt Shown');
+            const status = await NotificationService.checkStatus();
+
+            if (status.permission === 'granted' || (status.permission as any) === true) {
+                setNotificationStatus('ACTIVE');
+            } else {
+                setNotificationStatus('PROMPTED');
+                alert("If you didn't see a prompt: \n1. Check browser settings to unblock notifications.\n2. On iOS, you MUST Add to Home Screen first.");
+            }
         } catch (e) {
-            setNotificationStatus('Failed');
+            setNotificationStatus('FAILED');
         }
         setSaving(false);
     };
@@ -315,6 +330,20 @@ const Profile: React.FC<Props> = ({ profile }) => {
                             </div>
                         </div>
 
+                        {/* Phone Number */}
+                        <div className="flex items-center gap-4 p-4 border-b border-white/5">
+                            <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white/40">
+                                <Smartphone size={18} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[10px] uppercase tracking-wider text-white/30 mb-0.5">Phone Number</p>
+                                <p className="font-medium text-sm truncate">{profile.phoneNumber || 'Not linked'}</p>
+                            </div>
+                            <button onClick={() => setShowPhoneModal(true)} className="p-2 text-white/30 hover:text-[#E5D5B3] transition-colors">
+                                <Edit2 size={16} />
+                            </button>
+                        </div>
+
                         {/* Public Key */}
                         <div className="flex items-center gap-4 p-4 border-b border-white/5">
                             <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white/40">
@@ -394,6 +423,49 @@ const Profile: React.FC<Props> = ({ profile }) => {
                     <LogOut size={18} />
                     <span className="text-sm font-semibold">Sign Out</span>
                 </button>
+            </div>
+
+            {/* Phone Modal */}
+            <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showPhoneModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPhoneModal(false)}></div>
+                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] p-8 flex flex-col items-center transition-transform duration-300 ease-out ${showPhoneModal ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '60vh', minHeight: '400px' }}>
+                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8"></div>
+                    <div className="flex items-center justify-between w-full mb-8">
+                        <h3 className="text-2xl font-black tracking-tight">Phone Number</h3>
+                        <button onClick={() => setShowPhoneModal(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400">
+                            <Smartphone size={20} />
+                        </button>
+                    </div>
+                    <p className="text-zinc-500 text-sm text-center mb-8 px-6">Add your phone number to allow your contacts to find and pay you easily.</p>
+
+                    <div className="bg-black/40 w-full max-w-sm rounded-3xl p-6 border border-white/5 mb-8">
+                        <input
+                            type="tel"
+                            placeholder="+91 00000 00000"
+                            value={phoneEntry}
+                            onChange={(e) => setPhoneEntry(e.target.value)}
+                            className="w-full bg-transparent text-center text-2xl font-black outline-none text-[#E5D5B3] placeholder-zinc-800"
+                        />
+                    </div>
+
+                    <div className="flex gap-4 w-full max-w-sm mt-auto">
+                        <button onClick={() => setShowPhoneModal(false)} className="flex-1 py-5 bg-zinc-800 rounded-2xl text-zinc-400 font-bold uppercase tracking-widest text-xs">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={async () => {
+                                setSaving(true);
+                                await updateUserDetails(profile.uid, { phoneNumber: phoneEntry });
+                                setSaving(false);
+                                setShowPhoneModal(false);
+                            }}
+                            disabled={saving || !phoneEntry}
+                            className="flex-[2] py-5 gold-gradient text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-30"
+                        >
+                            {saving ? <RefreshCw size={18} className="animate-spin" /> : 'Save Phone'}
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Security Modal */}

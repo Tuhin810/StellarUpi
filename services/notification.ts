@@ -16,12 +16,27 @@ export const NotificationService = {
         allowLocalhostAsSecureOrigin: true,
       });
 
-
       if (uid) {
+        console.log('Logging in to OneSignal with UID:', uid);
         await OneSignal.login(uid);
       }
+
+      console.log('OneSignal initialized successfully');
     } catch (error) {
       console.error('Error initializing OneSignal:', error);
+    }
+  },
+
+  async checkStatus() {
+    try {
+      // In newer SDKs, many properties are nested under User or Notifications
+      return {
+        permission: OneSignal.Notifications?.permission || 'unknown',
+        isLoaded: true,
+        // We use login state to track user
+      };
+    } catch (e) {
+      return { permission: 'error', isLoaded: false };
     }
   },
 

@@ -59,23 +59,23 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
           </div>
 
           <div className="mb-3 -mt-5">
-            <p className="text-black/60 text-xs mb-1 ">Account Number</p>
-            <p className="text-black/80 font-mono text-xl tracking-widest">
+            <p className="text-black/60 text-xs mb-1 ">Total Balance</p>
+            <div className="flex items-baseline gap-2">
               <h2 className="text-3xl font-black tracking-tight text-black/80">₹{loading ? '...' : inrBalance}</h2>
-            </p>
+            </div>
           </div>
 
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-black/60 text-xs mb-1">IFSC</p>
-              <p className="text-black/80 font-mono tracking-wider text-sm">
-                XXXXXXX0000
+              <p className="text-black/60 text-xs mb-1">Native Assets</p>
+              <p className="text-black/80 font-mono tracking-wider text-sm font-bold">
+                {loading ? '...' : balance} XLM
               </p>
             </div>
             <div className="text-right">
               <p className="text-black/60 text-xs mb-1">Type</p>
               <p className="text-black/80 text-sm  font-semibold capitalize">
-                Test Net
+                Testnet
               </p>
             </div>
           </div>

@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
-import { getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight, Users, Smartphone, Share2 } from 'lucide-react';
+import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import SuccessScreen from '../components/SuccessScreen';
@@ -57,6 +57,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [category, setCategory] = useState<TransactionRecord['category']>('Other');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
+
+  const [onStellarContacts, setOnStellarContacts] = useState<Contact[]>([]);
+  const [inviteContacts, setInviteContacts] = useState<{ name: string, phone: string }[]>([]);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     const loadBalances = async () => {
@@ -135,7 +139,79 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       }
     };
     loadTarget();
+
+    // Load cached contacts for "Full Access" feel
+    const cachedStellar = localStorage.getItem('synced_stellar');
+    const cachedInvite = localStorage.getItem('invite_list');
+    if (cachedStellar) setOnStellarContacts(JSON.parse(cachedStellar));
+    if (cachedInvite) setInviteContacts(JSON.parse(cachedInvite));
   }, [profile, searchParams]);
+
+  const syncContacts = async () => {
+    if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
+      setError("Contact Picker API not supported on this browser");
+      return;
+    }
+
+    try {
+      setSyncing(true);
+      const props = ['name', 'tel'];
+      const opts = { multiple: true };
+      const contacts = await (navigator as any).contacts.select(props, opts);
+
+      if (contacts.length > 0) {
+        // Prepare phone numbers for lookup (clean formats)
+        const phoneMap: { [key: string]: string } = {};
+        const cleanedPhones = contacts.map((c: any) => {
+          const rawPhone = c.tel[0].replace(/\s/g, '').replace(/-/g, '');
+          phoneMap[rawPhone] = c.name[0];
+          return rawPhone;
+        });
+
+        const matchedUsers = await getUsersByPhones(cleanedPhones);
+
+        const stellarContacts = matchedUsers.map(u => ({
+          id: u.stellarId,
+          name: u.displayName || u.stellarId.split('@')[0],
+          avatarSeed: u.avatarSeed || u.stellarId
+        }));
+
+        const inviteList = contacts
+          .filter((c: any) => {
+            const raw = c.tel[0].replace(/\s/g, '').replace(/-/g, '');
+            return !matchedUsers.find(u => u.phoneNumber === raw);
+          })
+          .map((c: any) => ({
+            name: c.name[0],
+            phone: c.tel[0]
+          }));
+
+        setOnStellarContacts(stellarContacts);
+        setInviteContacts(inviteList);
+
+        // Persist to LocalStorage for "Full Access" experience
+        localStorage.setItem('synced_stellar', JSON.stringify(stellarContacts));
+        localStorage.setItem('invite_list', JSON.stringify(inviteList));
+      }
+    } catch (err) {
+      console.error("Contact sync failed", err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleInvite = (name: string) => {
+    const message = `Hey ${name}! Join me on StellarPay to send and receive money instantly: https://stellar.netlify.app`;
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join StellarPay',
+        text: message,
+        url: 'https://stellar.netlify.app'
+      });
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(message)}`);
+    }
+  };
 
   const filteredContacts = recentContacts.filter(contact =>
     contact.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -575,7 +651,6 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         </button>
       </div>
 
-      {/* UPI Bottom Drawer */}
       <UpiDrawer
         isOpen={isUpiDrawerOpen}
         onClose={() => setIsUpiDrawerOpen(false)}
@@ -596,42 +671,125 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         searching={false}
       />
 
-
+      <div className="px-8 mb-10">
+        <button
+          onClick={syncContacts}
+          disabled={syncing}
+          className="w-full py-4 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 hover:bg-white/10 transition-all group"
+        >
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500 group-hover:scale-110 transition-transform">
+            <Users size={16} />
+          </div>
+          <span className="text-xs font-black uppercase tracking-widest text-zinc-300">
+            {syncing ? 'Syncing Contacts...' : 'Find Contacts on Stellar'}
+          </span>
+        </button>
+      </div>
 
       <div className="px-8 pb-32">
-        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6">Recent Ledger</h3>
-        {loadingContacts ? (
-          <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-[#E5D5B3] border-t-transparent rounded-full animate-spin"></div></div>
-        ) : filteredContacts.length === 0 ? (
-          <div className="bg-zinc-900/40 rounded-[1rem] border border-white/5 p-12 text-center">
-            <p className="text-zinc-500 font-bold">No recent activity found</p>
+        {onStellarContacts.length > 0 && (
+          <div className="mb-10">
+            <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+              Contacts Joined
+            </h3>
+            <div className="grid grid-cols-1 gap-6">
+              {onStellarContacts.map(contact => (
+                <button
+                  key={contact.id}
+                  onClick={() => setSelectedContact(contact)}
+                  className="flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 bg-zinc-800 rounded-2xl overflow-hidden border border-white/5 group-hover:border-[#E5D5B3]/50 transition-all shadow-lg">
+                      <img
+                        src={getAvatarUrl(contact.avatarSeed || contact.id)}
+                        alt={contact.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-white text-base leading-none mb-1 capitalize">{contact.name}</p>
+                      <p className="text-[10px] font-bold text-zinc-400 tracking-tight">{contact.id}</p>
+                    </div>
+                  </div>
+                  <div className="p-2 border border-white/5 rounded-xl group-hover:border-[#E5D5B3]/30 transition-all">
+                    <ChevronRight size={16} className="text-zinc-700" />
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-6">
-            {filteredContacts.map(contact => (
-              <button
-                key={contact.id}
-                onClick={() => setSelectedContact(contact)}
-                className="flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-5">
-                  <div className="w-12 h-12 bg-zinc-800 rounded-2xl overflow-hidden border border-white/5 group-hover:border-[#E5D5B3]/50 transition-all shadow-lg">
-                    <img
-                      src={getAvatarUrl(contact.avatarSeed || contact.id)}
-                      alt={contact.name}
-                      className="w-full h-full object-cover"
-                    />
+        )}
+
+        {inviteContacts.length > 0 && (
+          <div className="mb-10">
+            <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6">Invite to Stellar</h3>
+            <div className="grid grid-cols-1 gap-6">
+              {inviteContacts.slice(0, 15).map((contact, i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 bg-zinc-900/50 rounded-2xl flex items-center justify-center text-zinc-700 border border-white/5">
+                      <Smartphone size={20} />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-zinc-300 text-base leading-none mb-1 capitalize">{contact.name}</p>
+                      <p className="text-[10px] font-bold text-zinc-600 tracking-tight">{contact.phone}</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="font-bold text-white text-base leading-none mb-1 capitalize">{contact.name}</p>
-                    <p className="text-[10px] font-bold text-zinc-400 tracking-tight">{contact.id}</p>
-                  </div>
+                  <button
+                    onClick={() => handleInvite(contact.name)}
+                    className="px-4 py-2 bg-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-xl text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest hover:bg-[#E5D5B3]/10 transition-all"
+                  >
+                    Invite
+                  </button>
                 </div>
-                <div className="p-2 border border-white/5 rounded-xl group-hover:border-[#E5D5B3]/30 transition-all">
-                  <ChevronRight size={16} className="text-zinc-700" />
-                </div>
-              </button>
-            ))}
+              ))}
+            </div>
+          </div>
+        )}
+        {onStellarContacts.length === 0 && (
+          <div className="mt-10">
+            <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-6">Recent Ledger</h3>
+            {loadingContacts ? (
+              <div className="flex justify-center py-20">
+                <div className="w-8 h-8 border-4 border-[#E5D5B3] border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            ) : filteredContacts.length === 0 ? (
+              <div className="bg-zinc-900/40 rounded-[1rem] border border-white/5 p-12 text-center">
+                <p className="text-zinc-500 font-bold">No recent activity found</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-6">
+                {filteredContacts.map(contact => (
+                  <button
+                    key={contact.id}
+                    onClick={() => setSelectedContact(contact)}
+                    className="flex items-center justify-between group"
+                  >
+                    <div className="flex items-center gap-5">
+                      <div className="w-12 h-12 bg-zinc-800 rounded-2xl overflow-hidden border border-white/5 group-hover:border-[#E5D5B3]/50 transition-all shadow-lg">
+                        <img
+                          src={getAvatarUrl(contact.avatarSeed || contact.id)}
+                          alt={contact.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-bold text-white text-base leading-none mb-1 capitalize">{contact.name}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 tracking-tight">{contact.id}</p>
+                      </div>
+                    </div>
+                    <div className="p-2 border border-white/5 rounded-xl group-hover:border-[#E5D5B3]/30 transition-all">
+                      <ChevronRight size={16} className="text-zinc-700" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
