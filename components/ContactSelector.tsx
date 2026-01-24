@@ -1,5 +1,6 @@
 import React from 'react';
 import { Search, Sparkles, ChevronRight } from 'lucide-react';
+import { getAvatarUrl } from '../services/avatars';
 
 interface Contact {
     id: string;
@@ -79,7 +80,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
                             >
                                 <div className="w-12 h-12 rounded-xl bg-zinc-800 border border-white/5 overflow-hidden">
                                     <img
-                                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${contact.avatarSeed || contact.id}`}
+                                        src={getAvatarUrl(contact.avatarSeed || contact.id)}
                                         alt={contact.name}
                                         className="w-full h-full object-cover"
                                     />

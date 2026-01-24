@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Check, Users, IndianRupee, PieChart, Activity, ChevronRight, AlertCircle } from 'lucide-react';
 import { UserProfile, SplitGroup } from '../../types';
 import { recordSplitExpense } from '../../services/db';
+import { getAvatarUrl } from '../../services/avatars';
 
 interface Props {
     isOpen: boolean;
@@ -172,7 +173,7 @@ const SplitExpenseDrawer: React.FC<Props> = ({ isOpen, onClose, group, profile, 
                                         <div className="flex items-center gap-3">
                                             <div className="relative">
                                                 <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-900 border border-white/5 shadow-inner">
-                                                    <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${mId}`} className="w-full h-full object-cover" />
+                                                    <img src={getAvatarUrl(profile?.avatarSeed || mId)} className="w-full h-full object-cover" />
                                                 </div>
                                                 {isSelected && (
                                                     <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black border-2 border-[#121212] animate-in zoom-in duration-300">

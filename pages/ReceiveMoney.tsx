@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Copy, Check, Share2, QrCode, Link2, IndianRupee, X } from 'lucide-react';
+import { getAvatarUrl } from '../services/avatars';
 
 interface Props {
     profile: UserProfile | null;
@@ -64,7 +65,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     };
 
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=stellar:pay?to=${profile.stellarId}&color=1A1A1A&bgcolor=E5D5B3`;
-    const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.avatarSeed || profile.stellarId}`;
+    const avatarUrl = getAvatarUrl(profile.avatarSeed || profile.stellarId);
 
     return (
         <div className="min-h-screen bg-[#1A1A1A] text-white relative overflow-hidden flex flex-col pb-32">
