@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserProfile, TransactionRecord } from '../types';
 import BalanceCard from '../components/BalanceCard';
 import SideDrawer from '../components/SideDrawer';
@@ -23,6 +24,7 @@ interface Contact {
 }
 
 const Dashboard: React.FC<Props> = ({ profile }) => {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -99,7 +101,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
 
-      <QuickActions onReceiveClick={() => setShowQR(true)} />
+      <QuickActions onReceiveClick={() => navigate('/receive')} />
 
       <PeopleList
         contacts={contacts}
