@@ -21,12 +21,13 @@ const Login: React.FC = () => {
   const { walletProvider } = useWeb3ModalProvider();
   const { address, isConnected } = useWeb3ModalAccount();
 
+  const addressLower = address?.toLowerCase();
+
   // Effect to handle post-connection state only
   // This prevents the automatic signing loop in PWAs
   useEffect(() => {
-    if (isConnected && address && walletProvider) {
+    if (isConnected && addressLower && walletProvider) {
       setIsConnectedLocally(true);
-      const addressLower = address.toLowerCase();
 
       // If we already have the vault key in storage for this address, just enter
       if (localStorage.getItem('web3_address') === addressLower && localStorage.getItem('temp_vault_key')) {
@@ -35,23 +36,21 @@ const Login: React.FC = () => {
     } else {
       setIsConnectedLocally(false);
     }
-  }, [isConnected, address, walletProvider, navigate]);
+  }, [isConnected, addressLower, walletProvider, navigate]);
 
   const handleSignAndLogin = async () => {
-    if (!address || !walletProvider) return;
+    if (!addressLower || !walletProvider) return;
 
     setLoading(true);
-    setStatus('Signing to unlock vault...');
+    setStatus('Signing message...');
 
     try {
       const provider = new BrowserProvider(walletProvider);
       const signer = await provider.getSigner();
 
-      // Use a standard message for consistent encryption key generation
       const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
       const signature = await signer.signMessage(message);
 
-      const addressLower = address.toLowerCase();
       setStatus('Verifying...');
 
       // Ensure Firebase session is active
@@ -62,7 +61,7 @@ const Login: React.FC = () => {
       let profile = await getProfile(addressLower);
 
       if (!profile) {
-        setStatus('Creating your UPI ID...');
+        setStatus('Creating vault...');
         const stellarId = generateUPIFromAddress(addressLower);
         const { publicKey, secret } = await createWallet();
         const encryptedSecret = encryptSecret(secret, signature);
@@ -97,37 +96,35 @@ const Login: React.FC = () => {
 
   const handleConnectWallet = async () => {
     try {
-      setStatus('Connecting...');
+      setStatus('Waiting for wallet...');
       await open();
     } catch (err: any) {
       console.error("Connect Error:", err);
       setStatus(err.message || "Failed to connect");
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] flex flex-col justify-end relative overflow-hidden">
-      {/* Aesthetic Background */}
-      <div className="absolute inset-x-0 bottom-0 h-[70%] bg-gradient-to-t from-[#E5D5B3]/10 via-transparent to-transparent pointer-events-none"></div>
-      <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[100px] pointer-events-none"></div>
+      {/* Warm gradient overlay at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-[60%] bg-gradient-to-t from-[#3d2f1f]/80 via-[#2a1f14]/40 to-transparent pointer-events-none"></div>
 
-      {/* Logo/Hero Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-6">
-        <div className="w-24 h-24 bg-zinc-900 border border-white/5 rounded-[2rem] flex items-center justify-center text-[#E5D5B3] mb-8 shadow-2xl relative">
-          <div className="absolute inset-0 bg-[#E5D5B3]/5 rounded-[2rem] blur-xl animate-pulse"></div>
-          <Wallet size={48} className="relative z-10" />
-        </div>
-        <h1 className="text-4xl font-black text-white tracking-tighter mb-3">StellarPay</h1>
-        <p className="text-zinc-500 font-medium text-center max-w-[280px] leading-relaxed">
-          The professional Web3 UPI. Fast, secure, and mobile-ready.
-        </p>
+      <div className="flex items-center gap-2 mb-8 pt-44 pl-6 relative z-10">
+        <img src="https://cdn.flyonui.com/fy-assets/blocks/marketing-ui/about/about-17.png" alt="Logo" className="w-12 h-12 object-contain" />
       </div>
 
-      {/* Bottom Actions Container */}
+      <div className="pl-6 mb-12 relative z-10">
+        <span className="text-2xl font-semibold text-zinc-600 tracking-tight">stellarpay</span>
+        <div className="text-white text-5xl w-[70%] font-bold leading-tight">The New Web3 UPI</div>
+      </div>
+
+      {/* Content container */}
       <div className="relative z-10 p-6 pb-12 space-y-4">
         {isConnectedLocally ? (
-          <div className="space-y-4">
-            <div className="bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4 mb-2">
+          <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Connected Address Indicator */}
+            <div className="bg-zinc-900/50 border border-white/5 p-4 rounded-2xl flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
                 <ShieldCheck size={20} />
               </div>
@@ -140,17 +137,18 @@ const Login: React.FC = () => {
             <button
               onClick={handleSignAndLogin}
               disabled={loading}
-              className="w-full h-16 gold-gradient text-black rounded-2xl font-black text-lg shadow-xl shadow-[#E5D5B3]/10 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+              className="w-full py-5 bg-white text-black rounded-2xl font-black text-lg shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3"
             >
               {loading ? (
-                <div className="flex items-center gap-3">
-                  <Loader2 className="animate-spin" size={24} />
-                  <span>{status.includes('Verifying') ? 'Verifying...' : 'Signing...'}</span>
-                </div>
+                <>
+                  <Loader2 className="animate-spin" size={20} />
+                  <span>{status}</span>
+                </>
               ) : (
                 <>
+                  <ShieldCheck size={20} />
                   <span>Unlock Vault</span>
-                  <ArrowRight size={22} strokeWidth={3} />
+                  <ArrowRight size={18} />
                 </>
               )}
             </button>
@@ -159,26 +157,26 @@ const Login: React.FC = () => {
           <button
             onClick={handleConnectWallet}
             disabled={loading}
-            className="w-full h-16 bg-white text-black rounded-2xl font-black text-lg shadow-xl active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+            className="w-full py-5 bg-[#E5D5B3] text-black rounded-2xl font-semibold text-base shadow-xl shadow-[#E5D5B3]/20 hover:bg-[#d4c4a2] active:scale-[0.98] transition-all disabled:opacity-60 flex items-center justify-center gap-3"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={24} />
+              <>
+                <Loader2 className="animate-spin" size={20} />
+                <span>{status}</span>
+              </>
             ) : (
               <>
-                <Wallet size={24} />
+                <Wallet size={20} />
                 <span>Connect Wallet</span>
-                <ArrowRight size={22} />
+                <ArrowRight size={18} />
               </>
             )}
           </button>
         )}
 
-        {/* Footer Info */}
-        <div className="pt-4 text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-700">
-            {loading ? status : 'Decentralized Payment Protocol'}
-          </p>
-        </div>
+        <p className="text-center text-zinc-600 text-xs mt-4">
+          Secure & Decentralized Payments
+        </p>
       </div>
     </div>
   );
