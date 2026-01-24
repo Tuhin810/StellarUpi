@@ -31,6 +31,7 @@ export const useSonic = () => {
                 const instance = await window.ggwave_factory();
 
                 if (isMounted) {
+                    console.log('✅ Sonic Engine Keys:', Object.keys(instance));
                     setGgwave(instance);
                     setIsReady(true);
                     console.log('✅ Sonic Engine (embedded WASM) initialized');

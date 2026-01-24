@@ -50,9 +50,39 @@ const SonicTransfer = ({ payload = "alex@stellar", initialMode = 'send' }) => {
             setIsSending(true);
             setStatus('idle');
 
-            // ggwave.encode parameters: payload, protocolId, volume
-            // Protocol 1 is Audible (Normal) - best reliability for iOS/Android
-            const waveform = ggwave.encode(payload, 1, 10);
+            console.log("Encoding payload:", payload);
+            console.log("GGWave properties:", Object.keys(ggwave));
+
+            // Try to find protocol ID from the object if possible
+            const protocols = ggwave.ProtocolId || {};
+            console.log("Available Protocols:", protocols);
+            const protocolId = protocols.GGWAVE_PROTOCOL_AUDIBLE_NORMAL || 1;
+
+            let waveform;
+            try {
+                if (ggwave.GGWave) {
+                    console.log("Found GGWave class, instantiating...");
+                    const ggInstance = new ggwave.GGWave();
+                    waveform = ggInstance.encode(payload, protocolId, 10);
+                } else {
+                    console.log("Trying direct encode call...");
+                    waveform = ggwave.encode(payload, protocolId, 10);
+                }
+            } catch (e1) {
+                console.warn("Standard encode failed, trying bytes-array...", e1);
+                try {
+                    const encodedPayload = new TextEncoder().encode(payload);
+                    if (ggwave.GGWave) {
+                        const ggInstance = new ggwave.GGWave();
+                        waveform = ggInstance.encode(encodedPayload, protocolId, 10);
+                    } else {
+                        waveform = ggwave.encode(encodedPayload, protocolId, 10);
+                    }
+                } catch (e2) {
+                    console.error("All encode attempts failed.", e2);
+                    throw e2;
+                }
+            }
 
             // Generate audio buffer
             const buffer = context.createBuffer(1, waveform.length, context.sampleRate);
@@ -71,8 +101,11 @@ const SonicTransfer = ({ payload = "alex@stellar", initialMode = 'send' }) => {
             source.start();
         } catch (err) {
             console.error("Transmission failed:", err);
+            if (err.name === 'BindingError') {
+                console.error("Binding Error details. Payload:", payload, "GGWave Object:", ggwave);
+            }
             setStatus('error');
-            setMessage('Failed to send sound. Try again.');
+            setMessage(`Failed to send sound: ${err.message || 'Binding Error'}`);
             setIsSending(false);
         }
     };
