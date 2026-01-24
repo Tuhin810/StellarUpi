@@ -155,7 +155,7 @@ const QRScanner: React.FC = () => {
 
         {/* Scan Result Bottom Drawer - UPI ONLY */}
         {scanResult && scanResult.type === 'upi' && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center">
+          <div className="fixed inset-0 z-[100] flex items-end justify-center">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setScanResult(null)}></div>
 
             <div className="relative w-full max-w-md bg-zinc-950 rounded-t-[3rem] overflow-hidden shadow-[0_-20px_100px_rgba(0,0,0,0.8)] animate-in slide-in-from-bottom duration-500 border-t border-white/10">
@@ -164,54 +164,54 @@ const QRScanner: React.FC = () => {
                 <div className="w-12 h-1.5 bg-white/10 rounded-full"></div>
               </div>
 
-              {/* Header Area */}
-              <div className="relative h-20 flex flex-col items-center justify-center overflow-hidden bg-indigo-600">
-                <div className="absolute inset-0 opacity-20">
-                  <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,white_0%,transparent_70%)] animate-pulse"></div>
-                </div>
+              {/* Theme Aligned Header */}
+              <div className="relative h-24 flex flex-col items-center justify-center overflow-hidden border-b border-white/5 bg-zinc-900/50">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#E5D5B3]/5 to-transparent"></div>
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-1 backdrop-blur-md">
-                    <Smartphone size={16} className="text-white" />
+                  <div className="w-12 h-12 bg-zinc-950 border border-[#E5D5B3]/20 rounded-2xl flex items-center justify-center mb-2 shadow-2xl">
+                    <Smartphone size={24} className="text-[#E5D5B3]/80" />
                   </div>
-                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/80">
+                  <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#E5D5B3]/40">
                     UPI Node Found
                   </span>
                 </div>
               </div>
 
-              <div className="px-8 pt-6 pb-10">
+              <div className="px-8 pt-8 pb-12">
                 {/* Identity Card */}
-                <div className="relative mb-6 text-center">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-3">
-                    <CheckCircle2 size={12} className="text-indigo-400" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">
+                <div className="relative mb-8 text-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-4">
+                    <div className="w-1.5 h-1.5 bg-[#E5D5B3] rounded-full animate-pulse shadow-[0_0_8px_rgba(229,213,179,0.5)]"></div>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-[#E5D5B3]/80">
                       Detected VPA
                     </span>
                   </div>
-                  <h3 className="text-2xl font-black tracking-tighter text-white mb-1">
-                    {scanResult.pn || "Unknown Merchant"}
+
+                  <h3 className="text-3xl font-black tracking-tighter text-white mb-2 leading-none">
+                    {scanResult.pn || "Merchant Node"}
                   </h3>
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 uppercase tracking-tighter">
-                      {scanResult.platform}
-                    </span>
-                    <p className="text-zinc-500 font-mono text-xs tracking-tight break-all max-w-[280px]">{scanResult.pa}</p>
+
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-lg">
+                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">
+                        Platform: <span className="text-white">{scanResult.platform}</span>
+                      </span>
+                    </div>
+                    <p className="text-zinc-500 font-mono text-xs tracking-tight break-all max-w-[280px] bg-black/40 px-3 py-2 rounded-xl border border-white/5">
+                      {scanResult.pa}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3 mb-6">
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Network</span>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                      Unified Payments
-                    </span>
+                <div className="grid grid-cols-2 gap-3 mb-8">
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-1.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Protocol</span>
+                    <span className="text-[11px] font-black text-white tracking-widest leading-none">NPCI V4.2</span>
                   </div>
-                  {scanResult.am && (
-                    <div className="flex items-center justify-between p-4 bg-white/10 rounded-2xl border border-white/10">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Requested</span>
-                      <span className="text-xl font-black text-white">₹{scanResult.am}</span>
-                    </div>
-                  )}
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col items-center justify-center gap-1.5">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-600">Encryption</span>
+                    <span className="text-[11px] font-black text-[#E5D5B3] tracking-widest leading-none">AES-256</span>
+                  </div>
                 </div>
 
                 {/* Testnet Messaging */}
@@ -234,7 +234,7 @@ const QRScanner: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setScanResult(null)}
-                    className="flex-[2] py-4 bg-white text-black font-black rounded-[1.2rem] text-[10px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-xl"
+                    className="flex-[2] py-5 gold-gradient text-black font-black rounded-2xl text-[10px] uppercase tracking-[0.3em] active:scale-[0.98] transition-all shadow-[0_20px_40px_rgba(229,213,179,0.2)]"
                   >
                     Acknowledged
                   </button>
@@ -253,28 +253,30 @@ const QRScanner: React.FC = () => {
       </div>
 
       {/* Bottom Controls - Native Cam Look */}
-      <div className="relative z-20 pb-20 px-10 flex justify-center items-center gap-10">
-        <button className="flex flex-col items-center gap-3 group">
-          <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-zinc-400 group-hover:bg-white/10 group-hover:text-white transition-all backdrop-blur-lg">
-            <Zap size={24} fill={isFlashOn ? "currentColor" : "none"} />
-          </div>
-          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Flash</span>
-        </button>
+      {!scanResult && (
+        <div className="relative z-20 pb-20 px-10 flex justify-center items-center gap-10 animate-in fade-in duration-300">
+          <button className="flex flex-col items-center gap-3 group">
+            <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-zinc-400 group-hover:bg-white/10 group-hover:text-white transition-all backdrop-blur-lg">
+              <Zap size={24} fill={isFlashOn ? "currentColor" : "none"} />
+            </div>
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Flash</span>
+          </button>
 
-        <button className="flex flex-col items-center gap-3 group">
-          <div className="w-20 h-20 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(229,213,179,0.3)] active:scale-95 transition-all">
-            <QrCode size={30} />
-          </div>
-          <span className="text-[10px] font-black text-white uppercase tracking-widest">Gallery</span>
-        </button>
+          <button className="flex flex-col items-center gap-3 group">
+            <div className="w-20 h-20 bg-[#E5D5B3] rounded-full flex items-center justify-center text-black shadow-[0_0_30px_rgba(229,213,179,0.3)] active:scale-95 transition-all">
+              <QrCode size={30} />
+            </div>
+            <span className="text-[10px] font-black text-white uppercase tracking-widest">Gallery</span>
+          </button>
 
-        <button className="flex flex-col items-center gap-3 group" onClick={() => navigate("/sonic?mode=receive")}>
-          <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-all backdrop-blur-lg">
-            <Radio size={24} className="animate-pulse" />
-          </div>
-          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Sonic Pulse</span>
-        </button>
-      </div>
+          <button className="flex flex-col items-center gap-3 group" onClick={() => navigate("/sonic?mode=receive")}>
+            <div className="w-16 h-16 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center text-blue-400 group-hover:bg-blue-500/20 group-hover:text-blue-300 transition-all backdrop-blur-lg">
+              <Radio size={24} className="animate-pulse" />
+            </div>
+            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Sonic Pulse</span>
+          </button>
+        </div>
+      )}
 
       <style>{`
         @keyframes scan-line-slow {
