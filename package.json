@@ -19,6 +19,7 @@
     "ethers": "^6.16.0",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.6.0",
+    "firebase-auth-react": "^2.0.12",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.562.0",
     "react": "^19.2.3",
