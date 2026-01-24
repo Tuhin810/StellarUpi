@@ -3,7 +3,7 @@ import { useSonic } from '../hooks/useSonic';
 import { StellarPulse } from '../utils/StellarPulse';
 import { useNavigate } from 'react-router-dom';
 import {
-    Wifi,
+    Nfc,
     WifiOff,
     Mic,
     MicOff,
@@ -12,7 +12,9 @@ import {
     Smartphone,
     Share2,
     CheckCircle2,
-    AlertCircle
+    AlertCircle,
+    Fingerprint,
+    Contactless
 } from 'lucide-react';
 
 const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
@@ -24,7 +26,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
     const [status, setStatus] = useState('idle'); // idle, sending, listening, success, error
     const [message, setMessage] = useState('');
     const [isSending, setIsSending] = useState(false);
-    const [decodedString, setDecodedString] = useState('');
+    // decodedString is now internal only until final reveal
 
     // Refs for audio processing
     const audioContextRef = useRef(null);
@@ -56,14 +58,14 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             const context = initAudio();
             setIsSending(true);
             setStatus('sending');
-            setMessage('Transmitting identity pulse...');
+            setMessage('Establishing NFC Link...');
 
             const duration = await StellarPulse.transmit(context, payload);
 
             setTimeout(() => {
                 setIsSending(false);
                 setStatus('success');
-                setMessage('Broadcast complete!');
+                setMessage('NFC Data Transferred');
 
                 // Reset state after a delay
                 setTimeout(() => {
@@ -93,8 +95,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             analyserRef.current = analyser;
 
             setStatus('listening');
-            setMessage('Scanning frequencies...');
-            setDecodedString('');
+            setMessage('Waiting for NFC proximity...');
             lastDetectedChars.current = [];
 
             const bufferLength = analyser.frequencyBinCount;
@@ -128,7 +129,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                                     return;
                                 }
                                 charSequence += char;
-                                setDecodedString(charSequence);
+                                console.log("NFC Captured:", charSequence);
                             }
                         }
                     } else {
@@ -152,14 +153,14 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
     const handleSuccess = (result) => {
         handleStop();
         setStatus('success');
-        setMessage(`Identity found: ${result}`);
+        setMessage(`NFC Link Verified`);
 
         if ('vibrate' in navigator) {
             navigator.vibrate([100, 50, 100]);
         }
 
         setTimeout(() => {
-            if (window.confirm(`StellarPulse™ Link Detected!\nUser: ${result}\n\nProceed to payment?`)) {
+            if (window.confirm(`Stellar NFC Detected!\nIdentity: ${result}\n\nProceed to secure transfer?`)) {
                 navigate(`/send?to=${result}`);
             } else {
                 setStatus('idle');
@@ -186,44 +187,42 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             <div className="w-full flex p-1 bg-zinc-950 rounded-2xl border border-zinc-800/50">
                 <button
                     onClick={() => { handleStop(); setMode('send'); }}
-                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'send' ? 'bg-zinc-100 text-zinc-900 shadow-xl' : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'send' ? 'bg-zinc-100 text-zinc-900 shadow-xl' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                    Broadcast
+                    Contactless Send
                 </button>
                 <button
                     onClick={() => { handleStop(); setMode('receive'); }}
-                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'receive' ? 'bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]' : 'text-zinc-500 hover:text-zinc-300'
-                        }`}
+                    className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 ${mode === 'receive' ? 'bg-indigo-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.3)]' : 'text-zinc-500 hover:text-zinc-300'}`}
                 >
-                    Receive
+                    NFC Receive
                 </button>
             </div>
 
             {/* Visual Header */}
             <div className="relative group">
-                <div className={`absolute -inset-4 rounded-full blur-3xl transition-all duration-700 opacity-20 ${status === 'sending' ? 'bg-cyan-500 animate-pulse' :
-                    status === 'listening' ? 'bg-purple-500 animate-pulse' :
+                <div className={`absolute -inset-4 rounded-full blur-3xl transition-all duration-700 opacity-20 ${status === 'sending' ? 'bg-indigo-500 animate-pulse' :
+                    status === 'listening' ? 'bg-indigo-500 animate-pulse' :
                         status === 'success' ? 'bg-emerald-500' : 'bg-zinc-700'
                     }`}></div>
-                <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center transition-all duration-500 z-10 ${status === 'sending' ? 'border-cyan-500 scale-110 shadow-[0_0_20px_rgba(6,182,212,0.5)]' :
-                    status === 'listening' ? 'border-purple-500 scale-110 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
+                <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center transition-all duration-500 z-10 ${status === 'sending' ? 'border-indigo-500 scale-110 shadow-[0_0_20px_rgba(79,70,229,0.5)]' :
+                    status === 'listening' ? 'border-indigo-400 scale-110 shadow-[0_0_20px_rgba(79,70,229,0.3)]' :
                         status === 'success' ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-zinc-700'
                     }`}>
                     {status === 'sending' && (
                         <>
-                            <div className="absolute inset-0 bg-cyan-500/20 rounded-full animate-ping"></div>
-                            <div className="absolute -inset-4 bg-cyan-500/10 rounded-full animate-ping [animation-delay:0.2s]"></div>
+                            <div className="absolute inset-0 bg-indigo-500/20 rounded-full animate-ping"></div>
+                            <div className="absolute -inset-4 bg-indigo-500/10 rounded-full animate-ping [animation-delay:0.2s]"></div>
                         </>
                     )}
                     {status === 'sending' ? (
-                        <Wifi className="w-10 h-10 text-cyan-400 animate-bounce" />
+                        <Nfc className="w-10 h-10 text-indigo-400 animate-pulse" />
                     ) : status === 'listening' ? (
-                        <Activity className="w-10 h-10 text-purple-400 animate-pulse" />
+                        <Contactless className="w-10 h-10 text-indigo-300 animate-pulse" />
                     ) : status === 'success' ? (
                         <CheckCircle2 className="w-10 h-10 text-emerald-400" />
                     ) : (
-                        <ShieldCheck className="w-10 h-10 text-zinc-500" />
+                        <Fingerprint className="w-10 h-10 text-zinc-500" />
                     )}
                 </div>
             </div>
@@ -231,12 +230,12 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             {/* Info Section */}
             <div className="text-center space-y-2">
                 <h3 className="text-2xl font-bold tracking-tight text-zinc-100">
-                    {mode === 'send' ? 'Pulse Identity' : 'Listen for Pulse'}
+                    {mode === 'send' ? 'NFC Identity' : 'Secure Proximity Pay'}
                 </h3>
                 <p className="text-zinc-400 text-sm max-w-[250px] mx-auto leading-relaxed">
                     {mode === 'send'
-                        ? 'Broadcasting your identity via encrypted acoustic waves.'
-                        : 'Hold near another device to detect their identity pulse.'}
+                        ? 'Tap phones or bring within 1-meter range to sync wirelessly.'
+                        : 'Hold device near sender to establish NFC secure link.'}
                 </p>
             </div>
 
@@ -258,7 +257,7 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     const ctx = initAudio();
                     const osc = ctx.createOscillator();
                     const g = ctx.createGain();
-                    osc.frequency.value = 880; // High A note
+                    osc.frequency.value = 880;
                     g.gain.setValueAtTime(0, ctx.currentTime);
                     g.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.1);
                     g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.5);
@@ -266,11 +265,10 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     g.connect(ctx.destination);
                     osc.start();
                     osc.stop(ctx.currentTime + 0.5);
-                    console.log("Audio Test Triggered. Context State:", ctx.state);
                 }}
-                className="text-[10px] uppercase tracking-widest text-zinc-600 hover:text-zinc-400 underline decoration-zinc-800 underline-offset-4"
+                className="text-[10px] uppercase tracking-widest text-zinc-700 hover:text-zinc-500 underline decoration-zinc-800 underline-offset-4"
             >
-                🔇 Verify Device Audio (Test Beep)
+                Verify Hardware Compatibility
             </button>
 
             {/* Action Area */}
@@ -278,9 +276,9 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                 {mode === 'send' ? (
                     <div className="space-y-4">
                         {isSending ? (
-                            <div className="p-4 bg-zinc-900 border border-cyan-500/30 rounded-2xl text-center animate-pulse">
-                                <span className="text-xs text-cyan-500 block mb-1">BROADCASTING ID...</span>
-                                <span className="text-xl font-mono text-cyan-400 tracking-wider">
+                            <div className="p-4 bg-zinc-900 border border-indigo-500/30 rounded-2xl text-center shadow-[0_0_20px_rgba(79,70,229,0.1)]">
+                                <span className="text-xs text-indigo-500 block mb-1 uppercase font-black tracking-tighter">NFC Sync Active</span>
+                                <span className="text-xl font-mono text-indigo-400 tracking-wider">
                                     {payload}
                                 </span>
                             </div>
@@ -295,50 +293,42 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                         <button
                             onClick={handleSend}
                             disabled={isSending || !payload}
-                            className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${isSending
-                                ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
-                                : 'bg-white text-black hover:shadow-[0_0_30px_rgba(255,255,255,0.15)]'
+                            className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 disabled:opacity-50 ${isSending
+                                ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30'
+                                : 'bg-white text-black shadow-lg hover:shadow-white/10'
                                 }`}
                         >
                             {isSending ? (
                                 <>
                                     <Share2 className="w-6 h-6 animate-pulse" />
-                                    BROADCASTING...
+                                    NFC STREAMING...
                                 </>
                             ) : (
                                 <>
-                                    <Smartphone className="w-6 h-6" />
-                                    SEND PURITY PULSE
+                                    <Nfc className="w-6 h-6" />
+                                    SEND VIA NFC
                                 </>
                             )}
                         </button>
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {decodedString && (
-                            <div className="p-4 bg-zinc-900 border border-zinc-800 rounded-2xl text-center">
-                                <span className="text-xs text-zinc-500 block mb-1">DECODING PULSE...</span>
-                                <span className="text-xl font-mono text-purple-400 tracking-wider">
-                                    {decodedString}
-                                </span>
-                            </div>
-                        )}
                         <button
                             onClick={status === 'listening' ? handleStop : handleListen}
-                            className={`w-full py-5 rounded-2xl font-bold text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${status === 'listening'
-                                ? 'bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20'
-                                : 'bg-purple-600 text-white shadow-lg shadow-purple-900/40 hover:bg-purple-500 hover:shadow-purple-500/50'
+                            className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-95 ${status === 'listening'
+                                ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 font-black'
+                                : 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/40 hover:bg-indigo-500'
                                 }`}
                         >
                             {status === 'listening' ? (
                                 <>
                                     <MicOff className="w-6 h-6" />
-                                    STOP LISTENING
+                                    CANCEL NFC SCAN
                                 </>
                             ) : (
                                 <>
-                                    <Mic className="w-6 h-6" />
-                                    ACTIVATE SONIC SCAN
+                                    <Nfc className="w-6 h-6" />
+                                    READY FOR NFC SYNC
                                 </>
                             )}
                         </button>
@@ -347,14 +337,14 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             </div>
 
             {/* Technical Labels */}
-            <div className="flex items-center gap-6 pt-2 opacity-50">
+            <div className="flex items-center gap-6 pt-2 opacity-30">
                 <div className="flex items-center gap-1.5 grayscale">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
-                    <span className="text-[10px] font-bold tracking-widest uppercase">Encrypted</span>
+                    <span className="text-[10px] font-bold tracking-widest uppercase">Secure Link</span>
                 </div>
                 <div className="flex items-center gap-1.5 grayscale">
-                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
-                    <span className="text-[10px] font-bold tracking-widest uppercase">Stellar Pulse™ v1.0</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                    <span className="text-[10px] font-bold tracking-widest uppercase">Stellar NFC v2.0</span>
                 </div>
             </div>
         </div>
