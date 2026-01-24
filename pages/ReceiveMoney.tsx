@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Copy, Check, Share2, QrCode, Link2, IndianRupee, X, Radio } from 'lucide-react';
+import { ArrowLeft, Copy, Check, Share2, QrCode, Link2, IndianRupee, X, Radio, Sparkles } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 import { NFCService } from '../services/nfc';
+import { updateAuraPresence } from '../services/db';
 
 interface Props {
     profile: UserProfile | null;
@@ -18,6 +19,12 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     const [linkAmount, setLinkAmount] = useState('');
     const [linkNote, setLinkNote] = useState('');
     const [nfcStatus, setNfcStatus] = useState<'idle' | 'beaming' | 'success' | 'error'>('idle');
+
+    React.useEffect(() => {
+        return () => {
+            if (profile) updateAuraPresence(profile.stellarId, profile, { lat: 0, lng: 0 }, false);
+        };
+    }, [profile]);
 
     if (!profile) return null;
 
@@ -76,7 +83,21 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
             setNfcStatus('beaming');
             await NFCService.writeText(profile.stellarId);
             setNfcStatus('success');
-            setTimeout(() => setNfcStatus('idle'), 3000);
+
+            // Start Aura Discovery Broadcast
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    await updateAuraPresence(profile.stellarId, profile, {
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude
+                    }, true);
+                });
+            }
+
+            setTimeout(async () => {
+                setNfcStatus('idle');
+                await updateAuraPresence(profile.stellarId, profile, { lat: 0, lng: 0 }, false);
+            }, 30000); // Active for 30s
         } catch (err) {
             console.error(err);
             setNfcStatus('error');
@@ -187,17 +208,17 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
 
                         <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-colors duration-500 ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'bg-black text-[#E5D5B3]' : 'bg-white/5 text-[#E5D5B3]'
                             }`}>
-                            {nfcStatus === 'success' ? <Check size={32} strokeWidth={3} /> : <Radio size={32} className={nfcStatus === 'beaming' ? 'animate-pulse' : ''} />}
+                            {nfcStatus === 'success' ? <Check size={32} strokeWidth={3} /> : <Sparkles size={32} className={nfcStatus === 'beaming' ? 'animate-pulse' : ''} />}
                         </div>
 
                         <div className="text-center relative z-10">
                             <h3 className={`text-sm font-black uppercase tracking-[0.2em] mb-1 ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'text-black' : 'text-white'
                                 }`}>
-                                {nfcStatus === 'beaming' ? 'Ready to Beam' : nfcStatus === 'success' ? 'ID Transmitted' : 'Tap to Pay (NFC)'}
+                                {nfcStatus === 'beaming' ? 'Activating Aura' : nfcStatus === 'success' ? 'Aura Active' : 'Stellar Aura (Touchless)'}
                             </h3>
                             <p className={`text-[10px] font-bold uppercase tracking-widest ${nfcStatus === 'beaming' || nfcStatus === 'success' ? 'text-black/60' : 'text-zinc-500'
                                 }`}>
-                                {nfcStatus === 'beaming' ? 'Hold phones close' : nfcStatus === 'success' ? 'Connection Established' : 'Share ID via physical touch'}
+                                {nfcStatus === 'beaming' ? 'Securing location' : nfcStatus === 'success' ? 'Ready to find nearby' : 'Find nearby people automatically'}
                             </p>
                         </div>
 
