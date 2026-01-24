@@ -129,7 +129,7 @@ const PeopleList: React.FC<PeopleListProps> = ({ contacts, loading, onCreateGrou
                             onClick={() => navigate(contact.isGroup ? `/group/${contact.id}` : `/chat/${contact.id}`)}
                             className="flex flex-col items-center gap-2 group"
                         >
-                            <div className={`w-16 h-16 rounded-[1.5rem] ${contact.isGroup ? 'bg-zinc-900 border-[#E5D5B3]/40 p-0.5' : 'bg-zinc-800 border-white/5 p-0'} border overflow-hidden group-hover:border-[#E5D5B3]/80 transition-all shadow-2xl shadow-black/60 group-hover:scale-105 active:scale-95 flex items-center justify-center relative`}>
+                            <div className={`w-16 h-16 rounded-[2.5rem] ${contact.isGroup ? 'bg-zinc-900 border-[#E5D5B3]/40 p-0.5' : 'bg-zinc-800 border-white/5 p-0'} border overflow-hidden group-hover:border-[#E5D5B3]/80 transition-all shadow-2xl shadow-black/60 group-hover:scale-105 active:scale-95 flex items-center justify-center relative`}>
                                 {contact.isGroup && contact.memberAvatars && contact.memberAvatars.length > 0 ? (
                                     <div className="w-full h-full rounded-[1.25rem] overflow-hidden bg-zinc-900">
                                         {renderGroupCollage(contact.memberAvatars)}
@@ -142,7 +142,7 @@ const PeopleList: React.FC<PeopleListProps> = ({ contacts, loading, onCreateGrou
                                     />
                                 )}
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 group-hover:text-white transition-colors truncate w-full px-1 text-center">{contact.name}</span>
+                            <span className="text-[10px] font-black  text-zinc-500 group-hover:text-white transition-colors truncate w-full px-1 text-center">{contact.name}</span>
                         </button>
                     ))
                 )}
