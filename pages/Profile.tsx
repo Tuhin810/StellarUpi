@@ -152,10 +152,20 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const handleEnableNotifications = async () => {
         setSaving(true);
         try {
+            // Re-init session just in case
+            if (profile) await NotificationService.init(profile.stellarId);
+
             await NotificationService.requestPermission();
-            setNotificationStatus('Prompt Shown');
+            const status = await NotificationService.checkStatus();
+
+            if (status.permission === 'granted' || (status.permission as any) === true) {
+                setNotificationStatus('ACTIVE');
+            } else {
+                setNotificationStatus('PROMPTED');
+                alert("If you didn't see a prompt: \n1. Check browser settings to unblock notifications.\n2. On iOS, you MUST Add to Home Screen first.");
+            }
         } catch (e) {
-            setNotificationStatus('Failed');
+            setNotificationStatus('FAILED');
         }
         setSaving(false);
     };
