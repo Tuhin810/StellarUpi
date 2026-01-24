@@ -13,7 +13,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount }) 
 
     useEffect(() => {
         if (!successSoundRef.current) {
-            successSoundRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3');
+            successSoundRef.current = new Audio('/ching.mp3');
             successSoundRef.current.volume = 0.5;
             successSoundRef.current.play().catch(() => { });
         }

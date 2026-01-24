@@ -71,7 +71,8 @@ const QRScanner: React.FC = () => {
         const to = url.searchParams.get('to');
         const amt = url.searchParams.get('amt') || '';
         if (to) {
-          setScanResult({ pa: to, pn: '', am: amt, platform: 'Stellar Protocol', type: 'stellar' });
+          scanner.clear();
+          navigate(`/send?to=${to}&amt=${amt}`);
           return;
         } else {
           setError("Invalid QR Code Format");
@@ -79,7 +80,8 @@ const QRScanner: React.FC = () => {
         }
       } catch (e) {
         if (decodedText.includes('@')) {
-          setScanResult({ pa: decodedText, pn: '', am: '', platform: 'Stellar Protocol', type: 'stellar' });
+          scanner.clear();
+          navigate(`/send?to=${decodedText}`);
         } else {
           setError("Unknown QR type");
           setTimeout(() => setError(''), 3000);
@@ -151,8 +153,8 @@ const QRScanner: React.FC = () => {
           )}
         </div>
 
-        {/* Scan Result Bottom Drawer */}
-        {scanResult && (
+        {/* Scan Result Bottom Drawer - UPI ONLY */}
+        {scanResult && scanResult.type === 'upi' && (
           <div className="fixed inset-0 z-50 flex items-end justify-center">
             <div className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setScanResult(null)}></div>
 
@@ -163,87 +165,78 @@ const QRScanner: React.FC = () => {
               </div>
 
               {/* Header Area */}
-              <div className={`relative h-24 flex flex-col items-center justify-center overflow-hidden ${scanResult.type === 'upi' ? 'bg-indigo-600' : 'gold-gradient'}`}>
+              <div className="relative h-20 flex flex-col items-center justify-center overflow-hidden bg-indigo-600">
                 <div className="absolute inset-0 opacity-20">
                   <div className="absolute top-[-50%] left-[-50%] w-[200%] h-[200%] bg-[radial-gradient(circle_at_center,white_0%,transparent_70%)] animate-pulse"></div>
                 </div>
                 <div className="relative z-10 flex flex-col items-center">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-xl mb-1 ${scanResult.type === 'upi' ? 'bg-white text-indigo-600' : 'bg-black text-[#E5D5B3]'}`}>
-                    {scanResult.type === 'upi' ? <Smartphone size={20} /> : <Sparkles size={20} />}
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mb-1 backdrop-blur-md">
+                    <Smartphone size={16} className="text-white" />
                   </div>
-                  <span className={`text-[9px] font-black uppercase tracking-[0.4em] ${scanResult.type === 'upi' ? 'text-white/60' : 'text-black/60'}`}>
-                    {scanResult.type === 'upi' ? 'UPI Node Found' : 'Stellar Node Found'}
+                  <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/80">
+                    UPI Node Found
                   </span>
                 </div>
               </div>
 
-              <div className="px-8 pt-8 pb-12">
+              <div className="px-8 pt-6 pb-10">
                 {/* Identity Card */}
                 <div className="relative mb-6 text-center">
                   <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-full mb-3">
-                    <CheckCircle2 size={12} className={scanResult.type === 'upi' ? 'text-indigo-400' : 'text-[#E5D5B3]'} />
-                    <span className={`text-[9px] font-black uppercase tracking-widest ${scanResult.type === 'upi' ? 'text-indigo-400' : 'text-[#E5D5B3]'}`}>
-                      Verified {scanResult.type === 'upi' ? 'VPA Node' : 'Stellar Vault'}
+                    <CheckCircle2 size={12} className="text-indigo-400" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400">
+                      Detected VPA
                     </span>
                   </div>
                   <h3 className="text-2xl font-black tracking-tighter text-white mb-1">
-                    {scanResult.pn || (scanResult.type === 'stellar' ? scanResult.pa.split('@')[0] : "Unknown Merchant")}
+                    {scanResult.pn || "Unknown Merchant"}
                   </h3>
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="text-[9px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 uppercase tracking-tighter">
                       {scanResult.platform}
                     </span>
-                    <p className="text-zinc-500 font-mono text-xs tracking-tight">{scanResult.pa}</p>
+                    <p className="text-zinc-500 font-mono text-xs tracking-tight break-all max-w-[280px]">{scanResult.pa}</p>
                   </div>
                 </div>
 
-                <div className="space-y-3 mb-8">
+                <div className="flex flex-col gap-3 mb-6">
                   <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/5">
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Network</span>
                     <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400">
-                      {scanResult.type === 'upi' ? 'Unified Payments' : 'Stellar Horizon'}
+                      Unified Payments
                     </span>
                   </div>
                   {scanResult.am && (
                     <div className="flex items-center justify-between p-4 bg-white/10 rounded-2xl border border-white/10">
                       <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Requested</span>
-                      <span className="text-xl font-black text-white">{scanResult.type === 'upi' ? '₹' : ''}{scanResult.am} {scanResult.type === 'stellar' ? 'XLM' : ''}</span>
+                      <span className="text-xl font-black text-white">₹{scanResult.am}</span>
                     </div>
                   )}
                 </div>
 
-                {/* Testnet Warning for UPI */}
-                {scanResult.type === 'upi' && (
-                  <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl mb-8 flex gap-3">
-                    <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                    <div className="space-y-0.5">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-amber-500">Development Mode</p>
-                      <p className="text-[10px] font-medium text-amber-500/70 leading-relaxed">
-                        External UPI payments are disabled in <span className="font-bold text-amber-500">v1.4</span>. Bridge assets to Mainnet for real-world settlement.
-                      </p>
-                    </div>
+                {/* Testnet Messaging */}
+                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl mb-8 flex gap-3 text-left">
+                  <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">Action Required</p>
+                    <p className="text-[11px] font-medium text-amber-500/70 leading-relaxed">
+                      Payments to external VPAs are in sandbox. <span className="font-bold text-amber-500 uppercase tracking-tighter">Switch to Testnet</span> via Profile Settings to bridge assets and complete this transaction.
+                    </p>
                   </div>
-                )}
+                </div>
 
                 <div className="flex gap-3">
                   <button
                     onClick={() => setScanResult(null)}
-                    className="flex-1 py-5 bg-zinc-900 text-zinc-400 font-black rounded-[1.5rem] text-xs uppercase tracking-[0.2em] active:scale-[0.98] transition-all border border-white/5"
+                    className="flex-1 py-4 bg-zinc-900 text-zinc-400 font-black rounded-[1.2rem] text-[10px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all border border-white/5"
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => {
-                      if (scanResult.type === 'stellar') {
-                        scannerInstance?.clear();
-                        navigate(`/send?to=${scanResult.pa}&amt=${scanResult.am || ''}`);
-                      } else {
-                        setScanResult(null);
-                      }
-                    }}
-                    className={`flex-[2] py-5 font-black rounded-[1.5rem] text-xs uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-xl ${scanResult.type === 'stellar' ? 'gold-gradient text-black' : 'bg-white text-black'}`}
+                    onClick={() => setScanResult(null)}
+                    className="flex-[2] py-4 bg-white text-black font-black rounded-[1.2rem] text-[10px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-xl"
                   >
-                    {scanResult.type === 'stellar' ? 'Settle Now' : 'Acknowledged'}
+                    Acknowledged
                   </button>
                 </div>
               </div>
