@@ -17,7 +17,7 @@ import {
   deleteField
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, FamilyMember, TransactionRecord } from '../types';
+import { UserProfile, FamilyMember, TransactionRecord, SubscriptionPlan, UserSubscription } from '../types';
 
 export const saveUser = async (profile: UserProfile) => {
   await setDoc(doc(db, 'upiAccounts', profile.uid), profile);
@@ -241,5 +241,38 @@ export const updateSplitPayment = async (splitId: string, payerStellarId: string
 export const updateRequestStatus = async (requestId: string, status: 'PAID' | 'REJECTED') => {
   const ref = doc(db, 'chats', requestId);
   await updateDoc(ref, { status });
+};
+
+// Subscriptions & Autopay
+export const createUserSubscription = async (sub: Partial<UserSubscription>) => {
+  const id = `${sub.userId}_${sub.planId}`;
+  await setDoc(doc(db, 'userSubscriptions', id), {
+    ...sub,
+    status: 'active',
+    createdAt: serverTimestamp()
+  });
+};
+
+export const getUserSubscriptions = async (userId: string): Promise<UserSubscription[]> => {
+  const q = query(
+    collection(db, 'userSubscriptions'),
+    where('userId', '==', userId)
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as UserSubscription))
+    .filter(s => s.status !== 'cancelled');
+};
+
+export const cancelSubscription = async (subId: string) => {
+  await updateDoc(doc(db, 'userSubscriptions', subId), {
+    status: 'cancelled'
+  });
+};
+
+export const getSubscriptionPlan = async (planId: string): Promise<SubscriptionPlan | null> => {
+  const snap = await getDoc(doc(db, 'subscriptionPlans', planId));
+  if (snap.exists()) return { id: snap.id, ...snap.data() } as SubscriptionPlan;
+  return null;
 };
 

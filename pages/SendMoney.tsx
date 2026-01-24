@@ -47,7 +47,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [loadingBalances, setLoadingBalances] = useState(true);
 
   const [amount, setAmount] = useState(searchParams.get('amt') || '');
-  const [memo, setMemo] = useState('');
+  const [memo, setMemo] = useState(searchParams.get('note') || '');
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'family'>('wallet');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);

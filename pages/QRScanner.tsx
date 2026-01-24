@@ -67,12 +67,45 @@ const QRScanner: React.FC = () => {
       }
 
       try {
-        const url = new URL(decodedText);
-        const to = url.searchParams.get('to');
+        let url: URL;
+        try {
+          url = new URL(decodedText);
+        } catch (e) {
+          // Fallback for custom protocols that URL doesn't like
+          if (decodedText.includes('://')) {
+            const tempUrl = decodedText.replace('://', '://host/');
+            url = new URL(tempUrl);
+          } else {
+            throw e;
+          }
+        }
+
+        let to = url.searchParams.get('to');
+        let planId = url.searchParams.get('planId');
         const amt = url.searchParams.get('amt') || '';
-        if (to) {
+        const note = url.searchParams.get('note') || '';
+
+        // Manual backup parsing if searchParams didn't catch it
+        if (!to && !planId) {
+          const searchPart = decodedText.split('?')[1];
+          if (searchPart) {
+            const params = new URLSearchParams(searchPart);
+            to = params.get('to');
+            planId = params.get('planId');
+          }
+        }
+
+        if (planId) {
           scanner.clear();
-          navigate(`/send?to=${to}&amt=${amt}`);
+          navigate(`/subscribe/${planId}`);
+          return;
+        } else if (to) {
+          scanner.clear();
+          navigate(`/send?to=${to}&amt=${amt}&note=${note}`);
+          return;
+        } else if (decodedText.includes('@')) {
+          scanner.clear();
+          navigate(`/send?to=${decodedText}`);
           return;
         } else {
           setError("Invalid QR Code Format");
@@ -83,6 +116,7 @@ const QRScanner: React.FC = () => {
           scanner.clear();
           navigate(`/send?to=${decodedText}`);
         } else {
+          console.error("Scan error", e);
           setError("Unknown QR type");
           setTimeout(() => setError(''), 3000);
         }

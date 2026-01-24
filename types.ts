@@ -82,3 +82,32 @@ export interface SplitExpense {
   }[];
   timestamp: any;
 }
+
+export interface SubscriptionPlan {
+  id: string;
+  merchantId: string;
+  merchantName: string;
+  merchantStellarId: string;
+  name: string;
+  description: string;
+  amount: number;
+  frequency: 'minutely' | 'weekly' | 'monthly' | 'yearly';
+  status: 'active' | 'paused';
+  createdAt?: any;
+}
+
+export interface UserSubscription {
+  id: string;
+  planId: string;
+  planName: string;
+  userId: string;
+  userName: string;
+  userStellarId: string;
+  merchantId: string;
+  merchantStellarId: string;
+  amount: number;
+  frequency: 'minutely' | 'weekly' | 'monthly' | 'yearly';
+  nextPaymentDate: any;
+  status: 'active' | 'paused' | 'cancelled';
+  createdAt?: any;
+}
