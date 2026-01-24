@@ -6,10 +6,10 @@
 
 const CONFIG = {
     START_FREQ: 17500, // Reduced from 18.5kHz for better speaker support
-    FREQ_BASE: 15000,  // Reduced from 17kHz for ultra-reliability
-    FREQ_STEP: 60,     // Frequency gap per character
-    BIT_DURATION: 0.15, // Keep at 150ms for stability
-    MARGIN: 30         // Tighter tolerance
+    FREQ_BASE: 14000,  // Lowered further for ultra-reliability
+    FREQ_STEP: 80,     // Better separation between characters
+    BIT_DURATION: 0.2, // Increased to 200ms per bit for 100% reliability
+    MARGIN: 40         // Tolerance
 };
 
 // Binary mapping for characters (simplified for UPI IDs)
@@ -20,7 +20,7 @@ export const StellarPulse = {
      * Encodes a string into a sequence of frequencies
      */
     encode: (payload) => {
-        const sequence = [CONFIG.START_FREQ];
+        const sequence = [CONFIG.START_FREQ, CONFIG.START_FREQ]; // Double start signal
         const lowerPayload = payload.toLowerCase();
 
         for (let char of lowerPayload) {
@@ -30,7 +30,10 @@ export const StellarPulse = {
             }
         }
 
-        sequence.push(CONFIG.START_FREQ); // Tail signal
+        // Extended tail signal (3 bits) to ensure last characters are decoded before we stop
+        sequence.push(CONFIG.START_FREQ);
+        sequence.push(CONFIG.START_FREQ);
+        sequence.push(CONFIG.START_FREQ);
         return sequence;
     },
 

@@ -103,8 +103,10 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
             let charSequence = "";
             let startDetected = false;
             let lastConfirmedChar = "";
-            let charHits = 0; // Number of consecutive hits for the same character
-            const REQUIRED_HITS = 2; // Hits needed to confirm a char
+            let charHits = 0;
+            let endHits = 0; // Number of consecutive hits for end signal
+            const REQUIRED_HITS = 2;
+            const REQUIRED_END_HITS = 5; // More patience for the end signal
 
             const detect = () => {
                 analyser.getFloatFrequencyData(dataArray);
@@ -115,20 +117,25 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                     if (!startDetected) {
                         startDetected = true;
                         charSequence = "";
-                        console.log("StellarPulse: Frame Start Detected");
-                    } else if (charSequence.length > 3) {
-                        // End of frame detected after receiving some data
-                        handleSuccess(charSequence);
-                        return;
+                        console.log("StellarPulse: Signal detected");
+                    } else if (charSequence.length > 5) {
+                        // Debounce the end signal too
+                        endHits++;
+                        if (endHits >= REQUIRED_END_HITS) {
+                            handleSuccess(charSequence);
+                            return;
+                        }
                     }
                 } else if (startDetected && char) {
+                    endHits = 0; // Reset end hits if we see a data char
                     if (char === lastConfirmedChar) {
                         charHits++;
                         if (charHits === REQUIRED_HITS) {
+                            // Only add if it's different FROM THE LAST ADDED character
+                            // To handle longer pulse durations correctly
                             if (charSequence[charSequence.length - 1] !== char) {
                                 charSequence += char;
                                 setDecodedString(charSequence);
-                                console.log("Pulse Stream:", charSequence);
                             }
                         }
                     } else {
@@ -207,8 +214,8 @@ const SonicTransfer = ({ initialMode = 'send', payload = '' }) => {
                         status === 'success' ? 'bg-emerald-500' : 'bg-zinc-700'
                     }`}></div>
                 <div className={`relative w-24 h-24 rounded-full border-2 flex items-center justify-center transition-all duration-500 z-10 ${status === 'sending' ? 'border-cyan-500 scale-110 shadow-[0_0_20px_rgba(6,182,212,0.5)]' :
-                        status === 'listening' ? 'border-purple-500 scale-110 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
-                            status === 'success' ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-zinc-700'
+                    status === 'listening' ? 'border-purple-500 scale-110 shadow-[0_0_20px_rgba(168,85,247,0.5)]' :
+                        status === 'success' ? 'border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.5)]' : 'border-zinc-700'
                     }`}>
                     {status === 'sending' && (
                         <>
