@@ -38,17 +38,19 @@ createWeb3Modal({
   ethersConfig,
   chains: [mainnet],
   projectId,
-  enableAnalytics: true, // Helpful for debugging connection issues
+  enableAnalytics: true,
   themeMode: 'dark',
   featuredWalletIds: [
     'c57caac7112c3e66d5850ee853e2300d65bf254d198758830250fc57ae813e33', // MetaMask
     '4622a2b2d6ad1397f42f7661cdc2ad121a0077227005f560abba7482811a2f1a', // Trust Wallet
-    'fd20dc426fb37566d803205b19bbc1d4096b248ac04544e3cfb647b087283302', // Coinbase Wallet
+    '8a0ee150a058da363f4a007bc4436679b09bafe062a2d48066c617eb3698282e', // Omni
   ],
+  allWallets: 'SHOW', // Ensure all wallets are searchable if detection fails
   themeVariables: {
     '--w3m-accent': '#E5D5B3',
-    '--w3m-color-mix': '#E5D5B3',
-    '--w3m-color-mix-strength': 20
+    '--w3m-color-mix': '#000000',
+    '--w3m-color-mix-strength': 40,
+    '--w3m-z-index': 9999
   }
 });
 
