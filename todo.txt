@@ -1,0 +1,22 @@
+# StellarPay Hackathon Winning Roadmap
+
+## 1. "Accountless" Onboarding (Claimable Balances)
+- [ ] Implement service to create Claimable Balances on Stellar.
+- [ ] Create simple "Share Link" functionality for non-users.
+- [ ] Build "Claim Funds" landing page/flow for new wallet creation.
+- [ ] *Why:* Solves user acquisition friction and highlights Stellar-unique tech.
+
+## 2. Multi-Asset "Path Payments"
+- [ ] Integrate Stellar Path Payments into the `sendPayment` logic.
+- [ ] Update UI to allow users to select "Pay with" asset (XLM vs USDC).
+- [ ] Add "Best Rate" badge during checkout using Horizon's path-finding API.
+- [ ] *Why:* Demonstrates the power of Stellar's native DEX and interoperability.
+
+## 3. AI-Powered Smart Budgeting (Gemini + Soroban)
+- [ ] **AI Receipt Scanner:** Integrate Gemini to parse receipt images into the Split Expense drawer.
+- [ ] **Smart Settlement:** (Advanced) Explore Soroban contracts for group escrow/voting.
+- [ ] Add "AI Spending Insights" on the dashboard based on transaction categories.
+- [ ] *Why:* Makes the app feel premium and solves real-world split-bill friction.
+
+---
+*Goal: Win 1st Position by proving Stellar-native utility + AI innovation.*
