@@ -2,17 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Repeat, Plus, Trash2, Calendar, Clock, ChevronRight, AlertCircle, Sparkles } from 'lucide-react';
-import { UserProfile } from '../types';
-
-interface AutoPayRecord {
-    id: string;
-    recipientName: string;
-    recipientId: string;
-    amount: number;
-    frequency: 'daily' | 'weekly' | 'monthly';
-    nextPayment: string;
-    active: boolean;
-}
+import { UserProfile, UserSubscription } from '../types';
+import { getUserSubscriptions, cancelSubscription } from '../services/db';
 
 interface Props {
     profile: UserProfile | null;
@@ -20,35 +11,37 @@ interface Props {
 
 const AutoPay: React.FC<Props> = ({ profile }) => {
     const navigate = useNavigate();
-    const [subscriptions, setSubscriptions] = useState<AutoPayRecord[]>([]);
+    const [subscriptions, setSubscriptions] = useState<UserSubscription[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Mock data for initial PoC
-        setTimeout(() => {
-            setSubscriptions([
-                {
-                    id: '1',
-                    recipientName: 'Internet Bill',
-                    recipientId: 'isp@stellar',
-                    amount: 999,
-                    frequency: 'monthly',
-                    nextPayment: '2026-02-01',
-                    active: true
-                },
-                {
-                    id: '2',
-                    recipientName: 'Netflix',
-                    recipientId: 'netflix@stellar',
-                    amount: 499,
-                    frequency: 'monthly',
-                    nextPayment: '2026-01-25',
-                    active: true
-                }
-            ]);
+        if (profile) {
+            fetchSubscriptions();
+        }
+    }, [profile]);
+
+    const fetchSubscriptions = async () => {
+        if (!profile) return;
+        setLoading(true);
+        try {
+            const subs = await getUserSubscriptions(profile.uid);
+            setSubscriptions(subs);
+        } catch (error) {
+            console.error("Error fetching subscriptions:", error);
+        } finally {
             setLoading(false);
-        }, 1000);
-    }, []);
+        }
+    };
+
+    const handleCancel = async (subId: string) => {
+        if (!window.confirm("Are you sure you want to cancel this subscription?")) return;
+        try {
+            await cancelSubscription(subId);
+            setSubscriptions(prev => prev.filter(s => s.id !== subId));
+        } catch (error) {
+            console.error("Error cancelling subscription:", error);
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white pb-32">
@@ -64,21 +57,7 @@ const AutoPay: React.FC<Props> = ({ profile }) => {
 
             <div className="px-6 space-y-8">
                 {/* Promo Card */}
-                <div className="relative overflow-hidden bg-zinc-900 border border-white/5 rounded-[2.5rem] p-8 shadow-2xl group active:scale-[0.98] transition-all">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Sparkles size={80} className="text-[#E5D5B3]" />
-                    </div>
-                    <div className="relative z-10">
-                        <div className="w-12 h-12 rounded-2xl bg-[#E5D5B3]/10 flex items-center justify-center mb-6 border border-[#E5D5B3]/20">
-                            <Repeat size={24} className="text-[#E5D5B3]" />
-                        </div>
-                        <h3 className="text-xl font-black mb-2 tracking-tight">Recurring Payments</h3>
-                        <p className="text-zinc-500 text-sm font-medium mb-6">Schedule your bills and subscriptions. Never miss a deadline with automated Stellar payments.</p>
-                        <button className="flex items-center gap-2 bg-[#E5D5B3] text-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">
-                            <Plus size={16} /> Setup New Pay
-                        </button>
-                    </div>
-                </div>
+
 
                 {/* Subscriptions List */}
                 <div className="space-y-4">
@@ -106,8 +85,8 @@ const AutoPay: React.FC<Props> = ({ profile }) => {
                                             <Calendar size={24} />
                                         </div>
                                         <div>
-                                            <h4 className="font-black text-white tracking-tight">{sub.recipientName}</h4>
-                                            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{sub.recipientId}</p>
+                                            <h4 className="font-black text-white tracking-tight">{sub.planName}</h4>
+                                            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">{sub.merchantStellarId}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
@@ -118,9 +97,12 @@ const AutoPay: React.FC<Props> = ({ profile }) => {
                                 <div className="flex items-center justify-between pt-4 border-t border-white/5">
                                     <div className="flex items-center gap-2">
                                         <Clock size={12} className="text-zinc-600" />
-                                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Next Pay: <span className="text-zinc-400">{sub.nextPayment}</span></p>
+                                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Next Pay: <span className="text-zinc-400">{sub.nextPaymentDate?.seconds ? new Date(sub.nextPaymentDate.seconds * 1000).toLocaleDateString() : 'N/A'}</span></p>
                                     </div>
-                                    <button className="p-2 text-rose-500/40 hover:text-rose-500 transition-colors">
+                                    <button
+                                        onClick={() => handleCancel(sub.id)}
+                                        className="p-2 text-rose-500/40 hover:text-rose-500 transition-colors"
+                                    >
                                         <Trash2 size={18} />
                                     </button>
                                 </div>

@@ -22,6 +22,7 @@ import Withdraw from '../pages/Withdraw';
 import PaymentLink from '../pages/PaymentLink';
 import AutoPay from '../pages/AutoPay';
 import SonicHandshake from '../pages/SonicHandshake';
+import Subscribe from '../pages/Subscribe';
 
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, profile } = useAuth();
@@ -35,6 +36,7 @@ const AppRoutes: React.FC = () => {
 
             {/* Public Payment Link - handles auth inside component */}
             <Route path="/pay/:stellarId" element={<PaymentLink />} />
+            <Route path="/subscribe/:planId" element={<Subscribe />} />
 
             <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Dashboard profile={profile!} />} />
