@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 import { auth } from '../services/firebase';
@@ -9,8 +8,12 @@ import { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount, generateUPIFro
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Wallet, Loader2, ArrowRight, ShieldCheck, Zap, Lock, Compass } from 'lucide-react';
 import { BrowserProvider } from 'ethers';
+import mainImage from '../assets/image copy.png';
+
+import { useAuth } from '../context/AuthContext';
 
 const Login: React.FC = () => {
+  const { refreshProfileSync } = useAuth();
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const navigate = useNavigate();
@@ -86,6 +89,9 @@ const Login: React.FC = () => {
       localStorage.setItem('web3_address', addressLower);
       localStorage.setItem('temp_vault_key', signature);
 
+      // Refresh AuthContext so it acknowledges the new session immediately
+      refreshProfileSync(addressLower);
+
       setStatus('Success! Opening vault...');
       setTimeout(() => navigate(from), 800);
     } catch (err: any) {
@@ -120,21 +126,7 @@ const Login: React.FC = () => {
       </div>
 
       {/* Header / Brand Area */}
-      <div className="relative z-20 pt-20 px-8 flex flex-col items-center text-center">
-        <div className="relative mb-8 group">
-          <div className="absolute inset-0 bg-[#E5D5B3] rounded-[2.5rem] blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
-          <div className="relative w-32 h-32 bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-[2.5rem] flex items-center justify-center p-6 shadow-2xl">
-            <img
-              src="https://cdn.flyonui.com/fy-assets/blocks/marketing-ui/about/about-17.png"
-              alt="StellarPay"
-              className="w-full h-full object-contain"
-            />
-          </div>
-          <div className="absolute -bottom-2 -right-2 bg-[#E5D5B3] p-2.5 rounded-2xl text-black shadow-xl shadow-black/20">
-            <Zap size={18} fill="currentColor" strokeWidth={3} />
-          </div>
-        </div>
-
+      <div className="relative z-20 pt-48 px-8 flex flex-col items-center text-center">
         <div className="space-y-2">
           <h2 className="text-zinc-500 font-black text-[10px] uppercase tracking-[0.4em] ml-1">Stellarpay Protocol</h2>
           <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent italic">
@@ -143,24 +135,13 @@ const Login: React.FC = () => {
         </div>
       </div>
 
+
       {/* Content / Interaction Area */}
-      <div className="relative z-20 mt-auto p-8 pb-16 space-y-6">
+      <div className="relative z-20 mt-auto p-8 pb-8 space-y-6">
 
         {isConnectedLocally ? (
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-            {/* Status Card */}
-            <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 mb-4 flex items-center gap-4 group">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <ShieldCheck size={24} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Node Connected</p>
-                </div>
-                <p className="text-white/60 text-xs font-mono truncate">{address}</p>
-              </div>
-            </div>
+
 
             {/* Action Button */}
             <button
@@ -174,8 +155,8 @@ const Login: React.FC = () => {
                   <Loader2 className="text-black animate-spin" size={24} />
                 ) : (
                   <>
-                    <span className="text-black text-lg font-black uppercase tracking-tight">Unlock Vault</span>
-                    <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} />
+                    <span className="text-black text-lg font-black ">Sign message to continue</span>
+                    {/* <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} /> */}
                   </>
                 )}
               </div>
@@ -194,36 +175,37 @@ const Login: React.FC = () => {
                   <Loader2 className="text-black animate-spin" size={24} />
                 ) : (
                   <>
-                    <Wallet className="text-black" size={24} strokeWidth={3} />
-                    <span className="text-black text-lg font-black uppercase tracking-tight">Connect MetaMask</span>
-                    <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} />
+                    {/* <Wallet className="text-black" size={24} strokeWidth={3} /> */}
+                    <span className="text-black text-lg font-black ">Continue with wallet Login</span>
+                    {/* <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} /> */}
                   </>
                 )}
               </div>
             </button>
 
-            <div className="flex items-center justify-center gap-8 py-4 opacity-40">
-              <div className="flex flex-col items-center gap-1">
-                <Lock size={14} />
-                <span className="text-[8px] font-black uppercase tracking-widest">Encrypted</span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <Compass size={14} />
-                <span className="text-[8px] font-black uppercase tracking-widest">Self Custodial</span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <ShieldCheck size={14} />
-                <span className="text-[8px] font-black uppercase tracking-widest">Audited</span>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* Info Text */}
-        <div className="text-center">
-          <p className="text-zinc-600 text-[9px] font-black uppercase tracking-[0.2em]">
-            {loading ? status : 'Decentralized Payment Protocol v1.0.4'}
-          </p>
+        {/* Status Message Display */}
+        {status && (
+          <div className="text-center animate-in fade-in duration-500">
+            <p className="text-[#E5D5B3] text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
+              {status}
+            </p>
+          </div>
+        )}
+
+      </div>
+
+      {/* New Bottom Image */}
+      <div className="relative z-20 px-4 pb-12 animate-in fade-in slide-in-from-bottom-10 duration-1000">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-[#E5D5B3]/5 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+          <img
+            src={mainImage}
+            alt="StellarPay UI"
+            className="w-full rounded-[2rem] shadow-2xl relative z-10"
+          />
         </div>
       </div>
 
