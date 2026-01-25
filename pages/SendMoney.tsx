@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight, Users, Smartphone, Share2 } from 'lucide-react';
+import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee } from 'lucide-react';
 import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
@@ -640,7 +640,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         >
           <div className="flex items-center gap-5">
             <div className="w-14 h-14 gold-gradient rounded-xl flex items-center justify-center text-black">
-              <Sparkles size={24} />
+              <BadgeIndianRupee />
             </div>
             <div className="text-left">
               <p className="font-black text-white text-lg leading-none mb-1">New Pay</p>
@@ -651,7 +651,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         </button>
       </div>
 
-      <UpiDrawer
+      {/* <UpiDrawer
         isOpen={isUpiDrawerOpen}
         onClose={() => setIsUpiDrawerOpen(false)}
         upiInput={upiInput}
@@ -669,7 +669,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           }
         }}
         searching={false}
-      />
+      /> */}
 
       <div className="px-8 mb-10">
         <button

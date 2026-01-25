@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -15,13 +14,19 @@ import {
     Utensils,
     ShoppingBag,
     Car,
-    Ticket
+    Ticket,
+    RefreshCw,
+    Radio
 } from 'lucide-react';
+import { fetchLiveCoupons, Coupon } from '../services/couponApi';
 
 const Rewards: React.FC = () => {
     const navigate = useNavigate();
     const [copiedCode, setCopiedCode] = useState<string | null>(null);
     const [activeCategory, setActiveCategory] = useState('All');
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [lastSync, setLastSync] = useState<string>('');
 
     const handleCopy = (code: string) => {
         navigator.clipboard.writeText(code);
@@ -32,52 +37,37 @@ const Rewards: React.FC = () => {
     const categories = [
         { name: 'All', icon: <Flame size={14} /> },
         { name: 'Food', icon: <Utensils size={14} /> },
-        { name: 'Shopping', icon: <ShoppingBag size={14} /> },
+        { name: 'Groceries', icon: <ShoppingBag size={14} /> },
         { name: 'Travel', icon: <Car size={14} /> },
+        { name: 'Fashion', icon: <Ticket size={14} /> },
     ];
 
-    const coupons = [
-        {
-            merchant: "Swiggy",
-            code: "UJJIVAN125",
-            discount: "₹125 OFF",
-            desc: "On orders above ₹400",
-            category: "Food",
-            expiry: "Exp: 31 Jan",
-            color: "bg-orange-500/10 text-orange-500",
-            icon: <Utensils size={18} />
-        },
-        {
-            merchant: "Zomato",
-            code: "GET50",
-            discount: "50% OFF",
-            desc: "Up to ₹150 on first order",
-            category: "Food",
-            expiry: "Exp: 31 Jan",
-            color: "bg-rose-500/10 text-rose-500",
-            icon: <Utensils size={18} />
-        },
-        {
-            merchant: "Uber",
-            code: "GRAB50",
-            discount: "FREE RIDE",
-            desc: "Valid for first 3 rides",
-            category: "Travel",
-            expiry: "Limited",
-            color: "bg-zinc-500/10 text-zinc-300",
-            icon: <Car size={18} />
-        },
-        {
-            merchant: "Amazon",
-            code: "ION",
-            discount: "5% OFF",
-            desc: "On electronics & accessories",
-            category: "Shopping",
-            expiry: "2 days left",
-            color: "bg-amber-500/10 text-amber-500",
-            icon: <ShoppingBag size={18} />
+    const getLiveRewards = async () => {
+        setLoading(true);
+        try {
+            const data = await fetchLiveCoupons();
+            setCoupons(data.coupons);
+            setLastSync(data.lastUpdated);
+        } catch (err) {
+            console.error("Failed to sync rewards:", err);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
+
+    React.useEffect(() => {
+        getLiveRewards();
+    }, []);
+
+    const getIcon = (name: string) => {
+        switch (name) {
+            case 'Utensils': return <Utensils size={18} />;
+            case 'ShoppingBag': return <ShoppingBag size={18} />;
+            case 'Car': return <Car size={18} />;
+            case 'Fashion': return <Ticket size={18} />;
+            default: return <Ticket size={18} />;
+        }
+    };
 
     const filteredCoupons = activeCategory === 'All'
         ? coupons
@@ -123,6 +113,28 @@ const Rewards: React.FC = () => {
                 <div className="w-12"></div>
             </div>
 
+            {/* Live Sync Bar */}
+            <div className="px-6 mt-6 relative z-20">
+                <div className="bg-white/5 border border-white/5 rounded-2xl p-3 flex items-center justify-between backdrop-blur-md">
+                    <div className="flex items-center gap-3">
+                        <div className="relative flex items-center justify-center">
+                            <Radio size={12} className="text-emerald-500 animate-pulse" />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Protocol Live Feed</span>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Active Sync: {lastSync}</span>
+                        <button
+                            onClick={getLiveRewards}
+                            disabled={loading}
+                            className={`text-[#E5D5B3] hover:rotate-180 transition-all duration-700 ${loading ? 'animate-spin' : ''}`}
+                        >
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div className="px-6 mt-8 relative z-10">
                 {/* Main Card */}
 
@@ -151,58 +163,61 @@ const Rewards: React.FC = () => {
                         <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">January 2026</span>
                     </div>
 
-                    {filteredCoupons.map((coupon, i) => (
-                        <div key={i} className={`relative h-32 w-full rounded-[1.5rem] overflow-hidden flex shadow-2xl transition-all active:scale-[0.98] group cursor-pointer ${coupon.merchant === 'Swiggy' ? 'bg-gradient-to-r from-orange-600 to-orange-400' :
-                            coupon.merchant === 'Zomato' ? 'bg-gradient-to-r from-rose-600 to-rose-400' :
-                                coupon.merchant === 'Uber' ? 'bg-gradient-to-r from-zinc-800 via-zinc-900 to-black' :
-                                    'bg-gradient-to-r from-emerald-700 to-emerald-500'
-                            }`}>
-                            {/* Left Content */}
-                            <div className="flex-1 p-5 flex flex-col justify-center relative z-10 text-white">
-                                <p className="text-[8px] font-black uppercase tracking-widest opacity-80 mb-0.5">Get up to</p>
-                                <h2 className="text-3xl font-black tracking-tighter leading-tight mb-0.5">{coupon.discount}</h2>
-                                <p className="text-[9px] font-bold opacity-70 mb-3 truncate pr-4">{coupon.desc}</p>
-
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleCopy(coupon.code);
-                                    }}
-                                    className="w-fit flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-black transition-all hover:scale-105 active:scale-95 shadow-lg"
-                                >
-                                    {copiedCode === coupon.code ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} className="opacity-60" />}
-                                    <span className="text-[9px] font-black uppercase tracking-widest leading-none pt-0.5">
-                                        {copiedCode === coupon.code ? 'Copied' : coupon.code}
-                                    </span>
-                                </button>
-                            </div>
-
-                            {/* Right Ticket Stub */}
-                            <div className="w-24 relative flex items-center justify-center overflow-hidden">
-                                {/* Perforated Line */}
-                                <div className="absolute left-0 top-0 bottom-0 w-[2px] border-l-2 border-dashed border-white/20 z-20"></div>
-
-                                {/* Background Shape Overlay */}
-                                <div className="absolute inset-0 bg-white/10 backdrop-blur-md"></div>
-
-                                {/* Large Background Icon */}
-                                <div className="relative z-10 opacity-30 group-hover:scale-120 group-hover:rotate-12 transition-transform duration-700">
-                                    {React.cloneElement(coupon.icon as React.ReactElement<any>, { size: 44, strokeWidth: 1.5 })}
-                                </div>
-
-                                {/* Semi-circle punches (Ticket effect) */}
-                                <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-[#0a0f0a] rounded-full z-30 shadow-inner"></div>
-                            </div>
-
-                            {/* Expiry Badge */}
-                            <div className="absolute top-3 right-3 z-20">
-                                <div className="flex items-center gap-1 text-[7px] font-black uppercase tracking-tighter bg-black/20 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/10 text-white/60">
-                                    <Clock size={8} />
-                                    {coupon.expiry}
-                                </div>
-                            </div>
+                    {loading ? (
+                        <div className="flex flex-col items-center justify-center py-20 gap-4">
+                            <div className="w-10 h-10 border-4 border-[#E5D5B3] border-t-transparent rounded-full animate-spin"></div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/20">Syncing Rewards...</p>
                         </div>
-                    ))}
+                    ) : (
+                        filteredCoupons.map((coupon, i) => (
+                            <div key={coupon.id} className={`relative h-32 w-full rounded-[1.5rem] overflow-hidden flex shadow-2xl transition-all active:scale-[0.98] group cursor-pointer bg-gradient-to-r ${coupon.brandColor || 'from-emerald-700 to-emerald-500'}`}>
+                                {/* Left Content */}
+                                <div className="flex-1 p-5 flex flex-col justify-center relative z-10 text-white">
+                                    <p className="text-[8px] font-black uppercase tracking-widest opacity-80 mb-0.5">Get up to</p>
+                                    <h2 className="text-3xl font-black tracking-tighter leading-tight mb-0.5">{coupon.discount}</h2>
+                                    <p className="text-[9px] font-bold opacity-70 mb-3 truncate pr-4">{coupon.desc}</p>
+
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleCopy(coupon.code);
+                                        }}
+                                        className="w-fit flex items-center gap-2 px-3 py-1.5 bg-white rounded-full text-black transition-all hover:scale-105 active:scale-95 shadow-lg"
+                                    >
+                                        {copiedCode === coupon.code ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} className="opacity-60" />}
+                                        <span className="text-[9px] font-black uppercase tracking-widest leading-none pt-0.5">
+                                            {copiedCode === coupon.code ? 'Copied' : coupon.code}
+                                        </span>
+                                    </button>
+                                </div>
+
+                                {/* Right Ticket Stub */}
+                                <div className="w-24 relative flex items-center justify-center overflow-hidden">
+                                    {/* Perforated Line */}
+                                    <div className="absolute left-0 top-0 bottom-0 w-[2px] border-l-2 border-dashed border-white/20 z-20"></div>
+
+                                    {/* Background Shape Overlay */}
+                                    <div className="absolute inset-0 bg-white/10 backdrop-blur-md"></div>
+
+                                    {/* Large Background Icon */}
+                                    <div className="relative z-10 opacity-30 group-hover:scale-120 group-hover:rotate-12 transition-transform duration-700">
+                                        {React.cloneElement(getIcon(coupon.iconName) as React.ReactElement<any>, { size: 44, strokeWidth: 1.5 })}
+                                    </div>
+
+                                    {/* Semi-circle punches (Ticket effect) */}
+                                    <div className="absolute -left-2.5 top-1/2 -translate-y-1/2 w-5 h-5 bg-[#0a0f0a] rounded-full z-30 shadow-inner"></div>
+                                </div>
+
+                                {/* Expiry Badge */}
+                                <div className="absolute top-3 right-3 z-20">
+                                    <div className="flex items-center gap-1 text-[7px] font-black uppercase tracking-tighter bg-black/20 backdrop-blur-md px-1.5 py-0.5 rounded-md border border-white/10 text-white/60">
+                                        <Clock size={8} />
+                                        {coupon.expiry}
+                                    </div>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
 
 

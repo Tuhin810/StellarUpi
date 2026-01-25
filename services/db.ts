@@ -276,3 +276,9 @@ export const getSubscriptionPlan = async (planId: string): Promise<SubscriptionP
   return null;
 };
 
+export const getRealCoupons = async () => {
+    const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
