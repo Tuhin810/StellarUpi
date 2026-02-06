@@ -37,16 +37,24 @@ const Login: React.FC = () => {
     // If we're already locked in a process, don't do background sync
     if (loading || isConnectedLocally) return;
 
+    const storedAddr = localStorage.getItem('web3_address') || localStorage.getItem('freighter_address');
+    const storedKey = localStorage.getItem('temp_vault_key');
+
+    if (storedAddr && storedKey) {
+      console.log("Login: Session found, syncing profile...");
+      refreshProfileSync(storedAddr);
+
+      // Give AuthContext a moment to load before navigating
+      setTimeout(() => {
+        console.log("Login: Auto-navigating to dashboard");
+        navigate('/', { replace: true });
+      }, 500);
+      return;
+    }
+
     if (isConnected && addressLower && walletProvider) {
       console.log("Login: Web3 account detected");
       setIsConnectedLocally(true);
-
-      const storedAddr = localStorage.getItem('web3_address');
-      const storedKey = localStorage.getItem('temp_vault_key');
-      if (storedAddr === addressLower && storedKey) {
-        console.log("Login: Session valid, navigating to:", from);
-        navigate(from, { replace: true });
-      }
     }
   }, [isConnected, addressLower, walletProvider, navigate, loading, isConnectedLocally, from]);
 
@@ -101,23 +109,22 @@ const Login: React.FC = () => {
       }
 
       // SET STORAGE
-      localStorage.setItem(stellarWallet ? 'freighter_address' : 'web3_address', currentAddr);
+      const addrKey = stellarWallet ? 'freighter_address' : 'web3_address';
+      localStorage.setItem(addrKey, currentAddr);
       localStorage.setItem('temp_vault_key', signature);
 
-      setStatus('Vault Unlocked! Syncing profile...');
+      setStatus('Vault Unlocked! Syncing...');
 
-      // Explicitly trigger a refresh in the context
+      // Critical: Ensure context is aware of the new profile
       refreshProfileSync(currentAddr);
 
       setStatus('Success! Opening vault...');
 
-      // Navigation with a stable delay
+      // Force a short wait to ensure Firebase/Context catches up
       setTimeout(() => {
-        // Determine path safely
-        const targetPath = (typeof from === 'string') ? from : '/';
-        console.log("Login: Final navigation to", targetPath);
-        navigate(targetPath, { replace: true });
-      }, 1000);
+        console.log("Login: Redirecting to dashboard...");
+        navigate('/', { replace: true });
+      }, 1200);
 
     } catch (err: any) {
       console.error("Login Error:", err);
