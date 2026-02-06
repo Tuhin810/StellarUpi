@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { getBalance } from '../services/stellar';
+import { getBalance, isAccountFunded } from '../services/stellar';
 import { getLivePrice } from '../services/priceService';
 import { RefreshCcw } from 'lucide-react';
+import { useNetwork } from '../context/NetworkContext';
 // import chip from '../assets/chip.png';
 interface Props {
   publicKey: string;
@@ -10,7 +11,9 @@ interface Props {
 }
 
 const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
+  const { networkName, isMainnet } = useNetwork();
   const [balance, setBalance] = useState('0.00');
+  const [isActivated, setIsActivated] = useState(true);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [rate, setRate] = useState(15.02);
@@ -18,12 +21,14 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
   const fetchBalance = async () => {
     setRefreshing(true);
     try {
-      const [xlmB, xRate] = await Promise.all([
+      const [xlmB, xRate, activated] = await Promise.all([
         getBalance(publicKey),
-        getLivePrice('stellar')
+        getLivePrice('stellar'),
+        isAccountFunded(publicKey)
       ]);
       setBalance(xlmB);
       setRate(xRate);
+      setIsActivated(activated);
     } catch (e) {
       console.error("Balance fetch error:", e);
     }
@@ -85,12 +90,28 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
             <div className="text-right">
               <p className="text-black/60 text-xs mb-1">Type</p>
               <p className="text-black/80 text-sm  font-semibold capitalize">
-                Testnet
+                {networkName}
               </p>
             </div>
           </div>
         </div>
       </div>
+
+      {!isActivated && !loading && (
+        <div className="mt-4 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3 animate-in slide-in-from-top-2 duration-500">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+            <RefreshCcw size={16} className="animate-spin-slow" />
+          </div>
+          <div>
+            <p className="text-amber-500 text-[10px] font-black uppercase tracking-widest">Account Not Activated</p>
+            <p className="text-zinc-500 text-[10px] mt-0.5">
+              {isMainnet
+                ? "Send at least 1 XLM to this address to activate it on Mainnet."
+                : "Funding with Friendbot... Please wait."}
+            </p>
+          </div>
+        </div>
+      )}
     </>
   );
 };

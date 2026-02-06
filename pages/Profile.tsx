@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NotificationService } from '../services/notification';
+import { useNetwork } from '../context/NetworkContext';
 
 declare global {
     interface Window {
@@ -53,6 +54,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
 
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [phoneEntry, setPhoneEntry] = useState(profile?.phoneNumber || '');
+    const { isMainnet, networkName, toggleNetwork } = useNetwork();
 
     useEffect(() => {
         if (profile) {
@@ -462,6 +464,36 @@ const Profile: React.FC<Props> = ({ profile }) => {
                             <span className="text-sm font-medium">Help & Support</span>
                             <ChevronRight size={16} className="text-white/30" />
                         </button>
+                    </div>
+                </div>
+
+                {/* Network Section */}
+                <div className="mb-8">
+                    <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4 px-1">Blockchain Network</p>
+                    <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden">
+                        <div className="p-4 flex items-center justify-between border-b border-white/5">
+                            <div className="flex items-center gap-3">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isMainnet ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                                    <Smartphone size={18} />
+                                </div>
+                                <div>
+                                    <p className="text-xs font-semibold">{networkName} Official</p>
+                                    <p className="text-[10px] text-white/40">{isMainnet ? 'Public Global Network' : 'Testnet Sandbox'}</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => {
+                                    if (window.confirm(`Switch to ${isMainnet ? 'Testnet' : 'Mainnet'}? The app will reload.`)) {
+                                        toggleNetwork();
+                                    }
+                                }}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isMainnet
+                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
+                                    : 'bg-amber-500 text-black shadow-lg shadow-amber-500/20'}`}
+                            >
+                                Switch
+                            </button>
+                        </div>
                     </div>
                 </div>
 
