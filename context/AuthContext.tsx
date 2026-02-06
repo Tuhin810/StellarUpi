@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const loadWeb3Profile = async () => {
         try {
-            const loggedAddress = localStorage.getItem('web3_address') || localStorage.getItem('freighter_address');
+            const loggedAddress = localStorage.getItem('web3_address');
             if (!loggedAddress) {
                 setLoading(false);
                 return;
@@ -51,9 +51,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 await signInAnonymously(auth);
             }
 
-            // Only logout if there is a DEFINITIVE mismatch for EVM users
-            const isEVM = !!localStorage.getItem('web3_address');
-            if (isEVM && isConnected && address) {
+            // Only logout if there is a DEFINITIVE mismatch
+            if (isConnected && address) {
                 if (address.toLowerCase() !== loggedAddress.toLowerCase()) {
                     console.warn("Address mismatch detected. Expected:", loggedAddress, "Got:", address);
                     localStorage.removeItem('web3_address');
@@ -107,17 +106,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    const refreshProfileSync = React.useCallback((uid: string) => {
-        console.log("AuthContext: Manual refresh for", uid);
-        return setupProfileListener(uid);
-    }, []);
-
-    const value = React.useMemo(() => ({
+    const value = {
         profile,
         loading,
         isAuthenticated: !!profile,
-        refreshProfileSync
-    }), [profile, loading, refreshProfileSync]);
+        refreshProfileSync: setupProfileListener
+    };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

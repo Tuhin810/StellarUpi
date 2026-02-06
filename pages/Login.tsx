@@ -6,10 +6,8 @@ import { createWallet } from '../services/stellar';
 import { encryptSecret } from '../services/encryption';
 import { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount, generateUPIFromAddress } from '../services/web3';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Loader2, Zap } from 'lucide-react';
-import { useNetwork } from '../context/NetworkContext';
+import { Wallet, Loader2, ArrowRight, ShieldCheck, Zap, Lock, Compass } from 'lucide-react';
 import { BrowserProvider } from 'ethers';
-import { connectFreighter, freighterSignMessage } from '../services/freighter';
 import mainImage from '../assets/image copy.png';
 
 import { useAuth } from '../context/AuthContext';
@@ -21,8 +19,6 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isConnectedLocally, setIsConnectedLocally] = useState(false);
-  const [isFreighter, setIsFreighter] = useState(false);
-  const [freighterAddr, setFreighterAddr] = useState<string | null>(null);
   const from = location.state?.from || '/';
 
   // Web3Modal hooks
@@ -32,56 +28,35 @@ const Login: React.FC = () => {
 
   const addressLower = address?.toLowerCase();
 
-  const navigationAttempted = React.useRef(false);
-
   // Effect to handle session restoration and connection state
   useEffect(() => {
-    // If we're already locked in a process, don't do background sync
-    if (loading || isConnectedLocally || navigationAttempted.current) return;
-
-    const storedAddr = localStorage.getItem('web3_address') || localStorage.getItem('freighter_address');
-    const storedKey = localStorage.getItem('temp_vault_key');
-
-    if (storedAddr && storedKey) {
-      navigationAttempted.current = true;
-      console.log("Login: Session found, syncing profile...");
-      refreshProfileSync(storedAddr);
-
-      // Give AuthContext a moment to load before navigating
-      setTimeout(() => {
-        console.log("Login: Auto-navigating to dashboard");
-        navigate('/', { replace: true });
-      }, 500);
-      return;
-    }
-
     if (isConnected && addressLower && walletProvider) {
-      console.log("Login: Web3 account detected");
       setIsConnectedLocally(true);
-    }
-  }, [isConnected, addressLower, walletProvider, navigate, loading, isConnectedLocally, refreshProfileSync]);
 
-  const signAndLogin = async (currentAddr: string, stellarWallet: boolean) => {
-    if (loading && status.includes('request')) return; // Prevent double trigger
+      // Auto-navigation if already unlocked
+      const storedAddr = localStorage.getItem('web3_address');
+      const storedKey = localStorage.getItem('temp_vault_key');
+
+      if (storedAddr === addressLower && storedKey) {
+        navigate(from);
+      }
+    } else {
+      setIsConnectedLocally(false);
+    }
+  }, [isConnected, addressLower, walletProvider, navigate]);
+
+  const handleSignAndLogin = async () => {
+    if (!addressLower || !walletProvider) return;
 
     setLoading(true);
     setStatus('Generating encryption keys...');
 
     try {
-      let signature = '';
-      const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
+      const provider = new BrowserProvider(walletProvider);
+      const signer = await provider.getSigner();
 
-      if (stellarWallet) {
-        setStatus('Check Freighter for signature request...');
-        signature = await freighterSignMessage(message);
-      } else if (walletProvider) {
-        setStatus('Check window for signature request...');
-        const provider = new BrowserProvider(walletProvider);
-        const signer = await provider.getSigner();
-        signature = await signer.signMessage(message);
-      } else {
-        throw new Error("No wallet provider found");
-      }
+      const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
+      const signature = await signer.signMessage(message);
 
       setStatus('Authenticating with Stellar...');
 
@@ -89,71 +64,43 @@ const Login: React.FC = () => {
         await signInAnonymously(auth);
       }
 
-      let profileData = await getProfile(currentAddr);
+      let profile = await getProfile(addressLower);
 
-      if (!profileData) {
+      if (!profile) {
         setStatus('Creating your decentralized identity...');
-        const stellarId = generateUPIFromAddress(currentAddr);
+        const stellarId = generateUPIFromAddress(addressLower);
         const { publicKey, secret } = await createWallet();
         const encryptedSecret = encryptSecret(secret, signature);
 
-        profileData = {
-          uid: currentAddr,
-          email: `${currentAddr.substring(0, 10)}@${stellarWallet ? 'freighter' : 'metamask'}`,
+        profile = {
+          uid: addressLower,
+          email: `${addressLower.substring(0, 10)}@metamask`,
           stellarId: stellarId,
           publicKey,
           encryptedSecret,
           isFamilyOwner: true,
-          displayName: currentAddr.substring(0, 6) + '...' + currentAddr.substring(currentAddr.length - 4),
-          avatarSeed: currentAddr
+          displayName: addressLower.substring(0, 6) + '...' + addressLower.substring(38),
+          avatarSeed: addressLower
         };
 
-        await saveUser(profileData);
+        await saveUser(profile);
       }
 
-      // SET STORAGE
-      const addrKey = stellarWallet ? 'freighter_address' : 'web3_address';
-      localStorage.setItem(addrKey, currentAddr);
+      localStorage.setItem('web3_address', addressLower);
       localStorage.setItem('temp_vault_key', signature);
 
-      setStatus('Vault Unlocked! Syncing...');
-
-      // Critical: Ensure context is aware of the new profile
-      refreshProfileSync(currentAddr);
+      // Refresh AuthContext so it acknowledges the new session immediately
+      refreshProfileSync(addressLower);
 
       setStatus('Success! Opening vault...');
-
-      // Force a short wait to ensure Firebase/Context catches up
-      setTimeout(() => {
-        console.log("Login: Redirecting to dashboard...");
-        navigate('/', { replace: true });
-      }, 1200);
-
+      setTimeout(() => navigate(from), 800);
     } catch (err: any) {
       console.error("Login Error:", err);
       let errorMsg = err.message || "Connection failed";
-
-      // Normalize error messages
-      const lowerMsg = errorMsg.toLowerCase();
-      if (lowerMsg.includes("user declined") ||
-        lowerMsg.includes("cancelled") ||
-        lowerMsg.includes("rejected") ||
-        lowerMsg.includes("declined")) {
-        errorMsg = "Verification cancelled";
-      }
-
+      if (err.code === 4001) errorMsg = "Verification cancelled";
       setStatus(errorMsg);
       setLoading(false);
-      // Reset local connection state to allow retry
-      setIsConnectedLocally(false);
-      setFreighterAddr(null);
-      setIsFreighter(false);
     }
-  };
-
-  const handleSignAndLogin = () => {
-    const currentAddr = isFreighter ? freighterAddr : addressLower;
-    if (currentAddr) signAndLogin(currentAddr, isFreighter);
   };
 
   const handleConnectWallet = async () => {
@@ -164,49 +111,13 @@ const Login: React.FC = () => {
     } catch (err: any) {
       console.error("Connect Error:", err);
       setStatus(err.message || "Failed to connect");
-      setLoading(false);
-    }
-  };
-
-  const handleConnectFreighter = async () => {
-    setLoading(true);
-    setStatus('Connecting to Freighter...');
-    try {
-      const pubkey = await connectFreighter();
-      if (pubkey) {
-        setFreighterAddr(pubkey);
-        setIsFreighter(true);
-        setIsConnectedLocally(true);
-        // Automatically trigger signature
-        await signAndLogin(pubkey, true);
-      }
-    } catch (err: any) {
-      console.error("Freighter Error:", err);
-      setStatus(err.message || "Freighter connection failed");
+    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden">
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300">
-          <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 animate-pulse">
-            <Loader2 className="text-[#E5D5B3] animate-spin" size={32} />
-          </div>
-          <h3 className="text-xl font-black tracking-tight mb-2">Secure Vault Access</h3>
-          <p className="text-[#E5D5B3] text-xs font-black uppercase tracking-widest opacity-60 animate-pulse">
-            {status || 'Connecting to Stellar...'}
-          </p>
-          {status.includes('request') && (
-            <div className="mt-8 px-6 py-3 bg-white/5 rounded-2xl border border-white/10 animate-bounce">
-              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Action Required in Wallet</p>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Rich Background Aesthetics */}
       <div className="absolute top-0 left-0 right-0 h-screen overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#E5D5B3]/5 rounded-full blur-[120px]"></div>
@@ -214,20 +125,25 @@ const Login: React.FC = () => {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
       </div>
 
-      {/* Header Area */}
-      <div className="relative z-20 pt-12 px-8 flex flex-col items-center text-center">
+      {/* Header / Brand Area */}
+      <div className="relative z-20 pt-48 px-8 flex flex-col items-center text-center">
         <div className="space-y-2">
-          <h2 className="text-zinc-500 font-black text-[10px] uppercase tracking-[0.4em]">Stellarpay Protocol</h2>
+          <h2 className="text-zinc-500 font-black text-[10px] uppercase tracking-[0.4em] ml-1">Stellarpay Protocol</h2>
           <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent italic">
             The New Web3 UPI
           </h1>
         </div>
       </div>
 
-      {/* Content Area */}
+
+      {/* Content / Interaction Area */}
       <div className="relative z-20 mt-auto p-8 pb-8 space-y-6">
+
         {isConnectedLocally ? (
           <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
+
+
+            {/* Action Button */}
             <button
               onClick={handleSignAndLogin}
               disabled={loading}
@@ -238,7 +154,10 @@ const Login: React.FC = () => {
                 {loading ? (
                   <Loader2 className="text-black animate-spin" size={24} />
                 ) : (
-                  <span className="text-black text-lg font-black">Sign message to continue</span>
+                  <>
+                    <span className="text-black text-lg font-black ">Sign message to continue</span>
+                    {/* <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} /> */}
+                  </>
                 )}
               </div>
             </button>
@@ -246,41 +165,52 @@ const Login: React.FC = () => {
         ) : (
           <div className="space-y-4">
             <button
-              onClick={handleConnectFreighter}
-              disabled={loading}
-              className="group relative w-full h-[72px] rounded-[1.5rem] overflow-hidden transition-all active:scale-[0.98] border border-white/10"
-            >
-              <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10"></div>
-              <div className="relative h-full flex items-center justify-center gap-3 px-6">
-                <span className="text-white text-lg font-black tracking-tight">Login with Freighter</span>
-              </div>
-            </button>
-
-            <button
               onClick={handleConnectWallet}
               disabled={loading}
               className="group relative w-full h-[72px] rounded-[1.5rem] overflow-hidden transition-all active:scale-[0.98]"
             >
               <div className="absolute inset-0 gold-gradient group-hover:brightness-110"></div>
               <div className="relative h-full flex items-center justify-center gap-3 px-6">
-                <span className="text-black text-lg font-black tracking-tight">MetaMask & Others</span>
+                {loading ? (
+                  <Loader2 className="text-black animate-spin" size={24} />
+                ) : (
+                  <>
+                    {/* <Wallet className="text-black" size={24} strokeWidth={3} /> */}
+                    <span className="text-black text-lg font-black ">Continue with wallet Login</span>
+                    {/* <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} /> */}
+                  </>
+                )}
               </div>
             </button>
+
           </div>
         )}
 
-        {status && !loading && (
+        {/* Status Message Display */}
+        {status && (
           <div className="text-center animate-in fade-in duration-500">
             <p className="text-[#E5D5B3] text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
               {status}
             </p>
           </div>
         )}
+
       </div>
 
-      <div className="relative z-20 px-4 pb-12">
-        <img src={mainImage} alt="StellarPay UI" className="w-full rounded-[2rem] shadow-2xl relative z-10" />
+      {/* New Bottom Image */}
+      <div className="relative z-20 px-4 pb-12 animate-in fade-in slide-in-from-bottom-10 duration-1000">
+        <div className="relative group">
+          <div className="absolute inset-0 bg-[#E5D5B3]/5 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+          <img
+            src={mainImage}
+            alt="StellarPay UI"
+            className="w-full rounded-[2rem] shadow-2xl relative z-10"
+          />
+        </div>
       </div>
+
+      {/* Aesthetic Grain Fade */}
+      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };

@@ -2,11 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Waves, AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
-import { useNetwork } from '../context/NetworkContext';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
-  const { isMainnet, networkName } = useNetwork();
   const [error, setError] = useState('');
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [scanResult, setScanResult] = useState<{ pa: string, pn: string, am?: string, platform?: string, type: 'upi' | 'stellar' } | null>(null);
@@ -257,7 +255,7 @@ const QRScanner: React.FC = () => {
                   <div className="space-y-1">
                     <p className="text-[10px] font-black uppercase tracking-widest text-amber-500">Action Required</p>
                     <p className="text-[11px] font-medium text-amber-500/70 leading-relaxed">
-                      Payments to external VPAs are in sandbox. <span className="font-bold text-amber-500 uppercase tracking-tighter">Use {isMainnet ? 'Mainnet' : 'Testnet'}</span> to bridge assets via Profile settings if you need to complete this transaction.
+                      Payments to external VPAs are in sandbox. <span className="font-bold text-amber-500 uppercase tracking-tighter">Switch to Testnet</span> via Profile Settings to bridge assets and complete this transaction.
                     </p>
                   </div>
                 </div>

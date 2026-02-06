@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -10,14 +9,17 @@
   --premium-card: #262626;
   --premium-zinc-500: #71717A;
 }
-html{
+
+html {
   background-color: var(--premium-bg);
   padding: 0;
   margin: 0;
 }
+
 #reader__scan_region {
   /* position: static !important; */
 }
+
 body {
   background-color: var(--premium-bg);
   color: white;
@@ -59,15 +61,4 @@ input::-webkit-inner-spin-button {
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-
-
-@layer utilities {
-  @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .animate-spin-slow {
-    animation: spin-slow 8s linear infinite;
-  }
 }
