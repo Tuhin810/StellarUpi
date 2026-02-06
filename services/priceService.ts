@@ -12,7 +12,7 @@ export type CryptoPriceInfo = {
 
 /**
  * Fetches the live price of a specific cryptocurrency in INR
- * @param id The CoinGecko ID (e.g., 'stellar', 'celo')
+ * @param id The CoinGecko ID (e.g., 'stellar')
  * @returns The price in INR
  */
 export const getLivePrice = async (id: string): Promise<number> => {
@@ -27,14 +27,12 @@ export const getLivePrice = async (id: string): Promise<number> => {
     
     // Fallbacks if API returns empty but no error
     if (id === 'stellar') return 15.02;
-    if (id === 'celo') return 56.12;
     
     return 0;
   } catch (error) {
     console.error(`Error fetching price for ${id}:`, error);
     // Hardcoded fallbacks based on recent market rates
     if (id === 'stellar') return 15.02;
-    if (id === 'celo') return 56.12;
     return 0;
   }
 };
@@ -55,7 +53,7 @@ export const calculateCryptoToSend = async (
   
   const amount = (inrAmount / livePrice) * buffer;
   
-  // Precision adjustment: Stellar uses 7 decimals, Celo/EVM uses 18
+  // Precision adjustment: Stellar uses 7 decimals
   // 4-6 decimal places is usually plenty for UI display
   return Number(amount.toFixed(6));
 };

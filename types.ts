@@ -42,7 +42,7 @@ export interface TransactionRecord {
   txHash?: string;
   isFamilySpend: boolean;
   spenderId?: string;
-  asset?: 'XLM' | 'CELO';
+  asset?: 'XLM';
   category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
 }
 
