@@ -501,6 +501,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
                 <button
                     onClick={() => {
                         localStorage.removeItem('web3_address');
+                        localStorage.removeItem('freighter_address');
                         localStorage.removeItem('temp_vault_key');
                         window.location.href = '/login';
                     }}

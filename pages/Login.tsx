@@ -9,6 +9,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Wallet, Loader2, ArrowRight, ShieldCheck, Zap, Lock, Compass } from 'lucide-react';
 import { useNetwork } from '../context/NetworkContext';
 import { BrowserProvider } from 'ethers';
+import { connectFreighter, freighterSignMessage } from '../services/freighter';
 import mainImage from '../assets/image copy.png';
 
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,8 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isConnectedLocally, setIsConnectedLocally] = useState(false);
+  const [isFreighter, setIsFreighter] = useState(false);
+  const [freighterAddr, setFreighterAddr] = useState<string | null>(null);
   const from = location.state?.from || '/';
 
   // Web3Modal hooks
@@ -43,22 +46,38 @@ const Login: React.FC = () => {
         navigate(from);
       }
     } else {
-      setIsConnectedLocally(false);
+      const storedFreighter = localStorage.getItem('freighter_address');
+      const storedKey = localStorage.getItem('temp_vault_key');
+      if (storedFreighter && storedKey) {
+        setIsConnectedLocally(true);
+        setIsFreighter(true);
+        setFreighterAddr(storedFreighter);
+        navigate(from);
+      } else {
+        setIsConnectedLocally(false);
+      }
     }
   }, [isConnected, addressLower, walletProvider, navigate]);
 
-  const handleSignAndLogin = async () => {
-    if (!addressLower || !walletProvider) return;
-
+  const signAndLogin = async (currentAddr: string, stellarWallet: boolean) => {
     setLoading(true);
     setStatus('Generating encryption keys...');
 
     try {
-      const provider = new BrowserProvider(walletProvider);
-      const signer = await provider.getSigner();
-
+      let signature = '';
       const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
-      const signature = await signer.signMessage(message);
+
+      if (stellarWallet) {
+        setStatus('Check Freighter for signature request...');
+        signature = await freighterSignMessage(message);
+      } else if (walletProvider) {
+        setStatus('Check window for signature request...');
+        const provider = new BrowserProvider(walletProvider);
+        const signer = await provider.getSigner();
+        signature = await signer.signMessage(message);
+      } else {
+        throw new Error("No wallet provider found");
+      }
 
       setStatus('Authenticating with Stellar...');
 
@@ -66,43 +85,48 @@ const Login: React.FC = () => {
         await signInAnonymously(auth);
       }
 
-      let profile = await getProfile(addressLower);
+      let profile = await getProfile(currentAddr);
 
       if (!profile) {
         setStatus('Creating your decentralized identity...');
-        const stellarId = generateUPIFromAddress(addressLower);
+        const stellarId = generateUPIFromAddress(currentAddr);
         const { publicKey, secret } = await createWallet();
         const encryptedSecret = encryptSecret(secret, signature);
 
         profile = {
-          uid: addressLower,
-          email: `${addressLower.substring(0, 10)}@metamask`,
+          uid: currentAddr,
+          email: `${currentAddr.substring(0, 10)}@${stellarWallet ? 'freighter' : 'metamask'}`,
           stellarId: stellarId,
           publicKey,
           encryptedSecret,
           isFamilyOwner: true,
-          displayName: addressLower.substring(0, 6) + '...' + addressLower.substring(38),
-          avatarSeed: addressLower
+          displayName: currentAddr.substring(0, 6) + '...' + currentAddr.substring(currentAddr.length - 4),
+          avatarSeed: currentAddr
         };
 
         await saveUser(profile);
       }
 
-      localStorage.setItem('web3_address', addressLower);
+      localStorage.setItem(stellarWallet ? 'freighter_address' : 'web3_address', currentAddr);
       localStorage.setItem('temp_vault_key', signature);
 
       // Refresh AuthContext so it acknowledges the new session immediately
-      refreshProfileSync(addressLower);
+      refreshProfileSync(currentAddr);
 
       setStatus('Success! Opening vault...');
       setTimeout(() => navigate(from), 800);
     } catch (err: any) {
       console.error("Login Error:", err);
       let errorMsg = err.message || "Connection failed";
-      if (err.code === 4001) errorMsg = "Verification cancelled";
+      if (err.code === 4001 || err.message?.includes("User declined")) errorMsg = "Verification cancelled";
       setStatus(errorMsg);
       setLoading(false);
     }
+  };
+
+  const handleSignAndLogin = () => {
+    const currentAddr = isFreighter ? freighterAddr : addressLower;
+    if (currentAddr) signAndLogin(currentAddr, isFreighter);
   };
 
   const handleConnectWallet = async () => {
@@ -114,6 +138,25 @@ const Login: React.FC = () => {
       console.error("Connect Error:", err);
       setStatus(err.message || "Failed to connect");
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConnectFreighter = async () => {
+    setLoading(true);
+    setStatus('Connecting to Freighter...');
+    try {
+      const pubkey = await connectFreighter();
+      if (pubkey) {
+        setFreighterAddr(pubkey);
+        setIsFreighter(true);
+        setIsConnectedLocally(true);
+        // Automatically trigger signature
+        await signAndLogin(pubkey, true);
+      }
+    } catch (err: any) {
+      console.error("Freighter Error:", err);
+      setStatus(err.message || "Freighter connection failed");
       setLoading(false);
     }
   };
@@ -170,6 +213,17 @@ const Login: React.FC = () => {
         ) : (
           <div className="space-y-4">
             <button
+              onClick={handleConnectFreighter}
+              disabled={loading}
+              className="group relative w-full h-[72px] rounded-[1.5rem] overflow-hidden transition-all active:scale-[0.98] border border-white/10"
+            >
+              <div className="absolute inset-0 bg-white/5 group-hover:bg-white/10"></div>
+              <div className="relative h-full flex items-center justify-center gap-3 px-6">
+                <span className="text-white text-lg font-black tracking-tight">Login with Freighter</span>
+              </div>
+            </button>
+
+            <button
               onClick={handleConnectWallet}
               disabled={loading}
               className="group relative w-full h-[72px] rounded-[1.5rem] overflow-hidden transition-all active:scale-[0.98]"
@@ -180,14 +234,11 @@ const Login: React.FC = () => {
                   <Loader2 className="text-black animate-spin" size={24} />
                 ) : (
                   <>
-                    {/* <Wallet className="text-black" size={24} strokeWidth={3} /> */}
-                    <span className="text-black text-lg font-black ">Continue with wallet Login</span>
-                    {/* <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} /> */}
+                    <span className="text-black text-lg font-black tracking-tight">MetaMask & Others</span>
                   </>
                 )}
               </div>
             </button>
-
           </div>
         )}
 

@@ -11,6 +11,7 @@
   "dependencies": {
     "@lottiefiles/dotlottie-react": "^0.17.13",
     "@onramp.money/onramp-web-sdk": "^1.7.0",
+    "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^14.4.3",
     "@transak/ui-js-sdk": "^1.0.0",
     "@web3modal/ethers": "^5.1.11",
