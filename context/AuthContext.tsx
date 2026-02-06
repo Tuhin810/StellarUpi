@@ -107,15 +107,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, []);
 
-    const value = {
+    const refreshProfileSync = React.useCallback((uid: string) => {
+        console.log("AuthContext: Manual refresh for", uid);
+        return setupProfileListener(uid);
+    }, []);
+
+    const value = React.useMemo(() => ({
         profile,
         loading,
         isAuthenticated: !!profile,
-        refreshProfileSync: (uid: string) => {
-            console.log("AuthContext: Explicit refresh for", uid);
-            return setupProfileListener(uid);
-        }
-    };
+        refreshProfileSync
+    }), [profile, loading, refreshProfileSync]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

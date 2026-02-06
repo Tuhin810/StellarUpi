@@ -32,15 +32,18 @@ const Login: React.FC = () => {
 
   const addressLower = address?.toLowerCase();
 
+  const navigationAttempted = React.useRef(false);
+
   // Effect to handle session restoration and connection state
   useEffect(() => {
     // If we're already locked in a process, don't do background sync
-    if (loading || isConnectedLocally) return;
+    if (loading || isConnectedLocally || navigationAttempted.current) return;
 
     const storedAddr = localStorage.getItem('web3_address') || localStorage.getItem('freighter_address');
     const storedKey = localStorage.getItem('temp_vault_key');
 
     if (storedAddr && storedKey) {
+      navigationAttempted.current = true;
       console.log("Login: Session found, syncing profile...");
       refreshProfileSync(storedAddr);
 
@@ -56,7 +59,7 @@ const Login: React.FC = () => {
       console.log("Login: Web3 account detected");
       setIsConnectedLocally(true);
     }
-  }, [isConnected, addressLower, walletProvider, navigate, loading, isConnectedLocally, from]);
+  }, [isConnected, addressLower, walletProvider, navigate, loading, isConnectedLocally, refreshProfileSync]);
 
   const signAndLogin = async (currentAddr: string, stellarWallet: boolean) => {
     if (loading && status.includes('request')) return; // Prevent double trigger
