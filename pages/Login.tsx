@@ -130,15 +130,7 @@ const Login: React.FC = () => {
       {/* Header / Brand Area */}
       <div className="relative z-20 pt-12 px-8 flex flex-col items-center text-center">
         {/* Network Badge */}
-        <div className={`mb-8 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border backdrop-blur-md animate-in fade-in duration-1000 ${isMainnet
-          ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-          : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
-          }`}>
-          <Zap size={14} fill="currentColor" className="opacity-50" />
-          <span className="text-[10px] font-black uppercase tracking-widest leading-none">
-            {networkName} Official Chain
-          </span>
-        </div>
+
 
         <div className="space-y-2">
           <h2 className="text-zinc-500 font-black text-[10px] uppercase tracking-[0.4em] ml-1">Stellarpay Protocol</h2>
