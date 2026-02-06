@@ -35,29 +35,24 @@ const Login: React.FC = () => {
 
   // Effect to handle session restoration and connection state
   useEffect(() => {
-    // If we're already in the middle of a login or already connected locally, don't interfere
-    if (loading || isConnectedLocally || isFreighter) return;
+    // If we're already locked in a process, don't do background sync
+    if (loading || isConnectedLocally) return;
+
+    const storedAddr = localStorage.getItem('web3_address') || localStorage.getItem('freighter_address');
+    const storedKey = localStorage.getItem('temp_vault_key');
+
+    if (storedAddr && storedKey) {
+      // We have credentials, just navigate. AuthContext will handle the listener.
+      console.log("Login: Session found, auto-navigating");
+      navigate(from, { replace: true });
+      return;
+    }
 
     if (isConnected && addressLower && walletProvider) {
+      console.log("Login: Web3 account detected");
       setIsConnectedLocally(true);
-
-      const storedAddr = localStorage.getItem('web3_address');
-      const storedKey = localStorage.getItem('temp_vault_key');
-
-      if (storedAddr === addressLower && storedKey) {
-        navigate(from, { replace: true });
-      }
-    } else {
-      const storedFreighter = localStorage.getItem('freighter_address');
-      const storedKey = localStorage.getItem('temp_vault_key');
-      if (storedFreighter && storedKey) {
-        setIsConnectedLocally(true);
-        setIsFreighter(true);
-        setFreighterAddr(storedFreighter);
-        navigate(from, { replace: true });
-      }
     }
-  }, [isConnected, addressLower, walletProvider, navigate, loading, isConnectedLocally, isFreighter]);
+  }, [isConnected, addressLower, walletProvider, navigate, loading, isConnectedLocally]);
 
   const signAndLogin = async (currentAddr: string, stellarWallet: boolean) => {
     if (loading && status.includes('request')) return; // Prevent double trigger
@@ -119,19 +114,22 @@ const Login: React.FC = () => {
       await refreshProfileSync(currentAddr);
 
       setStatus('Success! Opening vault...');
-      // Small delay to ensure state propagates
+      // Small delay to ensure state propagates, then HARD reload to target
       setTimeout(() => {
-        navigate(from, { replace: true });
-      }, 500);
+        window.location.href = from;
+      }, 1000);
 
     } catch (err: any) {
       console.error("Login Error:", err);
       let errorMsg = err.message || "Connection failed";
-      if (err.code === 4001 || err.message?.includes("User declined") || err.message?.includes("cancelled")) {
+      if (errorMsg.toLowerCase().includes("user declined") ||
+        errorMsg.toLowerCase().includes("cancelled") ||
+        errorMsg.toLowerCase().includes("rejected")) {
         errorMsg = "Verification cancelled";
       }
       setStatus(errorMsg);
       setLoading(false);
+      setIsConnectedLocally(false); // Reset UI to choose wallet again if it fails
     }
   };
 
@@ -174,6 +172,24 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-300">
+          <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 animate-pulse">
+            <Loader2 className="text-[#E5D5B3] animate-spin" size={32} />
+          </div>
+          <h3 className="text-xl font-black tracking-tight mb-2">Secure Vault Access</h3>
+          <p className="text-[#E5D5B3] text-xs font-black uppercase tracking-widest opacity-60 animate-pulse">
+            {status || 'Connecting to Stellar...'}
+          </p>
+          {status.includes('request') && (
+            <div className="mt-8 px-6 py-3 bg-white/5 rounded-2xl border border-white/10 animate-bounce">
+              <p className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Action Required in Wallet</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Rich Background Aesthetics */}
       <div className="absolute top-0 left-0 right-0 h-screen overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#E5D5B3]/5 rounded-full blur-[120px]"></div>

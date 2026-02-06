@@ -28,32 +28,19 @@ export const isFreighterInstalled = async () => {
 export const connectFreighter = async () => {
     console.log("Freighter: connectFreighter called");
     if (!await isFreighterInstalled()) {
-        console.warn("Freighter: Not installed");
         throw new Error("Freighter not installed");
     }
 
-    console.log("Freighter: Checking if allowed...");
-    const { isAllowed: allowed } = await withTimeout(isAllowed());
-    if (!allowed) {
-        console.log("Freighter: Not allowed, calling setAllowed...");
-        const result = await withTimeout(setAllowed());
-        if (result.error) {
-            console.error("Freighter: setAllowed error", result.error);
-            throw new Error(result.error);
-        }
-        if (!result.isAllowed) {
-            console.error("Freighter: setAllowed rejected");
-            throw new Error("User rejected Freighter connection");
-        }
-    }
+    console.log("Freighter: Requesting permission...");
+    const { isAllowed: allowed, error } = await withTimeout(setAllowed());
+    if (error) throw new Error(error);
+    if (!allowed) throw new Error("Connection rejected");
 
     console.log("Freighter: Fetching address...");
-    const { address, error } = await withTimeout(getAddress());
-    if (error) {
-        console.error("Freighter: getAddress error", error);
-        throw new Error(error);
-    }
-    console.log("Freighter: Got address", address);
+    const { address, error: addrError } = await withTimeout(getAddress());
+    if (addrError) throw new Error(addrError);
+    if (!address) throw new Error("No address returned");
+
     return address;
 };
 

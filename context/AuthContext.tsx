@@ -111,7 +111,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         profile,
         loading,
         isAuthenticated: !!profile,
-        refreshProfileSync: setupProfileListener
+        refreshProfileSync: (uid: string) => {
+            console.log("AuthContext: Explicit refresh for", uid);
+            return setupProfileListener(uid);
+        }
     };
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
