@@ -35,15 +35,17 @@ const Login: React.FC = () => {
 
   // Effect to handle session restoration and connection state
   useEffect(() => {
+    // If we're already in the middle of a login or already connected locally, don't interfere
+    if (loading || isConnectedLocally || isFreighter) return;
+
     if (isConnected && addressLower && walletProvider) {
       setIsConnectedLocally(true);
 
-      // Auto-navigation if already unlocked
       const storedAddr = localStorage.getItem('web3_address');
       const storedKey = localStorage.getItem('temp_vault_key');
 
       if (storedAddr === addressLower && storedKey) {
-        navigate(from);
+        navigate(from, { replace: true });
       }
     } else {
       const storedFreighter = localStorage.getItem('freighter_address');
@@ -52,14 +54,14 @@ const Login: React.FC = () => {
         setIsConnectedLocally(true);
         setIsFreighter(true);
         setFreighterAddr(storedFreighter);
-        navigate(from);
-      } else {
-        setIsConnectedLocally(false);
+        navigate(from, { replace: true });
       }
     }
-  }, [isConnected, addressLower, walletProvider, navigate]);
+  }, [isConnected, addressLower, walletProvider, navigate, loading, isConnectedLocally, isFreighter]);
 
   const signAndLogin = async (currentAddr: string, stellarWallet: boolean) => {
+    if (loading && status.includes('request')) return; // Prevent double trigger
+
     setLoading(true);
     setStatus('Generating encryption keys...');
 
@@ -85,15 +87,15 @@ const Login: React.FC = () => {
         await signInAnonymously(auth);
       }
 
-      let profile = await getProfile(currentAddr);
+      let profileData = await getProfile(currentAddr);
 
-      if (!profile) {
+      if (!profileData) {
         setStatus('Creating your decentralized identity...');
         const stellarId = generateUPIFromAddress(currentAddr);
         const { publicKey, secret } = await createWallet();
         const encryptedSecret = encryptSecret(secret, signature);
 
-        profile = {
+        profileData = {
           uid: currentAddr,
           email: `${currentAddr.substring(0, 10)}@${stellarWallet ? 'freighter' : 'metamask'}`,
           stellarId: stellarId,
@@ -104,21 +106,30 @@ const Login: React.FC = () => {
           avatarSeed: currentAddr
         };
 
-        await saveUser(profile);
+        await saveUser(profileData);
       }
 
+      // SET STORAGE FIRST
       localStorage.setItem(stellarWallet ? 'freighter_address' : 'web3_address', currentAddr);
       localStorage.setItem('temp_vault_key', signature);
 
-      // Refresh AuthContext so it acknowledges the new session immediately
-      refreshProfileSync(currentAddr);
+      setStatus('Vault Unlocked! Syncing...');
+
+      // Refresh AuthContext
+      await refreshProfileSync(currentAddr);
 
       setStatus('Success! Opening vault...');
-      setTimeout(() => navigate(from), 800);
+      // Small delay to ensure state propagates
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 500);
+
     } catch (err: any) {
       console.error("Login Error:", err);
       let errorMsg = err.message || "Connection failed";
-      if (err.code === 4001 || err.message?.includes("User declined")) errorMsg = "Verification cancelled";
+      if (err.code === 4001 || err.message?.includes("User declined") || err.message?.includes("cancelled")) {
+        errorMsg = "Verification cancelled";
+      }
       setStatus(errorMsg);
       setLoading(false);
     }
