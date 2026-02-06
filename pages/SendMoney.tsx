@@ -5,6 +5,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee } from 'lucide-react';
 import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
+import { getCeloBalance, sendCeloPayment, switchToCelo, checkCeloNetwork } from '../services/celo';
+import { getLivePrice, calculateCryptoToSend } from '../services/priceService';
 import { decryptSecret } from '../services/encryption';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
@@ -58,6 +60,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
 
+  const [selectedAsset, setSelectedAsset] = useState<'XLM' | 'CELO'>('XLM');
+  const [xlmRate, setXlmRate] = useState<number>(15.02);
+  const [celoRate, setCeloRate] = useState<number>(56.12);
+  const [celoBalance, setCeloBalance] = useState<string>('0.00');
+  const [isCeloConnected, setIsCeloConnected] = useState(false);
+
   const [onStellarContacts, setOnStellarContacts] = useState<Contact[]>([]);
   const [inviteContacts, setInviteContacts] = useState<{ name: string, phone: string }[]>([]);
   const [syncing, setSyncing] = useState(false);
@@ -68,6 +76,18 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       try {
         const balance = await getBalance(profile.publicKey);
         setWalletBalance(balance);
+
+        // Fetch Celo balance if address is available (using public key as placeholder or if wallet is connected)
+        // In a real app, you'd have the user's Celo address in their profile
+        // For now, we'll check if a wallet is connected via Web3Modal
+        const currentCeloBalance = await getCeloBalance(profile.publicKey); // Assuming same PK for demo or separate field
+        setCeloBalance(currentCeloBalance);
+
+        // Fetch rates
+        const xRate = await getLivePrice('stellar');
+        const cRate = await getLivePrice('celo');
+        setXlmRate(xRate);
+        setCeloRate(cRate);
 
         // Fetch ALL family memberships for this user
         const q = query(collection(db, 'family'), where('uid', '==', profile.uid), where('active', '==', true));
@@ -129,7 +149,20 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
     const loadTarget = async () => {
       const toParam = searchParams.get('to');
+      const pnParam = searchParams.get('pn');
+      const modeParam = searchParams.get('mode');
+
       if (toParam) {
+        if (modeParam === 'upi') {
+          // It's an external UPI QR code
+          setSelectedContact({
+            id: toParam,
+            name: pnParam || toParam.split('@')[0],
+            avatarSeed: toParam
+          });
+          return;
+        }
+
         const p = await getProfileByStellarId(toParam);
         setSelectedContact({
           id: toParam,
@@ -218,7 +251,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const xlmToInrRaw = (xlm: string) => parseFloat(xlm) * 8.42;
+  const currentRate = selectedAsset === 'XLM' ? xlmRate : celoRate;
+
+  const cryptoToInrRaw = (amount: string) => parseFloat(amount) * currentRate;
+  const cryptoToInr = (amount: string) => cryptoToInrRaw(amount).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+  const xlmToInrRaw = (xlm: string) => parseFloat(xlm) * xlmRate;
   const xlmToInr = (xlm: string) => xlmToInrRaw(xlm).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
   // Get the currently selected family wallet
@@ -244,8 +282,18 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
     const amtNum = parseFloat(amount);
     try {
-      const recipient = await getUserById(selectedContact.id);
-      if (!recipient) throw new Error("Recipient ID not found");
+      let recipientPubKey = '';
+      const isInternalStellar = selectedContact.id.endsWith('@stellar');
+
+      if (isInternalStellar) {
+        const recipient = await getUserById(selectedContact.id);
+        if (!recipient) throw new Error("Recipient ID not found");
+        recipientPubKey = recipient.publicKey;
+      } else {
+        // External UPI Merchant - Send funds to the Bridge Address
+        // This is where the XLM -> INR swap happens
+        recipientPubKey = 'GBRIDGE2DP6K2Y7O5V4P4X5P4Q4X5P4Q4X5P4Q4X5P4Q4X5P4Q4BRIDGE'; // Placeholder Bridge
+      }
 
       if (paymentMethod === 'family' && selectedFamilyWallet) {
         if (amtNum > getFamilyRemainingLimit(selectedFamilyWallet)) throw new Error("Exceeds daily spending limit");
@@ -265,8 +313,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           throw new Error("Invalid Authorization Key. The family owner may need to re-authorize your access.");
         }
 
-        const xlmAmount = (amtNum / 8.42).toFixed(7);
-        const hash = await sendPayment(ownerSecret, recipient.publicKey, xlmAmount, `FamilySpend: ${profile.stellarId}`);
+        // Apply 5% buffer for merchant/family stability
+        const conversionBuffer = 1.05;
+        const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
+        const hash = await sendPayment(ownerSecret, recipientPubKey, xlmAmount, `FamilyPay: ${selectedContact.id}`);
         await updateFamilySpend(selectedFamilyWallet.permission.id, amtNum);
         await recordTransaction({
           fromId: selectedFamilyWallet.ownerProfile.stellarId,
@@ -298,9 +348,27 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
         const password = localStorage.getItem('temp_vault_key');
         if (!password) throw new Error("Vault locked. Please login again.");
-        const secret = decryptSecret(profile.encryptedSecret, password);
-        const xlmAmount = (amtNum / 8.42).toFixed(7);
-        const hash = await sendPayment(secret, recipient.publicKey, xlmAmount, memo || "Sent via StellarPay");
+
+        let hash = '';
+        const conversionBuffer = 1.05;
+
+        if (selectedAsset === 'XLM') {
+          const secret = decryptSecret(profile.encryptedSecret, password);
+          const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
+          hash = await sendPayment(secret, recipientPubKey, xlmAmount, memo || `UPI Pay: ${selectedContact.id}`);
+        } else {
+          // Celo Payment logic
+          const isCorrectNetwork = await checkCeloNetwork(true);
+          if (!isCorrectNetwork) {
+            await switchToCelo(true);
+            throw new Error("Switched to Celo network. Please confirm the payment again.");
+          }
+
+          const celoAmount = ((amtNum / celoRate) * conversionBuffer).toFixed(6);
+          // For external UPI via Celo, we'd also use a bridge address
+          const celoBridge = '0x1c80C27C75F798036B6940Ba7C7eaF90279d4661';
+          hash = await sendCeloPayment(isInternalStellar ? recipientPubKey : celoBridge, celoAmount);
+        }
 
         await updatePersonalSpend(profile.uid, amtNum);
         await recordTransaction({
@@ -313,6 +381,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           status: 'SUCCESS',
           txHash: hash,
           isFamilySpend: false,
+          asset: selectedAsset,
           category: category
         });
 
@@ -478,6 +547,22 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
               </div>
             </div>
 
+            {/* Asset Selector */}
+            <div className="flex gap-2 mb-8 bg-zinc-900/50 p-1 rounded-2xl border border-white/5">
+              <button
+                onClick={() => setSelectedAsset('XLM')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedAsset === 'XLM' ? 'bg-[#E5D5B3] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Stellar XLM
+              </button>
+              <button
+                onClick={() => setSelectedAsset('CELO')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${selectedAsset === 'CELO' ? 'bg-[#E5D5B3] text-black shadow-lg' : 'text-zinc-500 hover:text-white'}`}
+              >
+                Celo CELO
+              </button>
+            </div>
+
             {/* Note Input */}
             {/* <div className="w-full max-w-[240px] relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all group-focus-within:scale-110">
@@ -528,9 +613,9 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   <Wallet size={18} />
                 </div>
                 <div className="text-left">
-                  <p className="font-black text-black text-sm tracking-tight">Main Vault</p>
+                  <p className="font-black text-black text-sm tracking-tight">Main {selectedAsset} Vault</p>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                    Available: ₹{loadingBalances ? '...' : xlmToInr(walletBalance)}
+                    Available: ₹{loadingBalances ? '...' : (selectedAsset === 'XLM' ? xlmToInr(walletBalance) : (parseFloat(celoBalance) * celoRate).toLocaleString('en-IN', { maximumFractionDigits: 0 }))}
                   </p>
                 </div>
               </div>

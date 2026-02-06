@@ -1,7 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { getBalance } from '../services/stellar';
-import { RefreshCcw } from 'lucide-react';
+import { getCeloBalance } from '../services/celo';
+import { getLivePrice } from '../services/priceService';
+import { RefreshCcw, Wallet } from 'lucide-react';
 // import chip from '../assets/chip.png';
 interface Props {
   publicKey: string;
@@ -10,13 +12,26 @@ interface Props {
 
 const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
   const [balance, setBalance] = useState('0.00');
+  const [celoBalance, setCeloBalance] = useState('0.00');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [rates, setRates] = useState({ xlm: 15.02, celo: 56.12 });
 
   const fetchBalance = async () => {
     setRefreshing(true);
-    const b = await getBalance(publicKey);
-    setBalance(b);
+    try {
+      const [xlmB, celoB, xRate, cRate] = await Promise.all([
+        getBalance(publicKey),
+        getCeloBalance(publicKey), // Demo: using same PK/address field
+        getLivePrice('stellar'),
+        getLivePrice('celo')
+      ]);
+      setBalance(xlmB);
+      setCeloBalance(celoB);
+      setRates({ xlm: xRate, celo: cRate });
+    } catch (e) {
+      console.error("Balance fetch error:", e);
+    }
     setLoading(false);
     setRefreshing(false);
   };
@@ -25,9 +40,9 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
     fetchBalance();
   }, [publicKey]);
 
-  const rawInr = parseFloat(balance) * 8.42;
+  const rawInr = (parseFloat(balance) * rates.xlm) + (parseFloat(celoBalance) * rates.celo);
   const inrBalance = rawInr.toLocaleString('en-IN', {
-    maximumFractionDigits: 2,
+    maximumFractionDigits: 0,
   });
 
   return (
@@ -59,7 +74,7 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
           </div>
 
           <div className="mb-3 -mt-5">
-            <p className="text-black/60 text-xs mb-1 ">Total Balance</p>
+            <p className="text-black/60 text-xs mb-1 ">Total Asset Value</p>
             <div className="flex items-baseline gap-2">
               <h2 className="text-3xl font-black tracking-tight text-black/80">₹{loading ? '...' : inrBalance}</h2>
             </div>
@@ -67,15 +82,20 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
 
           <div className="flex justify-between items-end">
             <div>
-              <p className="text-black/60 text-xs mb-1">Native Assets</p>
-              <p className="text-black/80 font-mono tracking-wider text-sm font-bold">
-                {loading ? '...' : balance} XLM
-              </p>
+              <p className="text-black/60 text-xs mb-1">Portfolio</p>
+              <div className="flex flex-col gap-0.5">
+                <p className="text-black/80 font-mono tracking-wider text-[10px] font-bold">
+                  {balance} XLM
+                </p>
+                <p className="text-black/80 font-mono tracking-wider text-[10px] font-bold">
+                  {celoBalance} CELO
+                </p>
+              </div>
             </div>
             <div className="text-right">
-              <p className="text-black/60 text-xs mb-1">Type</p>
-              <p className="text-black/80 text-sm  font-semibold capitalize">
-                Testnet
+              <p className="text-black/60 text-xs mb-1">Network</p>
+              <p className="text-black/80 text-[10px] font-black uppercase tracking-widest">
+                Multi-Chain
               </p>
             </div>
           </div>

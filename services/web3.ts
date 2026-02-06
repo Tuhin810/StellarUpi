@@ -12,7 +12,23 @@ const mainnet = {
   name: 'Ethereum',
   currency: 'ETH',
   explorerUrl: 'https://etherscan.io',
-  rpcUrl: 'https://rpc.ankr.com/eth' // More reliable public RPC
+  rpcUrl: 'https://rpc.ankr.com/eth'
+};
+
+const celo = {
+  chainId: 42220,
+  name: 'Celo',
+  currency: 'CELO',
+  explorerUrl: 'https://celoscan.io',
+  rpcUrl: 'https://forno.celo.org'
+};
+
+const alfajores = {
+  chainId: 44787,
+  name: 'Alfajores',
+  currency: 'CELO',
+  explorerUrl: 'https://alfajores.celoscan.io',
+  rpcUrl: 'https://alfajores-forno.celo-testnet.org'
 };
 
 // Metadata for the dApp shown in wallets
@@ -30,14 +46,14 @@ const ethersConfig = defaultConfig({
   enableEIP6963: true,
   enableInjected: true,
   enableCoinbase: true,
-  rpcUrl: mainnet.rpcUrl,
-  defaultChainId: 1
+  rpcUrl: celo.rpcUrl,
+  defaultChainId: 42220
 });
 
 // Initialize Web3Modal
 createWeb3Modal({
   ethersConfig,
-  chains: [mainnet],
+  chains: [celo, alfajores, mainnet],
   projectId,
   enableAnalytics: true,
   themeMode: 'dark',

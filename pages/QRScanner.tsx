@@ -58,8 +58,9 @@ const QRScanner: React.FC = () => {
           const pa = url.searchParams.get('pa') || '';
           const pn = url.searchParams.get('pn') || '';
           const am = url.searchParams.get('am') || '';
-          const platform = getPlatform(pa);
-          setScanResult({ pa, pn, am, platform, type: 'upi' });
+
+          scanner.clear();
+          navigate(`/send?to=${pa}&amt=${am}&pn=${pn}&mode=upi`);
           return;
         } catch (e) {
           console.error("UPI Parse Error", e);
@@ -102,6 +103,11 @@ const QRScanner: React.FC = () => {
         } else if (to) {
           scanner.clear();
           navigate(`/send?to=${to}&amt=${amt}&note=${note}`);
+          return;
+        } else if (decodedText.startsWith('0x') && decodedText.length === 42) {
+          scanner.clear();
+          // Celo address detected
+          navigate(`/send?to=${decodedText}`);
           return;
         } else if (decodedText.includes('@')) {
           scanner.clear();
@@ -281,7 +287,7 @@ const QRScanner: React.FC = () => {
         {/* Instructions */}
         <div className="mt-12 text-center max-w-[200px]">
           <p className="text-zinc-400 text-sm font-medium leading-relaxed">
-            Point your camera at a <span className="text-white font-bold">Stellar</span> or <span className="text-white font-bold">UPI</span> QR code
+            Point your camera at a <span className="text-white font-bold">Stellar</span>, <span className="text-[#E5D5B3] font-bold">Celo</span> or <span className="text-white font-bold">UPI</span> QR code
           </p>
         </div>
       </div>
