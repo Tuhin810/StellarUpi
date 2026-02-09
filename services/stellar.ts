@@ -1,11 +1,11 @@
 
-import { 
-  Keypair, 
-  Asset, 
-  Operation, 
-  TransactionBuilder, 
-  Networks, 
-  Horizon, 
+import {
+  Keypair,
+  Asset,
+  Operation,
+  TransactionBuilder,
+  Networks,
+  Horizon,
   BASE_FEE,
   Memo
 } from '@stellar/stellar-sdk';
@@ -66,10 +66,10 @@ export const getBalance = async (publicKey: string): Promise<string> => {
 };
 
 export const sendPayment = async (
-  senderSecret: string, 
-  recipientPublicKey: string, 
+  senderSecret: string,
+  recipientPublicKey: string,
   amount: string,
-  memoText: string = "Sent via StellarPay"
+  memoText: string = "Sent via Ching Pay"
 ): Promise<string> => {
   const server = getServer();
   const sourceKeypair = Keypair.fromSecret(senderSecret);

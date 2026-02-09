@@ -189,7 +189,7 @@ const Subscribe: React.FC = () => {
                 </div>
                 <div>
                     <h4 className="text-sm font-bold text-white mb-1">Automatic Payments</h4>
-                    <p className="text-xs text-zinc-500 leading-relaxed">By confirming, you authorize StellarPay to automatically deduct ₹{plan?.amount} {plan?.frequency} from your wallet.</p>
+                    <p className="text-xs text-zinc-500 leading-relaxed">By confirming, you authorize Ching Pay to automatically deduct ₹{plan?.amount} {plan?.frequency} from your wallet.</p>
                 </div>
             </div>
 

@@ -1,7 +1,7 @@
-# Software Context - StellarPay UPI
+# Software Context - Ching Pay UPI
 
 ## 1. Project Background
-StellarPay UPI is a specialized fintech application built during the transition toward decentralized finance (DeFi). It leverages the Stellar blockchain's speed and low cost to provide a practical alternative to traditional payment systems like UPI in India.
+Ching Pay UPI is a specialized fintech application built during the transition toward decentralized finance (DeFi). It leverages the Stellar blockchain's speed and low cost to provide a practical alternative to traditional payment systems like UPI in India.
 
 ## 2. Technical Architecture
 The application follows a **Decentralized Frontend-Heavy** architecture:

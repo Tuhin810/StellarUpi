@@ -17,7 +17,7 @@ const mainnet = {
 
 // Metadata for the dApp shown in wallets
 const metadata = {
-  name: 'StellarPay',
+  name: 'Ching Pay',
   description: 'The New Web3 UPI Payment System',
   url: typeof window !== 'undefined' ? window.location.origin : 'https://stellarupi.netlify.app',
   icons: [typeof window !== 'undefined' ? `${window.location.origin}/icon-192.png` : 'https://stellarupi.netlify.app/icon-192.png']

@@ -66,7 +66,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
         const link = getPaymentLink();
         if (navigator.share) {
             navigator.share({
-                title: 'Pay me on StellarPay',
+                title: 'Pay me on Ching Pay',
                 text: `Pay ${profile.displayName || profile.stellarId}${linkAmount ? ` - ${linkAmount} XLM` : ''}`,
                 url: link,
             });
@@ -78,7 +78,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     const handleShare = () => {
         if (navigator.share) {
             navigator.share({
-                title: 'Pay me on StellarPay',
+                title: 'Pay me on Ching Pay',
                 text: `Send money to my Stellar UPI ID: ${profile.stellarId}`,
                 url: window.location.href,
             });

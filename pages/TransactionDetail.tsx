@@ -67,7 +67,7 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
     const handleShare = () => {
         if (navigator.share && tx.txHash) {
             navigator.share({
-                title: 'StellarPay Transaction Receipt',
+                title: 'Ching Pay Transaction Receipt',
                 text: `Payment of ₹${tx.amount} - ${tx.status}`,
                 url: `${explorerBaseUrl}/tx/${tx.txHash}`,
             });

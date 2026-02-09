@@ -44,7 +44,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
         if (!profile || !hasBalance) return;
         openSellWidget({
             walletAddress: profile.publicKey,
-            partnerOrderId: `stellarpay-sell-${Date.now()}`
+            partnerOrderId: `Ching Pay-sell-${Date.now()}`
         });
     };
 
@@ -67,8 +67,8 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
             {/* Network Badge */}
             <div className="px-6 mb-6">
                 <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${isMainnet
-                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                     }`}>
                     <Zap size={12} />
                     {networkName}
@@ -137,8 +137,8 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                     onClick={handleSellXLM}
                     disabled={!isMainnet || !hasBalance}
                     className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${isMainnet && hasBalance
-                            ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20'
-                            : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                        ? 'bg-emerald-500 text-white shadow-xl shadow-emerald-500/20'
+                        : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
                         }`}
                 >
                     <ArrowDownToLine size={22} />

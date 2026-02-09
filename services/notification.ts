@@ -197,7 +197,7 @@ export const NotificationService = {
             icon,
             badge: icon,
             vibrate: [200, 100, 200],
-            tag: 'stellarpay-update'
+            tag: 'Ching Pay-update'
           } as any);
         } else {
           new Notification(title, { body, icon });

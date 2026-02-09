@@ -1,4 +1,4 @@
-# StellarPay Hackathon Winning Roadmap
+# Ching Pay Hackathon Winning Roadmap
 
 ## 1. "Accountless" Onboarding (Claimable Balances)
 - [ ] Implement service to create Claimable Balances on Stellar.

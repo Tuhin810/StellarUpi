@@ -1,7 +1,7 @@
-# Product Requirements Document (PRD) - StellarPay UPI
+# Product Requirements Document (PRD) - Ching Pay UPI
 
 ## 1. Product Overview
-**StellarPay UPI** is a decentralized payment application that brings the seamless user experience of India's Unified Payments Interface (UPI) to the Stellar blockchain. It enables users to send and receive funds using human-readable handles (e.g., `user@stellar`) instead of complex blockchain addresses, while maintaining the security and decentralization of Web3.
+**Ching Pay UPI** is a decentralized payment application that brings the seamless user experience of India's Unified Payments Interface (UPI) to the Stellar blockchain. It enables users to send and receive funds using human-readable handles (e.g., `user@stellar`) instead of complex blockchain addresses, while maintaining the security and decentralization of Web3.
 
 ## 2. Problem Statement
 Despite the growth of blockchain technology, peer-to-peer payments remain complex for the average user due to:
@@ -72,6 +72,6 @@ Despite the growth of blockchain technology, peer-to-peer payments remain comple
     - **AI Receipt Scanner**: Integrate Gemini to parse receipt photos into group expense splits.
     - **Smart Settlement**: Use Soroban smart contracts for group escrow and decentralized voting.
     - **Spending Insights**: AI-driven analysis of transaction categories for better financial management.
-- **Merchant Integration**: API for businesses to accept StellarPay.
+- **Merchant Integration**: API for businesses to accept Ching Pay.
 - **Loyalty Program**: Rewards for frequent users.
 - **Cross-Chain Support**: Bridging other assets to the Stellar network.

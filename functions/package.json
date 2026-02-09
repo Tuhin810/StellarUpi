@@ -1,6 +1,6 @@
 {
   "name": "functions",
-  "description": "Cloud Functions for StellarPay UPI",
+  "description": "Cloud Functions for Ching Pay UPI",
   "scripts": {
     "serve": "firebase serve --only functions",
     "shell": "firebase functions:shell",

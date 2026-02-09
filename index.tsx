@@ -17,7 +17,7 @@ root.render(
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
-      .then(reg => console.log('StellarPay Service Worker Live'))
+      .then(reg => console.log('Ching Pay Service Worker Live'))
       .catch(err => console.log('SW registration failed:', err));
   });
 }

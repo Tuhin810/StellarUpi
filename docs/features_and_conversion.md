@@ -1,15 +1,15 @@
-# Features & Conversion Guide - StellarPay UPI
+# Features & Conversion Guide - Ching Pay UPI
 
 ## 1. Feature Deep-Dive
 
 ### 🔐 Web3 Authentication & Secure Vault
-StellarPay uses a unique hybrid authentication model:
+Ching Pay uses a unique hybrid authentication model:
 - **Web3 Connector**: Users sign in using MetaMask or WalletConnect.
 - **Master Signature**: Upon login, the user signs a standard message. The resulting cryptographic signature is used as the decryption key for their Stellar secret.
 - **Client-Side Security**: The Stellar private key is encrypted via AES-256 and stored in Firebase. It is only decrypted in the browser's memory after the user provides their Web3 signature. This ensures the service provider never sees the raw secret key.
 
 ### 🆔 Human-Readable UPI Handles
-Traditional Stellar addresses are 56-character strings (e.g., `GA...`). StellarPay replaces these with:
+Traditional Stellar addresses are 56-character strings (e.g., `GA...`). Ching Pay replaces these with:
 - **Handle Mapping**: Every user chooses a handle like `alex@stellar`.
 - **Decentralized Registry**: A Firestore-backed registry maps these handles to Stellar Public Keys.
 - **Easy Lookup**: When you type a handle, the app instantly resolves it to the correct public key for the transaction.
@@ -31,7 +31,7 @@ A social layer for shared costs:
 
 ## 2. XLM to INR Conversion (The "How it Works")
 
-StellarPay provides a seamless experience for converting between XLM (Stellar's native asset) and INR (Indian Rupee).
+Ching Pay provides a seamless experience for converting between XLM (Stellar's native asset) and INR (Indian Rupee).
 
 ### 📈 Real-Time Price Oracle
 The application maintains a "Live Rate" to ensure users always know the exact value of their holdings:

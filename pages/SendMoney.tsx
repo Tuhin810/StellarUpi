@@ -222,10 +222,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   };
 
   const handleInvite = (name: string) => {
-    const message = `Hey ${name}! Join me on StellarPay to send and receive money instantly: https://stellar.netlify.app`;
+    const message = `Hey ${name}! Join me on Ching Pay to send and receive money instantly: https://stellar.netlify.app`;
     if (navigator.share) {
       navigator.share({
-        title: 'Join StellarPay',
+        title: 'Join Ching Pay',
         text: message,
         url: 'https://stellar.netlify.app'
       });

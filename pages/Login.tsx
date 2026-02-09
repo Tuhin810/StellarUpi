@@ -55,7 +55,7 @@ const Login: React.FC = () => {
       const provider = new BrowserProvider(walletProvider);
       const signer = await provider.getSigner();
 
-      const message = "Sign this message to access your StellarPay UPI vault. Your signature is used as your local encryption key.";
+      const message = "Sign this message to access your Ching Pay UPI vault. Your signature is used as your local encryption key.";
       const signature = await signer.signMessage(message);
 
       setStatus('Authenticating with Stellar...');
@@ -128,7 +128,7 @@ const Login: React.FC = () => {
       {/* Header / Brand Area */}
       <div className="relative z-20 pt-48 px-8 flex flex-col items-center text-center">
         <div className="space-y-2">
-          <h2 className="text-zinc-500 font-black text-[10px] uppercase tracking-[0.4em] ml-1">Stellarpay Protocol</h2>
+          <h2 className="text-zinc-500 font-black text-[10px] uppercase tracking-[0.4em] ml-1">Ching Pay Protocol</h2>
           <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent italic">
             The New Web3 UPI
           </h1>
@@ -203,7 +203,7 @@ const Login: React.FC = () => {
           <div className="absolute inset-0 bg-[#E5D5B3]/5 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
           <img
             src={mainImage}
-            alt="StellarPay UI"
+            alt="Ching Pay UI"
             className="w-full rounded-[2rem] shadow-2xl relative z-10"
           />
         </div>

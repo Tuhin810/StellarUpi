@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="https://api.dicebear.com/7.x/shapes/svg?seed=stellarpay&backgroundColor=E5D5B3&size=128" alt="StellarPay Logo" width="100" height="100" />
+  <img src="https://api.dicebear.com/7.x/shapes/svg?seed=Ching Pay&backgroundColor=E5D5B3&size=128" alt="Ching Pay Logo" width="100" height="100" />
 </p>
 
-<h1 align="center">StellarPay UPI</h1>
+<h1 align="center">Ching Pay UPI</h1>
 
 <p align="center">
   <strong>The Next-Generation Web3 UPI Payment System</strong>
@@ -28,7 +28,7 @@
 
 ## 📖 Overview
 
-**StellarPay UPI** is a decentralized payment application that bridges the familiar UPI experience with the power of the Stellar blockchain. It enables instant, secure, and near-zero-cost transactions using XLM (Lumens), while providing a UPI-like experience with human-readable payment addresses (e.g., `alex@stellar`).
+**Ching Pay UPI** is a decentralized payment application that bridges the familiar UPI experience with the power of the Stellar blockchain. It enables instant, secure, and near-zero-cost transactions using XLM (Lumens), while providing a UPI-like experience with human-readable payment addresses (e.g., `alex@stellar`).
 
 The application supports Web3 wallet authentication, family spending controls, group expense splitting, real-time chat with payment capabilities, and seamless fiat on/off-ramp integration.
 
@@ -47,7 +47,7 @@ The application supports Web3 wallet authentication, family spending controls, g
 - **Group Split Notifications** - Stay updated when a new split expense is created in one of your groups.
 - **Service Worker Integration** - Background notification handling using Firebase Cloud Messaging (FCM).
 - **Foreground Alert System** - In-app notification banners for active users.
-- **Custom Haptics & Branding** - Notifications include the StellarPay logo and vibration support for a native feel.
+- **Custom Haptics & Branding** - Notifications include the Ching Pay logo and vibration support for a native feel.
 
 ### 💸 **Send & Receive Payments**
 - **UPI-Style Transfers** - Send money using simple `name@stellar` addresses
@@ -73,7 +73,7 @@ The application supports Web3 wallet authentication, family spending controls, g
 - **Settlement Tracking** - Track pending and paid amounts for each participant
 
 ### 💬 **In-App Chat & Payment Requests**
-- **Peer-to-Peer Messaging** - Real-time chat with any StellarPay user
+- **Peer-to-Peer Messaging** - Real-time chat with any Ching Pay user
 - **Payment Request System** - Request money from contacts with one tap
 - **Transaction History in Chat** - View all payments with a contact inline
 - **Quick Pay from Chat** - Send payments directly from conversation threads
@@ -157,7 +157,7 @@ The application supports Web3 wallet authentication, family spending controls, g
 ### **Project Structure**
 
 ```
-stellarpay-upi/
+Ching Pay-upi/
 ├── index.html              # PWA-enabled entry point
 ├── index.tsx               # React app bootstrap
 ├── index.css               # Global styles with gold gradient
@@ -340,7 +340,7 @@ interface SplitExpense {
 ```bash
 # Clone the repository
 git clone https://github.com/Tuhin810/StellarUpi.git
-cd stellarpay-upi
+cd Ching Pay-upi
 
 # Install dependencies
 npm install

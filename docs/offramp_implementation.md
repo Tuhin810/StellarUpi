@@ -1,7 +1,7 @@
-# Direct Off-Ramping Guide - StellarPay UPI
+# Direct Off-Ramping Guide - Ching Pay UPI
 
 ## 1. The Goal: "Real" Off-Ramping
-To compete with traditional UPI apps, StellarPay needs more than just a widget. It needs a "Direct to VPA" flow where a user can scan a merchant or friend's UPI QR and pay using their XLM balance instantly.
+To compete with traditional UPI apps, Ching Pay needs more than just a widget. It needs a "Direct to VPA" flow where a user can scan a merchant or friend's UPI QR and pay using their XLM balance instantly.
 
 ---
 
@@ -61,7 +61,7 @@ If you operate your own liquidity or treasury, use these to trigger the actual b
 
 ```mermaid
 graph LR
-    User[StellarPay App] -->|Scan QR| VPA[Recipient UPI ID]
+    User[Ching Pay App] -->|Scan QR| VPA[Recipient UPI ID]
     User -->|API Call| Bridge[Onmeta/Onramp API]
     User -->|Sign & Send| Stellar[Stellar Network]
     Stellar -->|Settles XLM| BridgeWallet[Bridge Wallet]
@@ -78,4 +78,4 @@ graph LR
 1. **KYC Tiers**: Start with a "Sandbox" mode. For real money, integrate a lightweight KYC provider (Aadhaar/OTP) as required by Indian law.
 2. **TDS Management**: Since July 2022, a 1% TDS is mandatory on crypto sales in India. Using a partner like **Onmeta** is highly recommended because they handle the TDS deduction and filing automatically.
 3. **Soroban Integration**: Use Stellar's Soroban smart contracts to create a "Hold/Escrow" mechanism so funds are only released to the bridge once a pulse/handshake is verified.
-4. **Merchant Integration**: Create a "StellarPay for Business" QR that merchants can display, which allows users to choose between XLM (free) or UPI (bridged) payments.
+4. **Merchant Integration**: Create a "Ching Pay for Business" QR that merchants can display, which allows users to choose between XLM (free) or UPI (bridged) payments.

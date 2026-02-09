@@ -1,7 +1,7 @@
-# Sonic Pulse Technology - StellarPay UPI
+# Sonic Pulse Technology - Ching Pay UPI
 
 ## 1. Introduction
-**Sonic Pulse™** is StellarPay’s proprietary near-field communication (NFC) alternative that uses ultra-high frequency acoustic waves to transfer payment identities between devices. It eliminates the need for scanning QR codes or physical NFC chips, allowing users to "send" their identity through the air via sound.
+**Sonic Pulse™** is Ching Pay’s proprietary near-field communication (NFC) alternative that uses ultra-high frequency acoustic waves to transfer payment identities between devices. It eliminates the need for scanning QR codes or physical NFC chips, allowing users to "send" their identity through the air via sound.
 
 ## 2. The StellarPulse™ Protocol
 The core logic resides in a custom implementation of **Frequency Shift Keying (FSK)** designed specifically for mobile device speakers and microphones.

@@ -1,7 +1,7 @@
 {
-    "id": "stellar-pay-upi-v1",
-    "name": "StellarPay UPI | The New Web3 UPI",
-    "short_name": "StellarPay",
+    "id": "ching-pay-upi-v1",
+    "name": "Ching Pay UPI | The New Web3 UPI",
+    "short_name": "ChingPay",
     "description": "Professional Web3 UPI Payment System - Fast, secure, decentralized payments.",
     "start_url": "/",
     "display": "standalone",
@@ -46,14 +46,14 @@
             "sizes": "512x512",
             "type": "image/png",
             "form_factor": "narrow",
-            "label": "StellarPay Payments"
+            "label": "Ching Pay Payments"
         },
         {
             "src": "/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "form_factor": "wide",
-            "label": "StellarPay Dashboard"
+            "label": "Ching Pay Dashboard"
         }
     ],
     "categories": [

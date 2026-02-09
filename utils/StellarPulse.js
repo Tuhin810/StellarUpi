@@ -1,6 +1,6 @@
 /**
  * StellarPulse™ Protocol v1.0
- * A robust, library-free acoustic data transfer engine for StellarPay.
+ * A robust, library-free acoustic data transfer engine for Ching Pay.
  * Uses Frequency Shift Keying (FSK) over Web Audio API.
  */
 

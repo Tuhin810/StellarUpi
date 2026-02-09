@@ -54,10 +54,10 @@ const PWAInstallPrompt: React.FC = () => {
 
                 <div className="flex items-center gap-4 relative z-10">
                     <div className="w-16 h-16 rounded-2xl bg-black border border-[#E5D5B3]/20 p-2.5 flex items-center justify-center shadow-2xl">
-                        <img src="/icon-192.png" alt="StellarPay" className="w-full h-full object-contain rounded-xl" />
+                        <img src="/icon-192.png" alt="Ching Pay" className="w-full h-full object-contain rounded-xl" />
                     </div>
                     <div className="flex-1">
-                        <h3 className="text-[#E5D5B3] font-extrabold text-xl leading-tight tracking-tight">StellarPay App</h3>
+                        <h3 className="text-[#E5D5B3] font-extrabold text-xl leading-tight tracking-tight">Ching Pay App</h3>
                         <p className="text-zinc-400 text-sm font-medium mt-0.5">Official System Installation</p>
                     </div>
                     <button
