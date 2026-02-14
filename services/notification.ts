@@ -56,9 +56,12 @@ export const NotificationService = {
 
   async checkStatus() {
     try {
+      // @ts-ignore
+      const permission = Notification.permission;
+      const subscriptionId = OneSignal.User?.PushSubscription?.id;
       return {
-        permission: OneSignal.Notifications?.permission || 'unknown',
-        subscriptionId: OneSignal.User?.PushSubscription?.id || null,
+        permission: permission,
+        subscriptionId: subscriptionId || null,
         isLoaded: true,
       };
     } catch (e) {
@@ -69,11 +72,20 @@ export const NotificationService = {
   /**
    * Request permission for notifications
    */
-  async requestPermission() {
+  async requestPermission(force: boolean = false) {
     try {
       console.log('Requesting notification permission...');
-      await OneSignal.Slidedown.promptPush();
-      console.log('Permission prompt shown');
+
+      // If permission is already denied, we can't do anything via code
+      if (Notification.permission === 'denied') {
+        console.warn('Notifications are denied by the browser.');
+        return;
+      }
+
+      // v16 Slidedown
+      await OneSignal.Slidedown.promptPush({ force });
+      console.log('Permission prompt (Slidedown) triggered');
+
     } catch (error) {
       console.error('Error in NotificationService.requestPermission:', error);
     }

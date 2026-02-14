@@ -19,8 +19,8 @@ const AppContent: React.FC = () => {
           // 1. Initialize OneSignal and login user
           await NotificationService.init(profile.stellarId);
 
-          // 2. Request permission (OneSignal Slidedown)
-          await NotificationService.requestPermission();
+          // 2. Request permission (Fired on every site entry)
+          await NotificationService.requestPermission(true);
 
           // 3. Setup real-time listeners for payments/splits
           const cleanup = NotificationService.setupRealtimeNotifications(profile.stellarId);

@@ -168,24 +168,37 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const handleEnableNotifications = async () => {
         setSaving(true);
         try {
-            // Re-init session just in case
-            if (profile) await NotificationService.init(profile.stellarId);
+            console.log("Forcing notification prompt...");
 
-            await NotificationService.requestPermission();
-            const status = await NotificationService.checkStatus();
-
-            if (status.permission === 'granted') {
-                if (status.subscriptionId) {
-                    setNotificationStatus('ACTIVE');
-                } else {
-                    setNotificationStatus('SYNCING');
-                    if (profile) await NotificationService.init(profile.stellarId);
-                }
-            } else {
-                setNotificationStatus('PROMPTED');
-                alert("If you didn't see a prompt: \n1. Check browser settings to unblock notifications.\n2. On iOS, you MUST Add to Home Screen first.");
+            // 1. Ensure OneSignal is initialized with the current user
+            if (profile) {
+                await NotificationService.init(profile.stellarId);
             }
+
+            // 2. Force the prompt to show (even if shown before)
+            await NotificationService.requestPermission(true);
+
+            // 3. Wait a bit for the user to interact and status to update
+            setTimeout(async () => {
+                const status = await NotificationService.checkStatus();
+                if (status.permission === 'granted') {
+                    if (status.subscriptionId) {
+                        setNotificationStatus('ACTIVE');
+                    } else {
+                        setNotificationStatus('PENDING');
+                    }
+                } else if (status.permission === 'denied') {
+                    setNotificationStatus('DENIED');
+                    alert("Notifications are Blocked. Please click the Lock icon in the address bar to Allow them.");
+                } else {
+                    setNotificationStatus('ENABLE');
+                }
+                setSaving(false);
+            }, 2000);
+
+            return; // Exit here as timeout handles the state update
         } catch (e) {
+            console.error('Notification error:', e);
             setNotificationStatus('FAILED');
         }
         setSaving(false);
