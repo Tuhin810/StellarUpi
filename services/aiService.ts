@@ -16,6 +16,26 @@ import { searchUsers } from "./db";
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 
 // Define tools for the AI
+// Transcription engine
+export const transcribeAudio = async (base64Audio: string, mimeType: string = 'audio/webm') => {
+    try {
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
+        const result = await model.generateContent([
+            {
+                inlineData: {
+                    data: base64Audio,
+                    mimeType: mimeType
+                }
+            },
+            { text: "Transcribe this audio exactly. Return ONLY the transcribed text, nothing else." }
+        ]);
+        return result.response.text();
+    } catch (error) {
+        console.error("Transcription Error:", error);
+        throw error;
+    }
+};
+
 const tools = [
     {
         functionDeclarations: [
@@ -74,10 +94,15 @@ const tools = [
     }
 ];
 
-export const processAIQuery = async (userStellarId: string, userMessage: string, history: { role: 'user' | 'model', parts: { text: string }[] }[] = []) => {
+export const processAIQuery = async (
+    userStellarId: string,
+    userMessage: string,
+    history: { role: 'user' | 'model', parts: { text: string }[] }[] = [],
+    audioData?: { data: string, mimeType: string }
+) => {
     try {
         const model = genAI.getGenerativeModel({
-            model: "gemini-flash-lite-latest",
+            model: "gemini-flash-lite-latest", // Use 1.5 Flash for multimodal audio support
             tools: tools as any,
             systemInstruction: `You are Stellar AI, the intelligent backbone of the StellarUpi app.
 Your mission is to provide instantaneous, accurate financial insights.
@@ -93,7 +118,7 @@ CRITICAL IDENTITY RESOLUTION PROTOCOL (INTERNAL CHECK):
 
 CONVERSATIONAL CONTEXT:
 - You have access to the chat history. Use it to resolve pronouns (him, her, they) and follow-up questions.
-- If a user asks "how much I sent to him?", look at the previous messages to see who "him" refers to.
+- If the user provides audio, it will be the primary source of their request.
 
 FINANCIAL CONTEXT:
 - 'received' means money coming TO the user.
@@ -109,9 +134,21 @@ Your (the User's) Identity: ${userStellarId}`
             history: history
         });
 
-        let result = await chat.sendMessage(userMessage);
+        // Prepare message content (could be text or text + audio)
+        const messageParts: any[] = [{ text: userMessage || "Please process my voice request." }];
+        if (audioData) {
+            messageParts.push({
+                inlineData: {
+                    data: audioData.data,
+                    mimeType: audioData.mimeType
+                }
+            });
+        }
+
+        let result = await chat.sendMessage(messageParts);
         let response = result.response;
         let calls = response.functionCalls();
+
 
         // Recursive handle function calls
         while (calls && calls.length > 0) {
