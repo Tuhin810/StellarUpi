@@ -7,11 +7,24 @@ import axios from 'axios';
 
 export const NotificationService = {
   _isInitialized: false,
+  _isInitializing: false,
 
   /**
    * Initialize OneSignal
    */
   async init(uid?: string) {
+    if (this._isInitialized) {
+      if (uid) {
+        // @ts-ignore
+        window.OneSignalDeferred.push(async (OneSignal) => {
+          await OneSignal.login(uid);
+        });
+      }
+      return;
+    }
+    if (this._isInitializing) return;
+    this._isInitializing = true;
+
     try {
       // Use the Deferred object for all v16 operations to ensure they run after load
       // @ts-ignore
@@ -21,9 +34,9 @@ export const NotificationService = {
         // @ts-ignore
         window.OneSignalDeferred.push(async (OneSignal) => {
           try {
-            // Only init if not already done by the SDK itself
+            // Check if already initialized to prevent the "Error: SDK already initialized"
             // @ts-ignore
-            if (!this._isInitialized && !OneSignal.initialized) {
+            if (!OneSignal.initialized) {
               await OneSignal.init({
                 appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "03d252b2-074b-4d2d-866e-5560da7cb094",
                 safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_ID || "web.onesignal.auto.36762c33-c595-4251-8e66-ea9a822d3713",
@@ -33,27 +46,30 @@ export const NotificationService = {
                   enable: true,
                 }
               });
-              this._isInitialized = true;
-              console.log('OneSignal initialized via Deferred');
-            } else {
-              this._isInitialized = true;
+              console.log('OneSignal init success');
             }
 
+            this._isInitialized = true;
+            this._isInitializing = false;
+
             if (uid) {
-              const currentId = OneSignal.User?.externalId;
-              if (currentId !== uid) {
-                console.log('Logging in to OneSignal with UID:', uid);
-                await OneSignal.login(uid);
-              }
+              console.log('Syncing OneSignal User:', uid);
+              await OneSignal.login(uid);
             }
             resolve();
-          } catch (err) {
-            console.error('Inner OneSignal Error:', err);
-            resolve(); // Resolve anyway to avoid hanging App load
+          } catch (err: any) {
+            if (err.message && err.message.includes('already initialized')) {
+              this._isInitialized = true;
+            } else {
+              console.error('OneSignal Deferred Error:', err);
+            }
+            this._isInitializing = false;
+            resolve();
           }
         });
       });
     } catch (error: any) {
+      this._isInitializing = false;
       console.error('OneSignal Init Wrapper Error:', error);
     }
   },
