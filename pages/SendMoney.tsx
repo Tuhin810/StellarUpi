@@ -694,7 +694,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         </button>
       </div>
 
-      {/* <UpiDrawer
+      <UpiDrawer
         isOpen={isUpiDrawerOpen}
         onClose={() => setIsUpiDrawerOpen(false)}
         upiInput={upiInput}
@@ -712,7 +712,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           }
         }}
         searching={false}
-      /> */}
+      />
 
       <div className="px-8 mb-10">
         <button

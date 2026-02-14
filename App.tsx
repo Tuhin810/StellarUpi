@@ -13,20 +13,32 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, loading, profile } = useAuth();
 
   React.useEffect(() => {
-    if (isAuthenticated && profile) {
-      // 1. Initialize OneSignal and login user
-      NotificationService.init(profile.stellarId);
+    const setupNotifications = async () => {
+      if (isAuthenticated && profile) {
+        try {
+          // 1. Initialize OneSignal and login user
+          await NotificationService.init(profile.stellarId);
 
-      // 2. Request permission (OneSignal Slidedown)
-      NotificationService.requestPermission();
+          // 2. Request permission (OneSignal Slidedown)
+          await NotificationService.requestPermission();
 
-      // 3. Setup real-time listeners for payments/splits (Firestore logic remains)
-      const cleanup = NotificationService.setupRealtimeNotifications(profile.stellarId);
+          // 3. Setup real-time listeners for payments/splits
+          const cleanup = NotificationService.setupRealtimeNotifications(profile.stellarId);
+          return cleanup;
+        } catch (error) {
+          console.error('Failed to setup notifications:', error);
+        }
+      }
+    };
 
-      return () => {
-        if (cleanup) cleanup();
-      };
-    }
+    let cleanupFn: (() => void) | undefined;
+    setupNotifications().then(cleanup => {
+      if (cleanup) cleanupFn = cleanup;
+    });
+
+    return () => {
+      if (cleanupFn) cleanupFn();
+    };
   }, [isAuthenticated, profile]);
 
   if (loading) {

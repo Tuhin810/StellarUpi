@@ -12,34 +12,44 @@ export const NotificationService = {
    * Initialize OneSignal
    */
   async init(uid?: string) {
-    // Check if we are on the authorized domain defined in OneSignal dashboard
     const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
     try {
       if (!this._isInitialized) {
-        await OneSignal.init({
-          appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "28cc51dc-70f9-4f27-b879-53cf2c9fa84f",
-          safari_web_id: "web.onesignal.auto.12f40fc9-13d7-4ca9-8e4a-0a7d50f473bf",
-          allowLocalhostAsSecureOrigin: true,
-        });
-        this._isInitialized = true;
-        console.log('OneSignal initialized successfully');
+        // Check if window.OneSignal is already initialized from index.html
+        // @ts-ignore
+        if (window.OneSignal && window.OneSignal.initialized) {
+          this._isInitialized = true;
+          console.log('OneSignal already initialized by index.html');
+        } else {
+          await OneSignal.init({
+            appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "03d252b2-074b-4d2d-866e-5560da7cb094",
+            safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_ID || "web.onesignal.auto.36762c33-c595-4251-8e66-ea9a822d3713",
+            allowLocalhostAsSecureOrigin: true,
+            // @ts-ignore - Adding notifyButton as per user dashboard snippet
+            notifyButton: {
+              enable: true,
+            }
+          });
+          this._isInitialized = true;
+          console.log('OneSignal initialized successfully via Service');
+        }
       }
 
       if (uid && this._isInitialized) {
-        console.log('Logging in to OneSignal with UID:', uid);
-        await OneSignal.login(uid);
+        // @ts-ignore - v16 uses externalId property
+        const currentId = OneSignal.User?.externalId;
+        if (currentId !== uid) {
+          console.log('Logging in to OneSignal with UID:', uid);
+          await OneSignal.login(uid);
+        } else {
+          console.log('Already logged in to OneSignal as:', uid);
+        }
       }
     } catch (error: any) {
+      console.error('OneSignal Init Error:', error);
       if (error.message?.includes('only be used on')) {
-        console.warn('OneSignal Domain Mismatch:', error.message);
-        if (isLocalhost) {
-          console.error('ACTION REQUIRED: To test notifications on localhost, you must enable "Local Testing" in OneSignal Dashboard > Settings > Web Push.');
-        }
-      } else if (error.message?.includes('already initialized')) {
-        this._isInitialized = true;
-      } else {
-        console.error('Error initializing OneSignal:', error);
+        console.error('DOMAIN MISMATCH: The URL you are using (like ngrok) must be added to OneSignal Settings > Web Push > Site URL');
       }
     }
   },
@@ -166,7 +176,13 @@ export const NotificationService = {
     message?: string
   ) {
     try {
-      console.log(`Triggering remote push for ${targetStellarId}...`);
+      console.log(`Attempting to trigger remote push for ${targetStellarId}...`);
+
+      // Avoid 404 errors during local development if the backend isn't running
+      if (window.location.hostname === 'localhost' || window.location.hostname.includes('pinggy.link')) {
+        console.warn('Remote notification skipped: Backend API (/api/notify) is only available when deployed to Netlify.');
+        return { success: true, mocked: true };
+      }
 
       const response = await axios.post('/api/notify', {
         recipientUserId: targetStellarId,
@@ -178,9 +194,13 @@ export const NotificationService = {
 
       console.log('Notification API response:', response.data);
       return response.data;
-    } catch (error) {
-      console.error('Failed to trigger remote notification:', error);
-      return { success: false, error: (error as any).message };
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        console.warn('Notification API not found (404). This is expected in local dev unless you are running Netlify Dev.');
+      } else {
+        console.error('Failed to trigger remote notification:', error);
+      }
+      return { success: false, error: error.message };
     }
   },
 
