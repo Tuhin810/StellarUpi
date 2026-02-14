@@ -12,45 +12,49 @@ export const NotificationService = {
    * Initialize OneSignal
    */
   async init(uid?: string) {
-    const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
     try {
-      if (!this._isInitialized) {
-        // Check if window.OneSignal is already initialized from index.html
-        // @ts-ignore
-        if (window.OneSignal && window.OneSignal.initialized) {
-          this._isInitialized = true;
-          console.log('OneSignal already initialized by index.html');
-        } else {
-          await OneSignal.init({
-            appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "03d252b2-074b-4d2d-866e-5560da7cb094",
-            safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_ID || "web.onesignal.auto.36762c33-c595-4251-8e66-ea9a822d3713",
-            allowLocalhostAsSecureOrigin: true,
-            // @ts-ignore - Adding notifyButton as per user dashboard snippet
-            notifyButton: {
-              enable: true,
-            }
-          });
-          this._isInitialized = true;
-          console.log('OneSignal initialized successfully via Service');
-        }
-      }
+      // Use the Deferred object for all v16 operations to ensure they run after load
+      // @ts-ignore
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
 
-      if (uid && this._isInitialized) {
-        // @ts-ignore - v16 uses externalId property
-        const currentId = OneSignal.User?.externalId;
-        if (currentId !== uid) {
-          console.log('Logging in to OneSignal with UID:', uid);
-          await OneSignal.login(uid);
-        } else {
-          console.log('Already logged in to OneSignal as:', uid);
-        }
-      }
+      return new Promise<void>((resolve) => {
+        // @ts-ignore
+        window.OneSignalDeferred.push(async (OneSignal) => {
+          try {
+            // Only init if not already done by the SDK itself
+            // @ts-ignore
+            if (!this._isInitialized && !OneSignal.initialized) {
+              await OneSignal.init({
+                appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "03d252b2-074b-4d2d-866e-5560da7cb094",
+                safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_ID || "web.onesignal.auto.36762c33-c595-4251-8e66-ea9a822d3713",
+                allowLocalhostAsSecureOrigin: true,
+                // @ts-ignore
+                notifyButton: {
+                  enable: true,
+                }
+              });
+              this._isInitialized = true;
+              console.log('OneSignal initialized via Deferred');
+            } else {
+              this._isInitialized = true;
+            }
+
+            if (uid) {
+              const currentId = OneSignal.User?.externalId;
+              if (currentId !== uid) {
+                console.log('Logging in to OneSignal with UID:', uid);
+                await OneSignal.login(uid);
+              }
+            }
+            resolve();
+          } catch (err) {
+            console.error('Inner OneSignal Error:', err);
+            resolve(); // Resolve anyway to avoid hanging App load
+          }
+        });
+      });
     } catch (error: any) {
-      console.error('OneSignal Init Error:', error);
-      if (error.message?.includes('only be used on')) {
-        console.error('DOMAIN MISMATCH: The URL you are using (like ngrok) must be added to OneSignal Settings > Web Push > Site URL');
-      }
+      console.error('OneSignal Init Wrapper Error:', error);
     }
   },
 
