@@ -1,5 +1,4 @@
 // netlify/functions/notify.js
-import axios from 'axios';
 
 export const handler = async (event) => {
     if (event.httpMethod !== 'POST') {
@@ -13,16 +12,16 @@ export const handler = async (event) => {
         const { recipientUserId, amount, senderName, title, message } = JSON.parse(event.body);
         const targetIds = Array.isArray(recipientUserId) ? recipientUserId : [recipientUserId];
 
-        // targeting external_id via aliases is the modern approach for OneSignal v16+
-        const options = {
+        console.log(`Sending OneSignal notification to: ${targetIds}`);
+
+        const response = await fetch('https://onesignal.com/api/v1/notifications', {
             method: 'POST',
-            url: 'https://onesignal.com/api/v1/notifications',
             headers: {
-                accept: 'application/json',
-                Authorization: `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
-                'content-type': 'application/json',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`,
             },
-            data: {
+            body: JSON.stringify({
                 app_id: process.env.VITE_ONESIGNAL_APP_ID,
                 include_aliases: {
                     external_id: targetIds
@@ -31,23 +30,25 @@ export const handler = async (event) => {
                 contents: { en: message || `You received ₹${amount} from ${senderName}!` },
                 headings: { en: title || 'Money Received 💸' },
                 url: 'https://stellarupi.netlify.app'
-            },
-        };
+            }),
+        });
 
-        console.log(`Sending OneSignal notification to: ${targetIds}`);
-        const response = await axios.request(options);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(JSON.stringify(data));
+        }
 
         return {
             statusCode: 200,
-            body: JSON.stringify({ success: true, data: response.data })
+            body: JSON.stringify({ success: true, data })
         };
     } catch (error) {
-        const errorData = error.response ? error.response.data : error.message;
-        console.error('OneSignal Notification Error:', errorData);
+        console.error('OneSignal Notification Error:', error.message);
 
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: 'Notification delivery failed', details: errorData })
+            body: JSON.stringify({ error: 'Notification delivery failed', details: error.message })
         };
     }
 };
