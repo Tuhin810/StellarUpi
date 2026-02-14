@@ -13,20 +13,10 @@ export const NotificationService = {
    * Initialize OneSignal
    */
   async init(uid?: string) {
-    if (this._isInitialized) {
-      if (uid) {
-        // @ts-ignore
-        window.OneSignalDeferred.push(async (OneSignal) => {
-          await OneSignal.login(uid);
-        });
-      }
-      return;
-    }
     if (this._isInitializing) return;
     this._isInitializing = true;
 
     try {
-      // Use the Deferred object for all v16 operations to ensure they run after load
       // @ts-ignore
       window.OneSignalDeferred = window.OneSignalDeferred || [];
 
@@ -34,7 +24,6 @@ export const NotificationService = {
         // @ts-ignore
         window.OneSignalDeferred.push(async (OneSignal) => {
           try {
-            // Check if already initialized to prevent the "Error: SDK already initialized"
             // @ts-ignore
             if (!OneSignal.initialized) {
               await OneSignal.init({
@@ -42,9 +31,7 @@ export const NotificationService = {
                 safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_ID || "web.onesignal.auto.36762c33-c595-4251-8e66-ea9a822d3713",
                 allowLocalhostAsSecureOrigin: true,
                 // @ts-ignore
-                notifyButton: {
-                  enable: true,
-                }
+                notifyButton: { enable: true }
               });
               console.log('OneSignal init success');
             }
@@ -58,11 +45,7 @@ export const NotificationService = {
             }
             resolve();
           } catch (err: any) {
-            if (err.message && err.message.includes('already initialized')) {
-              this._isInitialized = true;
-            } else {
-              console.error('OneSignal Deferred Error:', err);
-            }
+            console.error('OneSignal Deferred Error:', err);
             this._isInitializing = false;
             resolve();
           }
@@ -75,40 +58,47 @@ export const NotificationService = {
   },
 
   async checkStatus() {
-    try {
+    return new Promise((resolve) => {
       // @ts-ignore
-      const permission = Notification.permission;
-      const subscriptionId = OneSignal.User?.PushSubscription?.id;
-      return {
-        permission: permission,
-        subscriptionId: subscriptionId || null,
-        isLoaded: true,
-      };
-    } catch (e) {
-      return { permission: 'error', isLoaded: false };
-    }
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      // @ts-ignore
+      window.OneSignalDeferred.push(async (OneSignal) => {
+        try {
+          // @ts-ignore
+          const permission = Notification.permission;
+          const subscriptionId = OneSignal.User?.PushSubscription?.id;
+          resolve({
+            permission: permission,
+            subscriptionId: subscriptionId || null,
+            isLoaded: true,
+          });
+        } catch (e) {
+          resolve({ permission: 'error', isLoaded: false });
+        }
+      });
+    });
   },
 
   /**
    * Request permission for notifications
    */
   async requestPermission(force: boolean = false) {
-    try {
-      console.log('Requesting notification permission...');
-
-      // If permission is already denied, we can't do anything via code
-      if (Notification.permission === 'denied') {
-        console.warn('Notifications are denied by the browser.');
-        return;
+    // @ts-ignore
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    // @ts-ignore
+    window.OneSignalDeferred.push(async (OneSignal) => {
+      try {
+        console.log('Requesting notification permission...');
+        // @ts-ignore
+        if (Notification.permission === 'denied') {
+          console.warn('Notifications are denied by the browser.');
+          return;
+        }
+        await OneSignal.Slidedown.promptPush({ force });
+      } catch (error) {
+        console.error('Error in Slidedown prompt:', error);
       }
-
-      // v16 Slidedown
-      await OneSignal.Slidedown.promptPush({ force });
-      console.log('Permission prompt (Slidedown) triggered');
-
-    } catch (error) {
-      console.error('Error in NotificationService.requestPermission:', error);
-    }
+    });
   },
 
   /**

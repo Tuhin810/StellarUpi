@@ -63,7 +63,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
         }
 
         const checkNotif = async () => {
-            const status = await NotificationService.checkStatus();
+            const status = await NotificationService.checkStatus() as any;
             if (status.permission === 'granted') {
                 if (status.subscriptionId) {
                     setNotificationStatus('ACTIVE');
@@ -180,7 +180,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
 
             // 3. Wait a bit for the user to interact and status to update
             setTimeout(async () => {
-                const status = await NotificationService.checkStatus();
+                const status = await NotificationService.checkStatus() as any;
                 if (status.permission === 'granted') {
                     if (status.subscriptionId) {
                         setNotificationStatus('ACTIVE');
@@ -522,9 +522,15 @@ const Profile: React.FC<Props> = ({ profile }) => {
                         <button
                             onClick={async () => {
                                 setSaving(true);
-                                await updateUserDetails(profile.uid, { phoneNumber: phoneEntry });
-                                setSaving(false);
-                                setShowPhoneModal(false);
+                                try {
+                                    await updateUserDetails(profile.uid, { phoneNumber: phoneEntry });
+                                    setShowPhoneModal(false);
+                                } catch (err) {
+                                    console.error("Failed to update phone", err);
+                                    alert("Update failed. Please try again.");
+                                } finally {
+                                    setSaving(false);
+                                }
                             }}
                             disabled={saving || !phoneEntry}
                             className="flex-[2] py-5 gold-gradient text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-30"
@@ -567,10 +573,16 @@ const Profile: React.FC<Props> = ({ profile }) => {
                             onClick={async () => {
                                 if (pinEntry.length !== 4) return;
                                 setSaving(true);
-                                await updateUserDetails(profile.uid, { pin: pinEntry });
-                                setSaving(false);
-                                setShowSecurityModal(false);
-                                setPinEntry('');
+                                try {
+                                    await updateUserDetails(profile.uid, { pin: pinEntry });
+                                    setShowSecurityModal(false);
+                                    setPinEntry('');
+                                } catch (err) {
+                                    console.error("Failed to update PIN", err);
+                                    alert("Update failed. Please try again.");
+                                } finally {
+                                    setSaving(false);
+                                }
                             }}
                             disabled={pinEntry.length !== 4 || saving}
                             className="flex-[2] py-5 gold-gradient text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-30"
@@ -616,9 +628,15 @@ const Profile: React.FC<Props> = ({ profile }) => {
                         <button
                             onClick={async () => {
                                 setSaving(true);
-                                await updateUserDetails(profile.uid, { dailyLimit: dailyLimitEntry });
-                                setSaving(false);
-                                setShowLimitModal(false);
+                                try {
+                                    await updateUserDetails(profile.uid, { dailyLimit: dailyLimitEntry });
+                                    setShowLimitModal(false);
+                                } catch (err) {
+                                    console.error("Failed to update limit", err);
+                                    alert("Update failed. Please try again.");
+                                } finally {
+                                    setSaving(false);
+                                }
                             }}
                             disabled={saving}
                             className="flex-[2] py-5 gold-gradient text-black rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl active:scale-95 transition-all disabled:opacity-30"

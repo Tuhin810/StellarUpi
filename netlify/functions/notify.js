@@ -29,7 +29,7 @@ export const handler = async (event) => {
                 target_channel: "push",
                 contents: { en: message || `You received ₹${amount} from ${senderName}!` },
                 headings: { en: title || 'Money Received 💸' },
-                url: 'https://stellarupi.netlify.app'
+                url: 'https://ching-pay-v1.netlify.app'
             }),
         });
 
