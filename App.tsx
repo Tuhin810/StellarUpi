@@ -8,6 +8,7 @@ import BottomNav from './components/BottomNav';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 import { NotificationService } from './services/notification';
+import AIAssistant from './components/AIAssistant';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading, profile } = useAuth();
@@ -41,6 +42,7 @@ const AppContent: React.FC = () => {
     };
   }, [isAuthenticated, profile]);
 
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#050505]">
@@ -53,12 +55,18 @@ const AppContent: React.FC = () => {
     <Router>
       <div className="min-h-screen bg-[#1A1A1A] text-white max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-white/5">
         <AppRoutes />
-        {isAuthenticated && <BottomNav />}
+        {isAuthenticated && (
+          <>
+            <BottomNav />
+            <AIAssistant />
+          </>
+        )}
         <PWAInstallPrompt />
       </div>
     </Router>
   );
 };
+
 
 const App: React.FC = () => {
   return (
