@@ -19,7 +19,7 @@ const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
 // Transcription engine
 export const transcribeAudio = async (base64Audio: string, mimeType: string = 'audio/webm') => {
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-lite-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const result = await model.generateContent([
             {
                 inlineData: {
@@ -102,7 +102,7 @@ export const processAIQuery = async (
 ) => {
     try {
         const model = genAI.getGenerativeModel({
-            model: "gemini-flash-lite-latest", // Use 1.5 Flash for multimodal audio support
+            model: "gemini-1.5-flash",
             tools: tools as any,
             systemInstruction: `You are Stellar AI, the intelligent backbone of the StellarUpi app.
 Your mission is to provide instantaneous, accurate financial insights.

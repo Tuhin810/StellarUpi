@@ -111,27 +111,50 @@ const AIAssistant: React.FC = () => {
 
     const handleAudioSubmit = async (blob: Blob) => {
         setIsTranscribing(true);
+        setVoiceError(null);
         try {
             const reader = new FileReader();
             reader.readAsDataURL(blob);
             reader.onloadend = async () => {
-                const base64Audio = (reader.result as string).split(',')[1];
-                const transcript = await transcribeAudio(base64Audio);
-                if (transcript) setInput(transcript.trim());
+                try {
+                    const base64Audio = (reader.result as string).split(',')[1];
+                    console.log('Transcribing audio...');
+                    const transcript = await transcribeAudio(base64Audio);
+
+                    if (transcript && transcript.trim()) {
+                        const cleanTranscript = transcript.trim();
+                        console.log('Transcription successful:', cleanTranscript);
+                        setInput(cleanTranscript);
+                        // Auto-send the transcribed message
+                        await handleSend(cleanTranscript);
+                    } else {
+                        console.warn('Empty transcription received');
+                    }
+                } catch (error) {
+                    console.error('Transcription error:', error);
+                    setVoiceError('Failed to understand audio');
+                } finally {
+                    setIsTranscribing(false);
+                }
+            };
+            reader.onerror = () => {
+                setVoiceError('Failed to read audio data');
                 setIsTranscribing(false);
             };
         } catch (error) {
-            setVoiceError('Transcription failed');
+            console.error('Audio processing setup error:', error);
+            setVoiceError('Audio processing failed');
             setIsTranscribing(false);
         }
     };
 
-    const handleSend = async () => {
-        if (!input.trim() || !profile) return;
+    const handleSend = async (overrideMessage?: string) => {
+        const messageToSend = overrideMessage || input.trim();
+        if (!messageToSend || !profile) return;
 
-        const userMessage = input.trim();
-        setInput('');
-        setMessages(prev => [...prev.slice(-10), { role: 'user', content: userMessage }]);
+        if (!overrideMessage) setInput('');
+
+        setMessages(prev => [...prev.slice(-10), { role: 'user', content: messageToSend }]);
         setIsLoading(true);
 
         try {
@@ -140,14 +163,101 @@ const AIAssistant: React.FC = () => {
                 parts: [{ text: m.content }]
             })).filter((_, i, arr) => !(i === 0 && arr[i].role === 'model'));
 
-            const response = await processAIQuery(profile.stellarId, userMessage, history);
+            const response = await processAIQuery(profile.stellarId, messageToSend, history);
             setMessages(prev => [...prev, { role: 'assistant', content: response }]);
         } catch (error) {
-            setMessages(prev => [...prev, { role: 'assistant', content: 'Connecting to Stellar Core... Please wait.' }]);
+            console.error('AI Error:', error);
+            setMessages(prev => [...prev, { role: 'assistant', content: 'I am having trouble connecting. Please try again.' }]);
         } finally {
             setIsLoading(false);
         }
     };
+
+    // Wake-word detection logic
+    useEffect(() => {
+        let recognition: any = null;
+        let isActive = true;
+
+        const initWakeWord = () => {
+            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+            if (!SpeechRecognition || isOpen) return;
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            let terminalError = false;
+
+            recognition.onresult = (event: any) => {
+                const results = event.results;
+                for (let i = event.resultIndex; i < results.length; i++) {
+                    const transcript = results[i][0].transcript.toLowerCase().trim();
+
+                    // List of wake-word variations for better reliability
+                    const wakeWords = ['hey raze', 'hi raze', 'hey raise', 'hi raise', 'raze', 'hey rays', 'hi rays', 'hey race'];
+                    if (wakeWords.some(word => transcript.includes(word))) {
+                        console.log('Wake-word detected! Opening AI...');
+                        setIsOpen(true);
+                        // Stop current recognition immediately to free mic
+                        recognition.stop();
+
+                        // Brief delay for the opening animation before starting transcription
+                        setTimeout(() => {
+                            if (isActive) {
+                                console.log('Starting auto-recording...');
+                                startRecording();
+                            }
+                        }, 800);
+                        break;
+                    }
+                }
+            };
+
+            recognition.onerror = (event: any) => {
+                // Ignore transient errors but log them
+                if (event.error === 'no-speech' || event.error === 'audio-capture') return;
+
+                console.warn('Wake-word error:', event.error);
+
+                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+                    terminalError = true;
+                    setVoiceError('Microphone permission required for "Hey Raze"');
+                }
+            };
+
+            recognition.onend = () => {
+                // Only restart if the assistant is closed, the component is still mounted,
+                // and we haven't hit a terminal error (like permission denied)
+                if (!isOpen && isActive && !terminalError) {
+                    try {
+                        recognition.start();
+                    } catch (e) {
+                        // Ignore restart errors
+                    }
+                }
+            };
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Failed to start wake-word detection:', e);
+            }
+        };
+
+        if (!isOpen) {
+            initWakeWord();
+        }
+
+        return () => {
+            isActive = false;
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) { }
+            }
+        };
+    }, [isOpen]);
 
 
     return (
@@ -155,6 +265,18 @@ const AIAssistant: React.FC = () => {
             <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
+                animate={{
+                    boxShadow: [
+                        "0 0 0 0px rgba(229, 213, 179, 0)",
+                        "0 0 0 10px rgba(229, 213, 179, 0.2)",
+                        "0 0 0 0px rgba(229, 213, 179, 0)"
+                    ]
+                }}
+                transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                }}
                 onClick={() => setIsOpen(true)}
                 className="fixed bottom-28 right-6 w-14 h-14 rounded-full bg-[#E5D5B3] shadow-2xl flex items-center justify-center z-40 border-2 border-white/20 overflow-hidden"
             >
@@ -295,7 +417,7 @@ const AIAssistant: React.FC = () => {
                                             <motion.button
                                                 initial={{ scale: 0, opacity: 0 }}
                                                 animate={{ scale: 1, opacity: 1 }}
-                                                onClick={handleSend}
+                                                onClick={() => handleSend()}
                                                 className="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-zinc-200 transition-colors"
                                             >
                                                 <ArrowUp size={20} />

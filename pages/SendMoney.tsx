@@ -302,7 +302,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         }
 
         // Apply 5% buffer for merchant/family stability
-        const conversionBuffer = 1.05;
+        const conversionBuffer = 1.02;
         const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
         const hash = await sendPayment(ownerSecret, recipientPubKey, xlmAmount, `FamilyPay: ${selectedContact.id}`);
         await updateFamilySpend(selectedFamilyWallet.permission.id, amtNum);
@@ -338,7 +338,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         if (!password) throw new Error("Vault locked. Please login again.");
 
         let hash = '';
-        const conversionBuffer = 1.05;
+        const conversionBuffer = 1.02;
 
         const secret = decryptSecret(profile.encryptedSecret, password);
         const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
