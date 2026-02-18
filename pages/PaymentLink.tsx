@@ -197,6 +197,8 @@ const PaymentLink: React.FC = () => {
             </div>
 
             {/* Recipient Card */}
+
+            {/* x */}
             <div className="bg-zinc-900/50 border border-white/10 rounded-3xl p-6 mb-8 w-full max-w-md">
                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Paying To</p>
                 <div className="flex items-center gap-4">
