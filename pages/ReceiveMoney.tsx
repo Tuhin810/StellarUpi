@@ -85,7 +85,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
         }
     };
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=stellar:pay?to=${profile.stellarId}&color=1A1A1A&bgcolor=E5D5B3`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(getPaymentLink())}&color=1A1A1A&bgcolor=E5D5B3`;
     const avatarUrl = getAvatarUrl(profile.avatarSeed || profile.stellarId);
 
     return (
@@ -126,11 +126,11 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     </div>
 
                     <div className="bg-white p-6 rounded-[2.5rem] shadow-inner mb-8 border-4 border-black/5">
-                        <img src={qrUrl} alt="QR Code" className="w-60 h-60 grayscale" />
+                        <img src={qrUrl} alt="QR Code" className="w-60 h-60" />
                     </div>
 
                     <p className="text-center font-bold text-black/60 text-[11px] px-4 leading-relaxed uppercase tracking-widest mb-2">
-                        Scan this QR code to pay
+                        Scan with any wallet or camera
                     </p>
                     <p className="text-center font-black text-black text-lg mb-8 tracking-tighter">
                         {profile.stellarId}

@@ -173,91 +173,6 @@ const AIAssistant: React.FC = () => {
         }
     };
 
-    // Wake-word detection logic
-    useEffect(() => {
-        let recognition: any = null;
-        let isActive = true;
-
-        const initWakeWord = () => {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-            if (!SpeechRecognition || isOpen) return;
-
-            recognition = new SpeechRecognition();
-            recognition.continuous = true;
-            recognition.interimResults = true;
-            recognition.lang = 'en-US';
-
-            let terminalError = false;
-
-            recognition.onresult = (event: any) => {
-                const results = event.results;
-                for (let i = event.resultIndex; i < results.length; i++) {
-                    const transcript = results[i][0].transcript.toLowerCase().trim();
-
-                    // List of wake-word variations for better reliability
-                    const wakeWords = ['hey raze', 'hi raze', 'hey raise', 'hi raise', 'raze', 'hey rays', 'hi rays', 'hey race'];
-                    if (wakeWords.some(word => transcript.includes(word))) {
-                        console.log('Wake-word detected! Opening AI...');
-                        setIsOpen(true);
-                        // Stop current recognition immediately to free mic
-                        recognition.stop();
-
-                        // Brief delay for the opening animation before starting transcription
-                        setTimeout(() => {
-                            if (isActive) {
-                                console.log('Starting auto-recording...');
-                                startRecording();
-                            }
-                        }, 800);
-                        break;
-                    }
-                }
-            };
-
-            recognition.onerror = (event: any) => {
-                // Ignore transient errors but log them
-                if (event.error === 'no-speech' || event.error === 'audio-capture') return;
-
-                console.warn('Wake-word error:', event.error);
-
-                if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
-                    terminalError = true;
-                    setVoiceError('Microphone permission required for "Hey Raze"');
-                }
-            };
-
-            recognition.onend = () => {
-                // Only restart if the assistant is closed, the component is still mounted,
-                // and we haven't hit a terminal error (like permission denied)
-                if (!isOpen && isActive && !terminalError) {
-                    try {
-                        recognition.start();
-                    } catch (e) {
-                        // Ignore restart errors
-                    }
-                }
-            };
-
-            try {
-                recognition.start();
-            } catch (e) {
-                console.error('Failed to start wake-word detection:', e);
-            }
-        };
-
-        if (!isOpen) {
-            initWakeWord();
-        }
-
-        return () => {
-            isActive = false;
-            if (recognition) {
-                try {
-                    recognition.stop();
-                } catch (e) { }
-            }
-        };
-    }, [isOpen]);
 
 
     return (
@@ -265,18 +180,6 @@ const AIAssistant: React.FC = () => {
             <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                animate={{
-                    boxShadow: [
-                        "0 0 0 0px rgba(229, 213, 179, 0)",
-                        "0 0 0 10px rgba(229, 213, 179, 0.2)",
-                        "0 0 0 0px rgba(229, 213, 179, 0)"
-                    ]
-                }}
-                transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                }}
                 onClick={() => setIsOpen(true)}
                 className="fixed bottom-28 right-6 w-14 h-14 rounded-full bg-[#E5D5B3] shadow-2xl flex items-center justify-center z-40 border-2 border-white/20 overflow-hidden"
             >
