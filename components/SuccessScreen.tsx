@@ -1,13 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Share2, Download } from 'lucide-react';
+import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Share2, Download, Shield, Sparkles } from 'lucide-react';
+import { PaymentProof } from '../services/zkProofService';
 
 interface SuccessScreenProps {
     recipientName: string;
     amount: string;
+    zkProof?: PaymentProof | null;
 }
 
-const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount }) => {
+const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zkProof }) => {
     const navigate = useNavigate();
     const successSoundRef = useRef<HTMLAudioElement | null>(null);
 
@@ -89,6 +91,39 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount }) 
                 </div>
 
 
+
+                {/* zk-SNARK Verification Card */}
+                {zkProof && (
+                    <div className="w-full max-w-[320px] mb-8 bg-white/5 border border-white/10 rounded-3xl p-5 relative overflow-hidden group text-left">
+                        <div className="absolute top-0 right-0 p-3">
+                            <Sparkles size={14} className="text-[#E5D5B3] opacity-50" />
+                        </div>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-[#E5D5B3] mb-3 flex items-center gap-2">
+                            <Shield size={12} />
+                            zk-SNARK Verification
+                        </p>
+                        <div className="space-y-4">
+                            <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-zinc-500 font-bold uppercase tracking-tighter">Status</span>
+                                <span className="text-emerald-400 font-black tracking-widest">VERIFIED</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-zinc-500 text-[9px] uppercase font-bold tracking-tighter">Small Cryptographic String</span>
+                                <code className="text-[9px] text-zinc-300 bg-black/40 p-2 rounded-lg break-all font-mono leading-tight">
+                                    {zkProof.proof}
+                                </code>
+                            </div>
+                            <div className="flex justify-between items-center text-[9px]">
+                                <span className="text-zinc-500 font-bold uppercase tracking-tighter">Public Signals</span>
+                                <span className="text-zinc-400 font-mono">[{zkProof.publicSignals.join(', ')}]</span>
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <p className="text-[8px] text-zinc-500 font-black uppercase tracking-widest">Payout Authorized via ZK-SDK</p>
+                        </div>
+                    </div>
+                )}
 
                 <button
                     onClick={() => navigate('/')}

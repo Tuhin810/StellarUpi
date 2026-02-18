@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Wallet, ArrowRight, User, Loader2, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
+import { Wallet, ArrowRight, User, Loader2, AlertCircle, CheckCircle2, Sparkles, Shield } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 import { getProfileByStellarId } from '../services/db';
 import { UserProfile } from '../types';
@@ -13,6 +13,7 @@ import { NotificationService } from '../services/notification';
 
 import { useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '../services/web3';
 import { BrowserProvider, parseEther } from 'ethers';
+import { ZKProofService, PaymentProof } from '../services/zkProofService';
 
 const PaymentLink: React.FC = () => {
     const { stellarId } = useParams<{ stellarId: string }>();
@@ -31,6 +32,8 @@ const PaymentLink: React.FC = () => {
     const [sending, setSending] = useState(false);
     const [success, setSuccess] = useState(false);
     const [bridging, setBridging] = useState(false);
+    const [zkProof, setZkProof] = useState<PaymentProof | null>(null);
+    const [generatingProof, setGeneratingProof] = useState(false);
 
     useEffect(() => {
         const loadRecipient = async () => {
@@ -124,6 +127,21 @@ const PaymentLink: React.FC = () => {
             const secret = decryptSecret(senderProfile.encryptedSecret, password);
             const txHash = await sendPayment(secret, recipient.publicKey, amount, note || 'Payment Link');
 
+            // Generate ZK Proof of Payment
+            setGeneratingProof(true);
+            const proof = await ZKProofService.generateProofOfPayment(
+                secret,
+                txHash,
+                amount,
+                recipient.stellarId
+            );
+
+            // Send Proof to SDK to trigger UPI payout
+            await ZKProofService.triggerUPIPayout(proof);
+
+            setZkProof(proof);
+            setGeneratingProof(false);
+
             await recordTransaction({
                 fromId: senderProfile.stellarId,
                 toId: recipient.stellarId,
@@ -148,6 +166,7 @@ const PaymentLink: React.FC = () => {
             setError(e.message || 'Payment failed');
         }
         setSending(false);
+        setGeneratingProof(false);
     };
 
     const avatarUrl = recipient
@@ -171,12 +190,42 @@ const PaymentLink: React.FC = () => {
                     <CheckCircle2 size={48} className="text-emerald-400" />
                 </div>
                 <h1 className="text-2xl font-black mb-2">Payment Sent!</h1>
-                <p className="text-zinc-400 text-center mb-2">
+                <p className="text-zinc-400 text-center mb-8">
                     {amount} XLM sent to {recipient?.displayName || stellarId}
                 </p>
+
+                {zkProof && (
+                    <div className="w-full max-w-md bg-white/5 border border-white/10 rounded-3xl p-6 mb-8 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 p-3">
+                            <Sparkles size={16} className="text-[#E5D5B3] opacity-50" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[#E5D5B3] mb-4">zk-SNARK Verification</p>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-zinc-500">Proof Status</span>
+                                <span className="text-emerald-400 font-bold">VERIFIED</span>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <span className="text-zinc-500 text-[10px] uppercase font-bold tracking-tighter">Proof String (Compressed)</span>
+                                <code className="text-[10px] text-zinc-300 bg-black/40 p-2 rounded-lg break-all font-mono">
+                                    {zkProof.proof}
+                                </code>
+                            </div>
+                            <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-zinc-500">Public Signals</span>
+                                <span className="text-zinc-400 font-mono">[{zkProof.publicSignals.join(', ')}]</span>
+                            </div>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-widest">Payout Triggered via UPI Bridge</p>
+                        </div>
+                    </div>
+                )}
+
                 <button
                     onClick={() => navigate('/')}
-                    className="mt-8 px-8 py-4 gold-gradient text-black font-black rounded-2xl shadow-xl"
+                    className="mt-4 px-8 py-4 gold-gradient text-black font-black rounded-2xl shadow-xl w-full max-w-md"
                 >
                     Done
                 </button>
@@ -190,7 +239,7 @@ const PaymentLink: React.FC = () => {
             {/* Header */}
             <div className="text-center mb-10 w-full">
                 <div className="flex items-center justify-center gap-2 mb-4">
-                    <Sparkles size={16} className="text-[#E5D5B3]" />
+                    {/* <Sparkles size={16} className="text-[#E5D5B3]" /> */}
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Universal Checkout</span>
                 </div>
                 <h1 className="text-2xl font-black">Send Payment</h1>
@@ -263,7 +312,10 @@ const PaymentLink: React.FC = () => {
                         }`}
                 >
                     {sending ? (
-                        <Loader2 size={22} className="animate-spin" />
+                        <div className="flex items-center gap-2">
+                            {generatingProof ? <Shield size={20} className="text-[#E5D5B3] animate-pulse" /> : <Loader2 size={22} className="animate-spin" />}
+                            <span className="text-sm uppercase tracking-widest">{generatingProof ? 'Generating ZK Proof...' : 'Processing...'}</span>
+                        </div>
                     ) : (
                         <>
                             {isAuthenticated ? <ArrowRight size={22} /> : (

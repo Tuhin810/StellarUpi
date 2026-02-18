@@ -13,6 +13,7 @@ import SuccessScreen from '../components/SuccessScreen';
 import UpiDrawer from '../components/UpiDrawer';
 import { NotificationService } from '../services/notification';
 import { getAvatarUrl } from '../services/avatars';
+import { ZKProofService, PaymentProof } from '../services/zkProofService';
 
 interface Props {
   profile: UserProfile | null;
@@ -58,6 +59,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [category, setCategory] = useState<TransactionRecord['category']>('Other');
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
+  const [zkProof, setZkProof] = useState<PaymentProof | null>(null);
+  const [generatingProof, setGeneratingProof] = useState(false);
 
   const [selectedAsset, setSelectedAsset] = useState<'XLM'>('XLM');
   const [xlmRate, setXlmRate] = useState<number>(15.02);
@@ -305,6 +308,19 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         const conversionBuffer = 1.02;
         const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
         const hash = await sendPayment(ownerSecret, recipientPubKey, xlmAmount, `FamilyPay: ${selectedContact.id}`);
+
+        // Generate ZK Proof for Family Payment
+        setGeneratingProof(true);
+        const proof = await ZKProofService.generateProofOfPayment(
+          ownerSecret,
+          hash,
+          amtNum.toString(),
+          selectedContact.id
+        );
+        await ZKProofService.triggerUPIPayout(proof);
+        setZkProof(proof);
+        setGeneratingProof(false);
+
         await updateFamilySpend(selectedFamilyWallet.permission.id, amtNum);
         await recordTransaction({
           fromId: selectedFamilyWallet.ownerProfile.stellarId,
@@ -343,6 +359,20 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         const secret = decryptSecret(profile.encryptedSecret, password);
         const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
         hash = await sendPayment(secret, recipientPubKey, xlmAmount, memo || `UPI Pay: ${selectedContact.id}`);
+
+        // Generate ZK Proof of Payment
+        setGeneratingProof(true);
+        const proof = await ZKProofService.generateProofOfPayment(
+          secret,
+          hash,
+          amtNum.toString(),
+          selectedContact.id
+        );
+
+        // Trigger SDK Payout Verification
+        await ZKProofService.triggerUPIPayout(proof);
+        setZkProof(proof);
+        setGeneratingProof(false);
 
         await updatePersonalSpend(profile.uid, amtNum);
         await recordTransaction({
@@ -401,6 +431,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       <SuccessScreen
         recipientName={selectedContact?.name || ''}
         amount={amount}
+        zkProof={zkProof}
       />
     );
   }
@@ -630,7 +661,16 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             className="w-full mt-10 gold-gradient text-black h-[72px] rounded-2xl font-black text-xl shadow-2xl active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
           >
             {loading ? (
-              <div className="w-6 h-6 border-4 border-black/20 border-t-black rounded-full animate-spin" />
+              <div className="flex items-center gap-3">
+                {generatingProof ? (
+                  <Shield size={22} className="text-black animate-pulse" />
+                ) : (
+                  <div className="w-6 h-6 border-4 border-black/20 border-t-black rounded-full animate-spin" />
+                )}
+                <span className="text-sm uppercase tracking-widest">
+                  {generatingProof ? 'Generating ZK Proof...' : 'Confirming...'}
+                </span>
+              </div>
             ) : (
               <>
                 <span>Confirm Transfer</span>
