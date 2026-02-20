@@ -131,10 +131,47 @@ export const NotificationService = {
       console.error('Firestore Notifications listener error:', error);
     });
 
+    // 4. Listen for incoming Chats and Requests
+    const chatNotifyQuery = query(
+      collection(db, 'chats'),
+      where('receiverId', '==', stellarId),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    let initialChatLoad = true;
+    const unsubChat = onSnapshot(chatNotifyQuery, (snap) => {
+      if (initialChatLoad) {
+        initialChatLoad = false;
+        return;
+      }
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const chat = change.doc.data();
+          if (chat.type === 'request') {
+            onNotify(
+              "Payment Request! 💸",
+              `${chat.senderId.split('@')[0]} is requesting ₹${chat.amount}`,
+              'split'
+            );
+          } else {
+            onNotify(
+              "New Message 💬",
+              `${chat.senderId.split('@')[0]}: ${chat.text?.substring(0, 30)}${chat.text?.length > 30 ? '...' : ''}`,
+              'info'
+            );
+          }
+        }
+      });
+    }, (error) => {
+      console.error('Firestore Chat listener error:', error);
+    });
+
     return () => {
       unsubTx();
       unsubGroups();
       unsubNotify();
+      unsubChat();
       groupSubs.forEach(u => u());
     };
   }

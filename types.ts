@@ -27,6 +27,8 @@ export interface UserProfile {
   totalSavingsINR?: number;
   lastYieldDate?: string; // ISO date string
   totalYieldEarnedINR?: number;
+  passkeyEnabled?: boolean;
+  passkeyCredentialId?: string;
 }
 
 export interface FamilyMember {
