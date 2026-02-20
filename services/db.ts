@@ -18,6 +18,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserProfile, FamilyMember, TransactionRecord, SubscriptionPlan, UserSubscription } from '../types';
+import { getNetworkConfig } from '../context/NetworkContext';
 
 export const saveUser = async (profile: UserProfile) => {
   await setDoc(doc(db, 'upiAccounts', profile.uid), profile);
@@ -44,29 +45,54 @@ export const getProfileByStellarId = async (stellarId: string): Promise<UserProf
 };
 
 export const recordTransaction = async (tx: Partial<TransactionRecord>) => {
+  const network = localStorage.getItem('stellar_network') === 'mainnet' ? 'mainnet' : 'testnet';
   await addDoc(collection(db, 'transactions'), {
     ...tx,
+    network,
     timestamp: serverTimestamp()
   });
 };
 
 export const getTransactions = async (stellarId: string) => {
-  const q = query(
-    collection(db, 'transactions'),
-    where('fromId', '==', stellarId),
-    orderBy('timestamp', 'desc'),
-    limit(20)
-  );
-  const q2 = query(
-    collection(db, 'transactions'),
-    where('toId', '==', stellarId),
-    orderBy('timestamp', 'desc'),
-    limit(20)
-  );
+  const network = localStorage.getItem('stellar_network') || 'testnet';
 
-  const [s1, s2] = await Promise.all([getDocs(q), getDocs(q2)]);
-  const txs = [...s1.docs.map(d => ({ id: d.id, ...d.data() })), ...s2.docs.map(d => ({ id: d.id, ...d.data() }))];
-  return (txs as TransactionRecord[]).sort((a, b) => b.timestamp?.seconds - a.timestamp?.seconds);
+  try {
+    // We remove orderBy from the Firestore query to avoid the need for composite indexes.
+    // Instead, we sort the results in memory.
+    const q1 = query(
+      collection(db, 'transactions'),
+      where('fromId', '==', stellarId),
+      limit(100)
+    );
+    const q2 = query(
+      collection(db, 'transactions'),
+      where('toId', '==', stellarId),
+      limit(100)
+    );
+
+    const [s1, s2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+
+    // Deduplicate in case a user sent a transaction to themselves
+    const txMap = new Map<string, TransactionRecord>();
+
+    s1.docs.forEach(d => txMap.set(d.id, { id: d.id, ...d.data() } as TransactionRecord));
+    s2.docs.forEach(d => txMap.set(d.id, { id: d.id, ...d.data() } as TransactionRecord));
+
+    const allTxs = Array.from(txMap.values());
+
+    // Filter by network and then sort by timestamp descending
+    return allTxs
+      .filter(tx => (tx.network || 'testnet') === network)
+      .sort((a, b) => {
+        const timeA = a.timestamp?.seconds || 0;
+        const timeB = b.timestamp?.seconds || 0;
+        return timeB - timeA;
+      });
+
+  } catch (err) {
+    console.error("Firestore Error in getTransactions:", err);
+    return [];
+  }
 };
 
 export const addFamilyMember = async (ownerUid: string, memberId: string, limit: number, encryptedOwnerSecret?: string) => {
@@ -277,8 +303,8 @@ export const getSubscriptionPlan = async (planId: string): Promise<SubscriptionP
 };
 
 export const getRealCoupons = async () => {
-    const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 

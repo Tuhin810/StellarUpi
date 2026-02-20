@@ -6,9 +6,8 @@ import { createWallet } from '../services/stellar';
 import { encryptSecret } from '../services/encryption';
 import { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount, generateUPIFromAddress } from '../services/web3';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Wallet, Loader2, ArrowRight, ShieldCheck, Zap, Lock, Compass } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { BrowserProvider } from 'ethers';
-import mainImage from '../assets/image copy.png';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -21,53 +20,40 @@ const Login: React.FC = () => {
   const [isConnectedLocally, setIsConnectedLocally] = useState(false);
   const from = location.state?.from || '/';
 
-  // Web3Modal hooks
   const { open } = useWeb3Modal();
   const { walletProvider } = useWeb3ModalProvider();
   const { address, isConnected } = useWeb3ModalAccount();
-
   const addressLower = address?.toLowerCase();
 
-  // Effect to handle session restoration and connection state
   useEffect(() => {
     if (isConnected && addressLower && walletProvider) {
       setIsConnectedLocally(true);
-
-      // Auto-navigation if already unlocked
       const storedAddr = localStorage.getItem('web3_address');
       const storedKey = localStorage.getItem('temp_vault_key');
-
       if (storedAddr === addressLower && storedKey) {
         navigate(from);
       }
     } else {
       setIsConnectedLocally(false);
     }
-  }, [isConnected, addressLower, walletProvider, navigate]);
+  }, [isConnected, addressLower, walletProvider, navigate, from]);
 
   const handleSignAndLogin = async () => {
     if (!addressLower || !walletProvider) return;
-
     setLoading(true);
-    setStatus('Generating encryption keys...');
+    setStatus('Verifying Identity...');
 
     try {
       const provider = new BrowserProvider(walletProvider);
       const signer = await provider.getSigner();
-
       const message = "Sign this message to access your Ching Pay UPI vault. Your signature is used as your local encryption key.";
       const signature = await signer.signMessage(message);
 
-      setStatus('Authenticating with Stellar...');
-
-      if (!auth.currentUser) {
-        await signInAnonymously(auth);
-      }
+      if (!auth.currentUser) await signInAnonymously(auth);
 
       let profile = await getProfile(addressLower);
-
       if (!profile) {
-        setStatus('Creating your decentralized identity...');
+        setStatus('Initializing Vault...');
         const stellarId = generateUPIFromAddress(addressLower);
         const { publicKey, secret } = await createWallet();
         const encryptedSecret = encryptSecret(secret, signature);
@@ -75,41 +61,32 @@ const Login: React.FC = () => {
         profile = {
           uid: addressLower,
           email: `${addressLower.substring(0, 10)}@metamask`,
-          stellarId: stellarId,
+          stellarId,
           publicKey,
           encryptedSecret,
           isFamilyOwner: true,
           displayName: addressLower.substring(0, 6) + '...' + addressLower.substring(38),
           avatarSeed: addressLower
         };
-
         await saveUser(profile);
       }
 
       localStorage.setItem('web3_address', addressLower);
       localStorage.setItem('temp_vault_key', signature);
-
-      // Refresh AuthContext so it acknowledges the new session immediately
       refreshProfileSync(addressLower);
-
-      setStatus('Success! Opening vault...');
+      setStatus('Vault Unlocked');
       setTimeout(() => navigate(from), 800);
     } catch (err: any) {
-      console.error("Login Error:", err);
-      let errorMsg = err.message || "Connection failed";
-      if (err.code === 4001) errorMsg = "Verification cancelled";
-      setStatus(errorMsg);
+      setStatus(err.message || "Connection failed");
       setLoading(false);
     }
   };
 
   const handleConnectWallet = async () => {
     setLoading(true);
-    setStatus('Waiting for wallet choice...');
     try {
       await open();
     } catch (err: any) {
-      console.error("Connect Error:", err);
       setStatus(err.message || "Failed to connect");
     } finally {
       setLoading(false);
@@ -117,100 +94,73 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex flex-col relative overflow-hidden">
-      {/* Rich Background Aesthetics */}
-      <div className="absolute top-0 left-0 right-0 h-screen overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#E5D5B3]/5 rounded-full blur-[120px]"></div>
-        <div className="absolute bottom-[10%] right-[-10%] w-[60%] h-[40%] bg-[#E5D5B3]/5 rounded-full blur-[140px]"></div>
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay"></div>
+    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
+
+      {/* === FULL SCREEN BACKGROUND === */}
+      <div className="absolute inset-0 z-0">
+        {/* Warm ambient glow */}
+        <div className="absolute top-[8%] right-[0%] w-[70%] h-[45%] rounded-full blur-[120px]" style={{ background: 'rgba(139, 106, 62, 0.15)' }}></div>
+        <div className="absolute top-[20%] left-[5%] w-[40%] h-[30%] rounded-full blur-[100px]" style={{ background: 'rgba(139, 106, 62, 0.08)' }}></div>
+
+        {/* Dark gradient from bottom — rendered BEFORE lines so lines sit on top */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-transparent"></div>
+
+        {/* Geometric Lines — on top of everything */}
+        <svg className="absolute inset-0 w-full h-full z-10" viewBox="0 0 400 900" preserveAspectRatio="xMidYMid slice">
+          <line x1="20" y1="0" x2="380" y2="650" stroke="rgba(229,213,179,0.15)" strokeWidth="0.8" />
+          <line x1="160" y1="0" x2="400" y2="480" stroke="rgba(229,213,179,0.12)" strokeWidth="0.7" />
+          <line x1="0" y1="120" x2="400" y2="300" stroke="rgba(229,213,179,0.10)" strokeWidth="0.7" />
+          <line x1="370" y1="0" x2="40" y2="580" stroke="rgba(229,213,179,0.13)" strokeWidth="0.7" />
+          <line x1="0" y1="30" x2="280" y2="900" stroke="rgba(229,213,179,0.08)" strokeWidth="0.6" />
+          <line x1="280" y1="0" x2="0" y2="450" stroke="rgba(229,213,179,0.09)" strokeWidth="0.6" />
+        </svg>
       </div>
 
-      {/* Header / Brand Area */}
-      <div className="relative z-20 pt-48 px-8 flex flex-col items-center text-center">
-        <div className="space-y-2">
-          <h2 className="text-zinc-500 font-black text-[10px] uppercase tracking-[0.4em] ml-1">Ching Pay Protocol</h2>
-          <h1 className="text-5xl font-black tracking-tighter bg-gradient-to-b from-white to-white/40 bg-clip-text text-transparent italic">
-            The New Web3 UPI
-          </h1>
+      {/* === BOTTOM CONTENT === */}
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-8 pb-14">
+
+        {/* Logo Icon */}
+        <div className="mb-6">
+          <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M22 4L38 14V30L22 40L6 30V14L22 4Z" stroke="white" strokeWidth="2.5" fill="none" />
+            <path d="M14 18L22 13L30 18V28L22 33L14 28V18Z" fill="white" />
+          </svg>
         </div>
+
+        {/* Title */}
+        <h1 className="text-[32px] font-extrabold leading-[1.15] tracking-tight mb-10">
+          <span className="text-[#E5D5B3]">Ching Pay</span> – Web3 UPI
+          {'\u00A0'}for Seamless Digital Payments
+        </h1>
+
+        {/* Primary Button */}
+        <button
+          onClick={isConnectedLocally ? handleSignAndLogin : handleConnectWallet}
+          disabled={loading}
+          className="w-full h-[60px] rounded-full font-bold text-[16px] text-black relative overflow-hidden active:scale-[0.97] transition-transform mb-4 disabled:opacity-60"
+          style={{
+            background: 'linear-gradient(90deg, #D4874D 0%, #E5C36B 50%, #F0D98A 100%)',
+          }}
+        >
+          {loading ? (
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 size={20} className="animate-spin" />
+              <span className="text-sm">{status || 'Loading...'}</span>
+            </div>
+          ) : (
+            <span>{isConnectedLocally ? 'Sign in' : 'Sign up'}</span>
+          )}
+        </button>
+
+        {/* Secondary Button */}
+        <button
+          onClick={isConnectedLocally ? handleConnectWallet : handleSignAndLogin}
+          disabled={loading || (!isConnectedLocally)}
+          className="w-full h-[60px] rounded-full font-bold text-[16px] text-white/80 border border-white/15 bg-white/[0.04] hover:bg-white/[0.08] active:scale-[0.97] transition-all disabled:opacity-40"
+        >
+          I have an account
+        </button>
       </div>
-
-
-      {/* Content / Interaction Area */}
-      <div className="relative z-20 mt-auto p-8 pb-8 space-y-6">
-
-        {isConnectedLocally ? (
-          <div className="animate-in fade-in slide-in-from-bottom-6 duration-700">
-
-
-            {/* Action Button */}
-            <button
-              onClick={handleSignAndLogin}
-              disabled={loading}
-              className="group relative w-full h-[72px] rounded-[1.5rem] overflow-hidden transition-all active:scale-[0.98] disabled:opacity-50"
-            >
-              <div className="absolute inset-0 bg-white group-hover:bg-zinc-100 transition-colors"></div>
-              <div className="relative h-full flex items-center justify-center gap-3">
-                {loading ? (
-                  <Loader2 className="text-black animate-spin" size={24} />
-                ) : (
-                  <>
-                    <span className="text-black text-lg font-black ">Sign message to continue</span>
-                    {/* <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} /> */}
-                  </>
-                )}
-              </div>
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <button
-              onClick={handleConnectWallet}
-              disabled={loading}
-              className="group relative w-full h-[72px] rounded-[1.5rem] overflow-hidden transition-all active:scale-[0.98]"
-            >
-              <div className="absolute inset-0 gold-gradient group-hover:brightness-110"></div>
-              <div className="relative h-full flex items-center justify-center gap-3 px-6">
-                {loading ? (
-                  <Loader2 className="text-black animate-spin" size={24} />
-                ) : (
-                  <>
-                    {/* <Wallet className="text-black" size={24} strokeWidth={3} /> */}
-                    <span className="text-black text-lg font-black ">Continue with wallet Login</span>
-                    {/* <ArrowRight className="text-black group-hover:translate-x-1 transition-transform" size={20} strokeWidth={3} /> */}
-                  </>
-                )}
-              </div>
-            </button>
-
-          </div>
-        )}
-
-        {/* Status Message Display */}
-        {status && (
-          <div className="text-center animate-in fade-in duration-500">
-            <p className="text-[#E5D5B3] text-[10px] font-black uppercase tracking-[0.2em] opacity-80">
-              {status}
-            </p>
-          </div>
-        )}
-
-      </div>
-
-      {/* New Bottom Image */}
-      <div className="relative z-20 px-4 pb-12 animate-in fade-in slide-in-from-bottom-10 duration-1000">
-        <div className="relative group">
-          <div className="absolute inset-0 bg-[#E5D5B3]/5 rounded-[2.5rem] blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-          <img
-            src={mainImage}
-            alt="Ching Pay UI"
-            className="w-full rounded-[2rem] shadow-2xl relative z-10"
-          />
-        </div>
-      </div>
-
-      {/* Aesthetic Grain Fade */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black to-transparent z-10 pointer-events-none"></div>
     </div>
   );
 };

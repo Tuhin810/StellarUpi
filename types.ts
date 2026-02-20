@@ -44,6 +44,7 @@ export interface TransactionRecord {
   spenderId?: string;
   asset?: 'XLM';
   category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
+  network?: 'testnet' | 'mainnet';
 }
 
 export interface ChatMessage {
