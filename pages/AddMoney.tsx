@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, TrendingUp, Zap, AlertCircle, Wallet, CreditCard, Building2, Sparkles } from 'lucide-react';
+import { ArrowLeft, Plus, TrendingUp, Zap, AlertCircle, Wallet, CreditCard, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserProfile } from '../types';
 import { getBalance } from '../services/stellar';
@@ -148,7 +148,7 @@ const AddMoney: React.FC<Props> = ({ profile }) => {
                 <div className="flex gap-3">
                     <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2">
                         <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                            <Sparkles size={18} className="text-purple-400" />
+                            <Zap size={18} className="text-purple-400" />
                         </div>
                         <span className="text-xs font-bold text-zinc-300">UPI</span>
                     </div>

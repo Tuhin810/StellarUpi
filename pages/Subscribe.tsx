@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Repeat, ArrowRight, Loader2, AlertCircle, CheckCircle2, Sparkles, Calendar } from 'lucide-react';
+import { Repeat, ArrowRight, Loader2, AlertCircle, CheckCircle2, Zap, Calendar } from 'lucide-react';
 import { getSubscriptionPlan, createUserSubscription } from '../services/db';
 import { SubscriptionPlan } from '../types';
 import { useAuth } from '../context/AuthContext';
@@ -142,7 +142,7 @@ const Subscribe: React.FC = () => {
         <div className="min-h-screen bg-black text-white px-6 py-12">
             <div className="text-center mb-12">
                 <div className="flex items-center justify-center gap-2 mb-4">
-                    <Sparkles size={16} className="text-[#E5D5B3]" />
+                    <Zap size={16} className="text-[#E5D5B3]" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Subscription Plan</span>
                 </div>
                 <h1 className="text-3xl font-black">Confirm Autopay</h1>

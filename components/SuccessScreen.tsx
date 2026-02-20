@@ -8,9 +8,10 @@ interface SuccessScreenProps {
     amount: string;
     zkProof?: PaymentProof | null;
     claimLink?: string | null;
+    chillarAmount?: number;
 }
 
-const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zkProof, claimLink }) => {
+const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zkProof, claimLink, chillarAmount }) => {
     const navigate = useNavigate();
     const successSoundRef = useRef<HTMLAudioElement | null>(null);
 
@@ -73,6 +74,15 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zk
                                 </h3>
                             </div>
                         </div>
+
+                        {chillarAmount && chillarAmount > 0 && (
+                            <div className="mt-4 px-4 py-2 bg-[#E5D5B3]/10 border border-[#E5D5B3]/20 rounded-xl flex items-center justify-center gap-2 animate-in slide-in-from-top-2 duration-1000">
+                                <span className="text-[10px] font-black text-[#E5D5B3] uppercase tracking-widest italic">
+                                    ₹{chillarAmount} added to your Gullak!
+                                </span>
+                                <div className="w-1.5 h-1.5 bg-[#E5D5B3] rounded-full animate-pulse" />
+                            </div>
+                        )}
 
                         <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-4">
                             <div className="flex items-center justify-between text-left">

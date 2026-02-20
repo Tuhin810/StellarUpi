@@ -93,6 +93,13 @@ The application supports Web3 wallet authentication, family spending controls, g
 - **Frequency Options** - Daily, weekly, or monthly payment schedules
 - **Next Payment Preview** - View upcoming scheduled payments
 
+### 🤖 **Raze AI Assistant**
+- **Neural Financial Intelligence** - A powerful AI backbone (Gemini 1.5 Flash) integrated for instant financial insights.
+- **Voice-Activated Queries** - Transcribe and process voice requests for hands-free operations.
+- **Smart Identity Resolution** - Automatically resolves contacts and Stellar IDs from conversational context.
+- **Transaction Analysis** - Ask about your spending habits, debts, or pending splits in natural language.
+- **Deep Tool Integration** - AI can search users, fetch financial summaries, and track group debts.
+
 ### 🛡️ **Security Features**
 - **4-Digit Transaction PIN** - Optional PIN protection for all transactions
 - **AES-256 Encryption** - Military-grade encryption for Stellar private keys
@@ -101,9 +108,10 @@ The application supports Web3 wallet authentication, family spending controls, g
 - **Account Verification Status** - Display verified account badges
 
 ### 🌐 **Network Flexibility**
-- **Mainnet & Testnet Support** - Toggle between Stellar networks
-- **Automatic Friendbot Funding** - Test wallet funding on Testnet
-- **Network-Aware UI** - Visual indicators for current network
+- **Mainnet Live** - Successfully processed real-world transactions on the Stellar Mainnet.
+- **Testnet Support** - Sandbox environment for testing and development.
+- **Automatic Friendbot Funding** - Instant test wallet funding on Testnet.
+- **Network-Aware UI** - Real-time indicators showing currently active network.
 
 ### 📱 **Progressive Web App (PWA)**
 - **Installable Application** - Add to home screen on mobile devices

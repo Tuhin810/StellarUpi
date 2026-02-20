@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Wallet, ArrowRight, User, Loader2, AlertCircle, CheckCircle2, Sparkles, Shield } from 'lucide-react';
+import { Wallet, ArrowRight, User, Loader2, AlertCircle, CheckCircle2, Zap, Shield } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 import { getProfileByStellarId } from '../services/db';
 import { UserProfile } from '../types';
@@ -155,10 +155,11 @@ const PaymentLink: React.FC = () => {
                 isFamilySpend: false
             });
 
-            NotificationService.triggerRemoteNotification(
+            NotificationService.sendInAppNotification(
                 recipient.stellarId,
-                amount,
-                senderProfile.displayName || senderProfile.stellarId.split('@')[0]
+                "Payment Link Received",
+                `Received ${amount} XLM from ${senderProfile.displayName || senderProfile.stellarId.split('@')[0]}`,
+                'payment'
             );
 
             setSuccess(true);
@@ -239,7 +240,7 @@ const PaymentLink: React.FC = () => {
             {/* Header */}
             <div className="text-center mb-10 w-full">
                 <div className="flex items-center justify-center gap-2 mb-4">
-                    {/* <Sparkles size={16} className="text-[#E5D5B3]" /> */}
+                    <Zap size={16} className="text-[#E5D5B3]" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Universal Checkout</span>
                 </div>
                 <h1 className="text-2xl font-black">Send Payment</h1>

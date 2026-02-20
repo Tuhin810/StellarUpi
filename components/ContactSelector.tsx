@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Sparkles, ChevronRight } from 'lucide-react';
+import { Search, Zap, ChevronRight } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 
 interface Contact {
@@ -52,7 +52,7 @@ const ContactSelector: React.FC<ContactSelectorProps> = ({
                 >
                     <div className="flex items-center gap-5">
                         <div className="w-14 h-14 gold-gradient rounded-xl flex items-center justify-center text-black">
-                            <Sparkles size={24} />
+                            <Zap size={24} />
                         </div>
                         <div className="text-left">
                             <p className="font-black text-white text-lg leading-none mb-1">New Pay</p>

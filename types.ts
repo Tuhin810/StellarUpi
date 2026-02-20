@@ -17,6 +17,16 @@ export interface UserProfile {
   isVerified?: boolean;
   fcmToken?: string;
   notificationsEnabled?: boolean;
+  // Chillar-Streak System
+  createdAt: string; // ISO date string when account was created
+  currentStreak: number;
+  lastChillarDate?: string; // ISO date string
+  streakHistory?: string[]; // Array of ISO date strings (YYYY-MM-DD)
+  streakLevel: 'orange' | 'blue' | 'purple';
+  gullakPublicKey?: string; // Dedicated Stellar vault for savings
+  totalSavingsINR?: number;
+  lastYieldDate?: string; // ISO date string
+  totalYieldEarnedINR?: number;
 }
 
 export interface FamilyMember {

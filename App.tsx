@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter as Router } from 'react-router-dom';
+import { HashRouter as Router, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NetworkProvider } from './context/NetworkContext';
 import AppRoutes from './routes/AppRoutes';
@@ -8,23 +8,26 @@ import BottomNav from './components/BottomNav';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 import { NotificationService } from './services/notification';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import AIAssistant from './components/AIAssistant';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading, profile } = useAuth();
+  const { showNotification } = useNotifications();
+  const location = useLocation();
+  const isStreakPage = location.pathname === '/streak';
 
   React.useEffect(() => {
     const setupNotifications = async () => {
       if (isAuthenticated && profile) {
         try {
-          // 1. Initialize OneSignal and login user
-          await NotificationService.init(profile.stellarId);
-
-          // 2. Request permission (Fired on every site entry)
-          await NotificationService.requestPermission(true);
-
-          // 3. Setup real-time listeners for payments/splits
-          const cleanup = NotificationService.setupRealtimeNotifications(profile.stellarId);
+          // Setup real-time listeners for payments/splits/in-app notifications
+          const cleanup = NotificationService.setupRealtimeNotifications(
+            profile.stellarId,
+            (title, message, type) => {
+              showNotification(title, message, type);
+            }
+          );
           return cleanup;
         } catch (error) {
           console.error('Failed to setup notifications:', error);
@@ -40,7 +43,7 @@ const AppContent: React.FC = () => {
     return () => {
       if (cleanupFn) cleanupFn();
     };
-  }, [isAuthenticated, profile]);
+  }, [isAuthenticated, profile, showNotification]);
 
 
   if (loading) {
@@ -52,18 +55,16 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-[#1A1A1A] text-white max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-white/5">
-        <AppRoutes />
-        {isAuthenticated && (
-          <>
-            <BottomNav />
-            <AIAssistant />
-          </>
-        )}
-        <PWAInstallPrompt />
-      </div>
-    </Router>
+    <div className="min-h-screen bg-[#1A1A1A] text-white max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-white/5">
+      <AppRoutes />
+      {isAuthenticated && !isStreakPage && (
+        <>
+          <BottomNav />
+          <AIAssistant />
+        </>
+      )}
+      <PWAInstallPrompt />
+    </div>
   );
 };
 
@@ -72,7 +73,11 @@ const App: React.FC = () => {
   return (
     <NetworkProvider>
       <AuthProvider>
-        <AppContent />
+        <NotificationProvider>
+          <Router>
+            <AppContent />
+          </Router>
+        </NotificationProvider>
       </AuthProvider>
     </NetworkProvider>
   );

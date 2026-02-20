@@ -16,6 +16,7 @@ const BottomNav: React.FC = () => {
         path === '/profile' ||
         path === '/rewards' ||
         path === '/add-money' ||
+        path === '/gullak' ||
         path.startsWith('/chat') ||
         path.startsWith('/group') ||
         (path.startsWith('/transaction/') && !path.startsWith('/transactions'))

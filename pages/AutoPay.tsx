@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Repeat, Plus, Trash2, Calendar, Clock, ChevronRight, AlertCircle, Sparkles } from 'lucide-react';
+import { ArrowLeft, Repeat, Plus, Trash2, Calendar, Clock, ChevronRight, AlertCircle } from 'lucide-react';
 import { UserProfile, UserSubscription } from '../types';
 import { getUserSubscriptions, cancelSubscription } from '../services/db';
 

@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { X, User, Settings, HelpCircle, Shield, LogOut, ChevronRight, Zap, ToggleLeft, ToggleRight, ArrowDownToLine, Repeat, Gift } from 'lucide-react';
+import { X, User, Settings, HelpCircle, Shield, LogOut, ChevronRight, Zap, ToggleLeft, ToggleRight, ArrowDownToLine, Repeat, Gift, PiggyBank } from 'lucide-react';
+import StreakFire from './StreakFire';
 import { useNavigate } from 'react-router-dom';
 import { useNetwork } from '../context/NetworkContext';
 import { getAvatarUrl } from '../services/avatars';
@@ -11,15 +12,18 @@ interface Props {
     profileName: string;
     stellarId: string;
     avatarSeed?: string;
+    streak?: number;
+    streakLevel?: 'orange' | 'blue' | 'purple';
 }
 
-const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, avatarSeed }) => {
+const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, avatarSeed, streak, streakLevel }) => {
     const navigate = useNavigate();
     const { isMainnet, networkName, toggleNetwork } = useNetwork();
     const avatarUrl = getAvatarUrl(avatarSeed || stellarId);
 
     const menuItems = [
         { icon: <User size={22} />, label: 'My Profile', path: '/profile' },
+        { icon: <PiggyBank size={22} className="text-[#E5D5B3]" />, label: 'My Gullak (Savings)', path: '/gullak' },
         { icon: <ArrowDownToLine size={22} />, label: 'Withdraw to Bank', path: '/withdraw' },
         { icon: <Repeat size={22} />, label: 'AutoPay', path: '/autopay' },
         { icon: <Gift size={22} />, label: 'Rewards', path: '/rewards' },
@@ -69,8 +73,25 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
                     </div>
                 </div>
 
+                {/* Streak Section */}
+                {streak !== undefined && streak > 0 && (
+                    <div className="px-5 mb-4">
+                        <button
+                            onClick={() => {
+                                navigate('/streak');
+                                onClose();
+                            }}
+                            className="w-full flex items-center justify-between p-4 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-[#FF6B00]/30 transition-all group overflow-hidden relative"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B00]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <StreakFire streak={streak} level={streakLevel || 'orange'} />
+                            <ChevronRight size={18} className="text-zinc-700 group-hover:text-[#FF6B00] transition-colors relative z-10" />
+                        </button>
+                    </div>
+                )}
+
                 {/* Menu Items */}
-                <div className="flex-1 px-4 space-y-2">
+                <div className="flex-1 px-4 space-y-1">
                     {menuItems.map((item, idx) => (
                         <button
                             key={idx}

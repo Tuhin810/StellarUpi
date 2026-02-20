@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee } from 'lucide-react';
+import { ArrowLeft, Send, Search, Wallet, Shield, Zap, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee, PiggyBank, Check } from 'lucide-react';
 import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { getLivePrice, calculateCryptoToSend } from '../services/priceService';
@@ -15,6 +15,10 @@ import { NotificationService } from '../services/notification';
 import { getAvatarUrl } from '../services/avatars';
 import { ZKProofService, PaymentProof } from '../services/zkProofService';
 import { createViralPayment } from '../services/claimableBalanceService';
+import { calculateChillarAmount } from '../utils/chillar';
+import { sendChillarPayment } from '../services/stellar';
+import { updateStreak, recordGullakDeposit } from '../services/db';
+import StreakFire from '../components/StreakFire';
 
 interface Props {
   profile: UserProfile | null;
@@ -64,6 +68,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [generatingProof, setGeneratingProof] = useState(false);
   const [isViralLinkMode, setIsViralLinkMode] = useState(false);
   const [claimLink, setClaimLink] = useState<string | null>(null);
+  const [chillarSavings, setChillarSavings] = useState(0);
+  const [chillarEnabled, setChillarEnabled] = useState(true);
 
   const [selectedAsset, setSelectedAsset] = useState<'XLM'>('XLM');
   const [xlmRate, setXlmRate] = useState<number>(15.02);
@@ -339,8 +345,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           category: category
         });
 
-        // Trigger remote notification
-        NotificationService.triggerRemoteNotification(
+        // Trigger in-app notification
+        NotificationService.sendInAppNotification(
           selectedContact.id,
           amtNum.toString(),
           selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]
@@ -385,28 +391,57 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         const password = localStorage.getItem('temp_vault_key');
         if (!password) throw new Error("Vault locked. Please login again.");
 
-        let hash = '';
-        const conversionBuffer = 1.02;
-
         const secret = decryptSecret(profile.encryptedSecret, password);
-        const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
-        hash = await sendPayment(secret, recipientPubKey, xlmAmount, memo || `UPI Pay: ${selectedContact.id}`);
+        let hash = '';
 
-        // Generate ZK Proof of Payment
-        setGeneratingProof(true);
-        const proof = await ZKProofService.generateProofOfPayment(
-          secret,
-          hash,
-          amtNum.toString(),
-          selectedContact.id
-        );
+        if (chillarEnabled) {
+          // Calculate Chillar (Round-up)
+          const chillarAmount = calculateChillarAmount(amtNum);
+          setChillarSavings(chillarAmount);
 
-        // Trigger SDK Payout Verification
-        await ZKProofService.triggerUPIPayout(proof);
-        setZkProof(proof);
-        setGeneratingProof(false);
+          // Convert amounts to XLM
+          const xlmAmountMain = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
+          const xlmAmountChillar = await calculateCryptoToSend(chillarAmount, 'stellar', 1.02);
+
+          // Gullak Public Key fallback (if not set, use recipient for now or throw)
+          const gullakPk = profile.gullakPublicKey || profile.publicKey; // Fallback to self-save
+
+          hash = await sendChillarPayment(
+            secret,
+            recipientPubKey,
+            gullakPk,
+            xlmAmountMain.toString(),
+            xlmAmountChillar.toString(),
+            memo || `UPI Pay + Chillar: ${selectedContact.id}`
+          );
+
+          // Update Streak
+          await updateStreak(profile.uid);
+
+          // Record Gullak Savings in Firebase
+          await recordGullakDeposit(profile.uid, chillarAmount);
+        } else {
+          setChillarSavings(0);
+          const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
+          hash = await sendPayment(secret, recipientPubKey, xlmAmount.toString(), memo || `UPI Pay: ${selectedContact.id}`);
+
+          // Generate ZK Proof of Payment
+          setGeneratingProof(true);
+          const proof = await ZKProofService.generateProofOfPayment(
+            secret,
+            hash,
+            amtNum.toString(),
+            selectedContact.id
+          );
+
+          // Trigger SDK Payout Verification
+          await ZKProofService.triggerUPIPayout(proof);
+          setZkProof(proof);
+          setGeneratingProof(false);
+        }
 
         await updatePersonalSpend(profile.uid, amtNum);
+
         await recordTransaction({
           fromId: profile.stellarId,
           toId: selectedContact.id,
@@ -421,11 +456,15 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           category: category
         });
 
-        // Trigger remote notification
-        NotificationService.triggerRemoteNotification(
+        // Record Chillar as a separate small internal record or just part of this?
+        // Let's just keep it linked to this TX hash.
+
+        // Trigger in-app notification
+        NotificationService.sendInAppNotification(
           selectedContact.id,
-          amtNum.toString(),
-          profile.displayName || profile.stellarId.split('@')[0]
+          "Payment Received",
+          `You received ₹${amtNum} from ${profile.displayName || profile.stellarId.split('@')[0]}`,
+          'payment'
         );
       }
 
@@ -465,6 +504,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         amount={amount}
         zkProof={zkProof}
         claimLink={claimLink}
+        chillarAmount={chillarSavings}
       />
     );
   }
@@ -592,7 +632,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             {/* Note Input */}
             {/* <div className="w-full max-w-[240px] relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all group-focus-within:scale-110">
-                <Sparkles size={14} className="text-[#E5D5B3] opacity-50 group-focus-within:opacity-100 transition-opacity" />
+                <Zap size={14} className="text-[#E5D5B3] opacity-50 group-focus-within:opacity-100 transition-opacity" />
               </div>
               <input
                 type="text"
@@ -691,6 +731,50 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
               </button>
             ))}
           </div>
+
+          {/* Chillar Savings Toggle */}
+          {paymentMethod === 'wallet' && amount && parseFloat(amount) > 0 && (
+            <div className="mt-6 p-4 bg-zinc-50 rounded-2xl border border-zinc-100 animate-in fade-in slide-in-from-top-2 duration-500">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#E5D5B3]/20 flex items-center justify-center text-zinc-900">
+                    <PiggyBank size={20} />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-black text-xs text-black uppercase tracking-tight">Chillar Round-up</span>
+                    <p className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest leading-none mt-0.5">Save as you spend</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setChillarEnabled(!chillarEnabled)}
+                  className={`w-12 h-6 rounded-full transition-all duration-300 relative flex items-center px-1 ${chillarEnabled ? 'bg-zinc-900 shadow-lg shadow-black/10' : 'bg-zinc-200'}`}
+                >
+                  <div className={`absolute w-4 h-4 rounded-full bg-white transition-all duration-300 shadow-sm flex items-center justify-center ${chillarEnabled ? 'left-7' : 'left-1'}`}>
+                    {chillarEnabled && <Check size={8} className="text-zinc-900 font-black" />}
+                  </div>
+                </button>
+              </div>
+
+              {chillarEnabled && (
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-200/50">
+                  <div>
+                    <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none mb-1">
+                      Pay Recipient: ₹{parseFloat(amount).toLocaleString()}
+                    </p>
+                    <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest leading-none">
+                      Save to Gullak: ₹{calculateChillarAmount(parseFloat(amount))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Total Deduction</p>
+                    <p className="text-sm font-black text-black">
+                      ₹{Math.ceil(parseFloat(amount) / 10) * 10}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <button
             onClick={handlePay}

@@ -17,7 +17,7 @@ import {
     and
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { ArrowLeft, Send, Sparkles, CheckCircle2, IndianRupee, MessageCircle, MoreVertical, Zap } from 'lucide-react';
+import { ArrowLeft, Send, Zap, CheckCircle2, IndianRupee, MessageCircle, MoreVertical } from 'lucide-react';
 
 interface Props {
     profile: UserProfile | null;

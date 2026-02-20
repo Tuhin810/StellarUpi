@@ -75,17 +75,16 @@ const SplitExpenseDrawer: React.FC<Props> = ({ isOpen, onClose, group, profile, 
 
             await recordSplitExpense(expenseData as any);
 
-            // Trigger remote notifications for all participants except the sender
+            // Trigger in-app notifications for all participants except the sender
             const others = selectedMembers.filter(mId => mId !== profile.stellarId);
-            if (others.length > 0) {
-                NotificationService.triggerRemoteNotification(
-                    others,
-                    totalNum.toString(),
-                    profile.displayName || profile.stellarId.split('@')[0],
+            others.forEach(mId => {
+                NotificationService.sendInAppNotification(
+                    mId,
                     `New Split in ${group.name} 👥`,
-                    `${description}: Total ₹${totalNum} split with you.`
+                    `${description}: Total ₹${totalNum} split with you.`,
+                    'split'
                 );
-            }
+            });
 
             setAmount('');
             setDescription('');

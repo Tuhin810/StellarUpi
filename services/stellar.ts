@@ -163,6 +163,96 @@ export const sendPayment = async (
     throw error;
   }
 };
+/**
+ * Atomic Transaction with "Chillar" Savings
+ * Sends a main payment to the recipient and a round-up amount to the user's Gullak vault.
+ */
+export const sendChillarPayment = async (
+  senderSecret: string,
+  recipientPublicKey: string,
+  gullakPublicKey: string,
+  mainAmountXlm: string,
+  chillarAmountXlm: string,
+  memoText: string = "Ching Pay + Chillar"
+): Promise<string> => {
+  const server = getServer();
+  const sourceKeypair = Keypair.fromSecret(senderSecret);
+  const sourcePublicKey = sourceKeypair.publicKey();
+
+  const sourceAccount = await server.loadAccount(sourcePublicKey);
+
+  // Check if destination accounts exist
+  let destinationExists = true;
+  try {
+    await server.loadAccount(recipientPublicKey);
+  } catch (e: any) {
+    if (e?.response?.status === 404) destinationExists = false;
+  }
+
+  let gullakExists = true;
+  try {
+    await server.loadAccount(gullakPublicKey);
+  } catch (e: any) {
+    if (e?.response?.status === 404) gullakExists = false;
+  }
+
+  // Build transaction with two operations
+  const transactionBuilder = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase: getNetworkPassphrase(),
+  });
+
+  // 1. Operation: Payment or Create Account for recipient
+  if (destinationExists) {
+    transactionBuilder.addOperation(
+      Operation.payment({
+        destination: recipientPublicKey,
+        asset: Asset.native(),
+        amount: mainAmountXlm,
+      })
+    );
+  } else {
+    transactionBuilder.addOperation(
+      Operation.createAccount({
+        destination: recipientPublicKey,
+        startingBalance: mainAmountXlm,
+      })
+    );
+  }
+
+  // 2. Operation: Payment or Create Account for Gullak (Savings)
+  if (gullakExists) {
+    transactionBuilder.addOperation(
+      Operation.payment({
+        destination: gullakPublicKey,
+        asset: Asset.native(),
+        amount: chillarAmountXlm,
+      })
+    );
+  } else {
+    transactionBuilder.addOperation(
+      Operation.createAccount({
+        destination: gullakPublicKey,
+        startingBalance: chillarAmountXlm,
+      })
+    );
+  }
+
+  const transaction = transactionBuilder
+    .addMemo(Memo.text(memoText.substring(0, 28)))
+    .setTimeout(30)
+    .build();
+
+  transaction.sign(sourceKeypair);
+
+  try {
+    const result = await server.submitTransaction(transaction);
+    return result.hash;
+  } catch (error: any) {
+    console.error("Chillar Transacton Error:", error.response?.data?.extras?.result_codes);
+    throw error;
+  }
+};
 
 // Check if account exists and is funded
 export const isAccountFunded = async (publicKey: string): Promise<boolean> => {
