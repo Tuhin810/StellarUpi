@@ -14,6 +14,7 @@ import UpiDrawer from '../components/UpiDrawer';
 import { NotificationService } from '../services/notification';
 import { getAvatarUrl } from '../services/avatars';
 import { ZKProofService, PaymentProof } from '../services/zkProofService';
+import { createViralPayment } from '../services/claimableBalanceService';
 
 interface Props {
   profile: UserProfile | null;
@@ -61,6 +62,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [pin, setPin] = useState('');
   const [zkProof, setZkProof] = useState<PaymentProof | null>(null);
   const [generatingProof, setGeneratingProof] = useState(false);
+  const [isViralLinkMode, setIsViralLinkMode] = useState(false);
+  const [claimLink, setClaimLink] = useState<string | null>(null);
 
   const [selectedAsset, setSelectedAsset] = useState<'XLM'>('XLM');
   const [xlmRate, setXlmRate] = useState<number>(15.02);
@@ -342,6 +345,35 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           amtNum.toString(),
           selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]
         );
+      } else if (isViralLinkMode) {
+        // VIRAL LINK FLOW
+        const password = localStorage.getItem('temp_vault_key');
+        if (!password) throw new Error("Vault locked. Please login again.");
+        const secret = decryptSecret(profile.encryptedSecret, password);
+
+        setLoading(true);
+        const { txHash, tempSecret, amount: sentAmt } = await createViralPayment(secret, (amtNum / xlmRate).toFixed(7));
+
+        // Construct the claim link
+        // Base URL: https://stellar.netlify.app/#/claim?id=[CB_ID]&sk=[TEMP_SK]&amount=[AMT]
+        // Note: Realistically, finding the CB_ID requires parsing result_meta or searching the account.
+        // For the hackathon demo, we can use the txHash and have the claimer find the CB.
+        const url = `${window.location.origin}${window.location.pathname}#/claim?sk=${tempSecret}&amount=${sentAmt}`;
+        setClaimLink(url);
+
+        await recordTransaction({
+          fromId: profile.stellarId,
+          toId: selectedContact.id, // Phone number
+          fromName: profile.displayName || profile.stellarId,
+          toName: selectedContact.name,
+          amount: amtNum,
+          currency: 'INR',
+          status: 'SUCCESS',
+          txHash: txHash,
+          isFamilySpend: false,
+          memo: 'Created Viral Fund Link'
+        });
+
       } else {
         if (profile.dailyLimit && profile.dailyLimit > 0) {
           const remaining = Math.max(0, profile.dailyLimit - (profile.spentToday || 0));
@@ -432,6 +464,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         recipientName={selectedContact?.name || ''}
         amount={amount}
         zkProof={zkProof}
+        claimLink={claimLink}
       />
     );
   }
@@ -497,7 +530,11 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
         <div className="relative z-20 pt-5 px-6 flex items-center justify-between">
           <button
-            onClick={() => setSelectedContact(null)}
+            onClick={() => {
+              setSelectedContact(null);
+              setIsViralLinkMode(false);
+              setClaimLink(null);
+            }}
             className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5"
           >
             <ArrowLeft size={20} />
@@ -824,10 +861,13 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                     </div>
                   </div>
                   <button
-                    onClick={() => handleInvite(contact.name)}
+                    onClick={() => {
+                      setSelectedContact({ id: contact.phone, name: contact.name, avatarSeed: contact.phone });
+                      setIsViralLinkMode(true);
+                    }}
                     className="px-4 py-2 bg-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-xl text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest hover:bg-[#E5D5B3]/10 transition-all"
                   >
-                    Invite
+                    Send Money
                   </button>
                 </div>
               ))}

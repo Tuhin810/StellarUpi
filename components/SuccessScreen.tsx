@@ -1,15 +1,16 @@
 import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Share2, Download, Shield, Sparkles } from 'lucide-react';
+import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Share2, Download, Shield, Sparkles, Gift } from 'lucide-react';
 import { PaymentProof } from '../services/zkProofService';
 
 interface SuccessScreenProps {
     recipientName: string;
     amount: string;
     zkProof?: PaymentProof | null;
+    claimLink?: string | null;
 }
 
-const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zkProof }) => {
+const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zkProof, claimLink }) => {
     const navigate = useNavigate();
     const successSoundRef = useRef<HTMLAudioElement | null>(null);
 
@@ -122,6 +123,36 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zk
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                             <p className="text-[8px] text-zinc-500 font-black uppercase tracking-widest">Payout Authorized via ZK-SDK</p>
                         </div>
+                    </div>
+                )}
+
+                {claimLink && (
+                    <div className="w-full max-w-[320px] mb-8 bg-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-3xl p-6 relative overflow-hidden group text-left">
+                        <div className="absolute top-0 right-0 p-3 opacity-20">
+                            <Gift size={20} className="text-[#E5D5B3]" />
+                        </div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E5D5B3] mb-4">Viral Claim Link Created</p>
+                        <p className="text-xs text-zinc-400 font-medium mb-6 leading-relaxed">
+                            Share this link with <span className="text-white font-bold">{recipientName}</span> to let them claim the funds into their wallet.
+                        </p>
+                        <button
+                            onClick={() => {
+                                if (navigator.share) {
+                                    navigator.share({
+                                        title: 'Claim your funds on Ching Pay',
+                                        text: `Hi ${recipientName}, I've sent you ₹${amount}! Claim it here:`,
+                                        url: claimLink
+                                    });
+                                } else {
+                                    navigator.clipboard.writeText(claimLink);
+                                    alert("Link copied to clipboard!");
+                                }
+                            }}
+                            className="w-full py-4 bg-[#E5D5B3] text-black rounded-xl font-black text-xs uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all"
+                        >
+                            <Share2 size={16} />
+                            Share Claim Link
+                        </button>
                     </div>
                 )}
 
