@@ -14,13 +14,18 @@ import {
   updateDoc,
   increment,
   deleteDoc,
-  deleteField
+  deleteField,
+  arrayUnion
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { UserProfile, FamilyMember, TransactionRecord, SubscriptionPlan, UserSubscription } from '../types';
 
 export const saveUser = async (profile: UserProfile) => {
-  await setDoc(doc(db, 'upiAccounts', profile.uid), profile);
+  const data = {
+    ...profile,
+    createdAt: profile.createdAt || new Date().toISOString()
+  };
+  await setDoc(doc(db, 'upiAccounts', profile.uid), data);
   // Also create a mapping for ID lookup
   await setDoc(doc(db, 'ids', profile.stellarId), { uid: profile.uid, publicKey: profile.publicKey });
 };
@@ -382,6 +387,7 @@ export const updateStreak = async (uid: string) => {
   await updateDoc(userRef, {
     currentStreak: newStreak,
     lastChillarDate: today,
+    streakHistory: arrayUnion(today),
     streakLevel: level
   });
 

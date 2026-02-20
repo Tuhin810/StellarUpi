@@ -25,6 +25,7 @@ import SonicHandshake from '../pages/SonicHandshake';
 import Subscribe from '../pages/Subscribe';
 import Rewards from '../pages/Rewards';
 import Gullak from '../pages/Gullak';
+import StreakPage from '../pages/StreakPage';
 
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, profile } = useAuth();
@@ -58,6 +59,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/sonic" element={<SonicHandshake profile={profile!} />} />
                 <Route path="/rewards" element={<Rewards />} />
                 <Route path="/gullak" element={<Gullak profile={profile!} />} />
+                <Route path="/streak" element={<StreakPage />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" />} />

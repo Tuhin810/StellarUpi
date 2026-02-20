@@ -97,15 +97,12 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
         profileName={profile.displayName || profile.stellarId.split('@')[0]}
         stellarId={profile.stellarId}
         avatarSeed={profile.avatarSeed}
+        streak={profile.currentStreak}
+        streakLevel={profile.streakLevel || 'orange'}
       />
 
       <DashboardHeader onMenuClick={() => setIsSidebarOpen(true)} />
 
-      {profile.currentStreak > 0 && (
-        <div className="mb-6 animate-in slide-in-from-left duration-500">
-          <StreakFire streak={profile.currentStreak} level={profile.streakLevel || 'orange'} />
-        </div>
-      )}
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
 

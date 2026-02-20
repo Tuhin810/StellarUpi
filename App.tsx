@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { HashRouter as Router } from 'react-router-dom';
+import { HashRouter as Router, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NetworkProvider } from './context/NetworkContext';
 import AppRoutes from './routes/AppRoutes';
@@ -12,6 +12,8 @@ import AIAssistant from './components/AIAssistant';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading, profile } = useAuth();
+  const location = useLocation();
+  const isStreakPage = location.pathname === '/streak';
 
   React.useEffect(() => {
     const setupNotifications = async () => {
@@ -52,18 +54,16 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <Router>
-      <div className="min-h-screen bg-[#1A1A1A] text-white max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-white/5">
-        <AppRoutes />
-        {isAuthenticated && (
-          <>
-            <BottomNav />
-            <AIAssistant />
-          </>
-        )}
-        <PWAInstallPrompt />
-      </div>
-    </Router>
+    <div className="min-h-screen bg-[#1A1A1A] text-white max-w-md mx-auto relative shadow-2xl overflow-hidden border-x border-white/5">
+      <AppRoutes />
+      {isAuthenticated && !isStreakPage && (
+        <>
+          <BottomNav />
+          <AIAssistant />
+        </>
+      )}
+      <PWAInstallPrompt />
+    </div>
   );
 };
 
@@ -72,7 +72,9 @@ const App: React.FC = () => {
   return (
     <NetworkProvider>
       <AuthProvider>
-        <AppContent />
+        <Router>
+          <AppContent />
+        </Router>
       </AuthProvider>
     </NetworkProvider>
   );
