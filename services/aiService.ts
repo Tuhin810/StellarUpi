@@ -104,7 +104,7 @@ export const processAIQuery = async (
         const model = genAI.getGenerativeModel({
             model: "gemini-1.5-flash",
             tools: tools as any,
-            systemInstruction: `You are Stellar AI, the intelligent backbone of the StellarUpi app.
+            systemInstruction: `You are Raze AI, the intelligent backbone of the StellarUpi app.
 Your mission is to provide instantaneous, accurate financial insights.
 
 CRITICAL IDENTITY RESOLUTION PROTOCOL (INTERNAL CHECK):

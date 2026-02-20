@@ -24,6 +24,7 @@ import AutoPay from '../pages/AutoPay';
 import SonicHandshake from '../pages/SonicHandshake';
 import Subscribe from '../pages/Subscribe';
 import Rewards from '../pages/Rewards';
+import Gullak from '../pages/Gullak';
 
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, profile } = useAuth();
@@ -56,6 +57,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/autopay" element={<AutoPay profile={profile!} />} />
                 <Route path="/sonic" element={<SonicHandshake profile={profile!} />} />
                 <Route path="/rewards" element={<Rewards />} />
+                <Route path="/gullak" element={<Gullak profile={profile!} />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" />} />

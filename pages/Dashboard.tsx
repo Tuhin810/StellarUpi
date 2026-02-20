@@ -11,6 +11,7 @@ import PeopleList from '../components/PeopleList';
 import ReceiveQRModal from '../components/ReceiveQRModal';
 import CreateGroupModal from '../components/CreateGroupModal';
 import { getTransactions, getProfileByStellarId, getGroups } from '../services/db';
+import StreakFire from '../components/StreakFire';
 
 interface Props {
   profile: UserProfile | null;
@@ -99,6 +100,12 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       />
 
       <DashboardHeader onMenuClick={() => setIsSidebarOpen(true)} />
+
+      {profile.currentStreak > 0 && (
+        <div className="mb-6 animate-in slide-in-from-left duration-500">
+          <StreakFire streak={profile.currentStreak} level={profile.streakLevel || 'orange'} />
+        </div>
+      )}
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
 

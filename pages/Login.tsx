@@ -80,7 +80,13 @@ const Login: React.FC = () => {
           encryptedSecret,
           isFamilyOwner: true,
           displayName: addressLower.substring(0, 6) + '...' + addressLower.substring(38),
-          avatarSeed: addressLower
+          avatarSeed: addressLower,
+          // Initialize Chillar-Streak System
+          currentStreak: 0,
+          streakLevel: 'orange',
+          totalSavingsINR: 0,
+          totalYieldEarnedINR: 0,
+          gullakPublicKey: (await createWallet()).publicKey // Create a separate vault for savings
         };
 
         await saveUser(profile);

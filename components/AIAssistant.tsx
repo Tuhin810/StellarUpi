@@ -183,7 +183,7 @@ const AIAssistant: React.FC = () => {
                 onClick={() => setIsOpen(true)}
                 className="fixed bottom-28 right-6 w-14 h-14 rounded-full bg-[#E5D5B3] shadow-2xl flex items-center justify-center z-40 border-2 border-white/20 overflow-hidden"
             >
-                <img src="/assets/aiLogo.png" alt="Stellar AI" className="w-full h-full object-cover" />
+                <img src="/assets/aiLogo.png" alt="Raze AI" className="w-full h-full object-cover" />
             </motion.button>
 
             <AnimatePresence>
@@ -201,10 +201,10 @@ const AIAssistant: React.FC = () => {
                         <div className="w-full h-24 px-5 pt-8 flex justify-between items-center z-[110] shrink-0 bg-gradient-to-b from-[#030303] via-[#030303]/80 to-transparent backdrop-blur-md">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-[#E5D5B3] border border-white/10 flex items-center justify-center backdrop-blur-xl shadow-inner overflow-hidden">
-                                    <img src="/assets/aiLogo.png" alt="Stellar AI" className="w-full h-full object-cover" />
+                                    <img src="/assets/aiLogo.png" alt="Raze AI" className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-white font-bold text-sm tracking-tight text-shadow-sm">Stellar AI</span>
+                                    <span className="text-white font-bold text-sm tracking-tight text-shadow-sm">Raze AI</span>
                                     <span className="text-white/40 text-[10px] uppercase tracking-widest font-black">Neural Link Active</span>
                                 </div>
                             </div>
@@ -268,7 +268,7 @@ const AIAssistant: React.FC = () => {
                                                                 <div className="w-5 h-5 rounded-full border border-white/10 overflow-hidden shadow-sm">
                                                                     <img src="/assets/aiLogo.png" alt="" className="w-full h-full object-cover" />
                                                                 </div>
-                                                                <span className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em]">Stellar AI</span>
+                                                                <span className="text-white/30 text-[10px] font-black uppercase tracking-[0.4em]">Raze AI</span>
                                                             </div>
                                                             <h3 className="text-white/90 text-xl md:text-2xl lg:text-xl font-medium tracking-tight leading-[1.05] text-left px-1 break-words">
                                                                 {msg.content}

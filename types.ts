@@ -16,6 +16,14 @@ export interface UserProfile {
   phoneNumber?: string;
   fcmToken?: string;
   notificationsEnabled?: boolean;
+  // Chillar-Streak System
+  currentStreak: number;
+  lastChillarDate?: string; // ISO date string
+  streakLevel: 'orange' | 'blue' | 'purple';
+  gullakPublicKey?: string; // Dedicated Stellar vault for savings
+  totalSavingsINR?: number;
+  lastYieldDate?: string; // ISO date string
+  totalYieldEarnedINR?: number;
 }
 
 export interface FamilyMember {

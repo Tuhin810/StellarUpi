@@ -277,8 +277,114 @@ export const getSubscriptionPlan = async (planId: string): Promise<SubscriptionP
 };
 
 export const getRealCoupons = async () => {
-    const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const q = query(collection(db, 'coupons'), orderBy('createdAt', 'desc'));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+};
+
+/**
+ * Records a Chillar deposit to Gullak in Firebase
+ */
+export const recordGullakDeposit = async (uid: string, amountINR: number) => {
+  const userRef = doc(db, 'upiAccounts', uid);
+  await updateDoc(userRef, {
+    totalSavingsINR: increment(amountINR)
+  });
+};
+
+/**
+ * Calculates and applies "Protocol Yield" to the Gullak
+ * No smart contracts needed - logic based growth.
+ */
+export const applyGullakYield = async (uid: string) => {
+  const userRef = doc(db, 'upiAccounts', uid);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) return;
+
+  const profile = snap.data() as UserProfile;
+  if (!profile.totalSavingsINR || profile.totalSavingsINR <= 0) return;
+
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const lastDate = profile.lastYieldDate;
+
+  // If already processed today, skip
+  if (lastDate === today) return;
+
+  // Calculate days passed (capped at 30 days to prevent runaway yielding if they disappear)
+  const lastDateObj = lastDate ? new Date(lastDate) : new Date();
+  const diffDays = Math.min(30, Math.floor((now.getTime() - lastDateObj.getTime()) / (1000 * 60 * 60 * 24)));
+
+  if (diffDays <= 0 && lastDate) return;
+
+  // Define Daily Yield Rates based on Streak Level
+  // Orange: ~3.6% APR | Blue: ~11% APR | Purple: ~18% APR
+  const rates = {
+    orange: 0.0001,
+    blue: 0.0003,
+    purple: 0.0005
+  };
+
+  const dailyRate = rates[profile.streakLevel || 'orange'];
+  const yieldAmount = profile.totalSavingsINR * dailyRate * (diffDays || 1);
+
+  if (yieldAmount > 0) {
+    await updateDoc(userRef, {
+      totalSavingsINR: increment(yieldAmount),
+      totalYieldEarnedINR: increment(yieldAmount),
+      lastYieldDate: today
+    });
+    return yieldAmount;
+  } else {
+    // Just update the date if amount is too small
+    await updateDoc(userRef, { lastYieldDate: today });
+  }
+};
+
+/**
+ * Updates the user's daily savings streak.
+ * Called after a successful Chillar transaction.
+ */
+export const updateStreak = async (uid: string) => {
+  const userRef = doc(db, 'upiAccounts', uid);
+  const snap = await getDoc(userRef);
+  if (!snap.exists()) return;
+
+  const profile = snap.data() as UserProfile;
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+
+  // If already saved today, don't increment streak again but update date
+  if (profile.lastChillarDate === today) return;
+
+  let newStreak = 1;
+  if (profile.lastChillarDate) {
+    const lastDate = new Date(profile.lastChillarDate);
+    const diffInDays = Math.floor((now.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffInDays === 1) {
+      // Consecutive day
+      newStreak = (profile.currentStreak || 0) + 1;
+    } else if (diffInDays === 0) {
+      // Same day (should be caught by string check above but safer)
+      newStreak = profile.currentStreak || 1;
+    } else {
+      // Missed a day
+      newStreak = 1;
+    }
+  }
+
+  // Determine level
+  let level: 'orange' | 'blue' | 'purple' = 'orange';
+  if (newStreak >= 15) level = 'purple';
+  else if (newStreak >= 5) level = 'blue';
+
+  await updateDoc(userRef, {
+    currentStreak: newStreak,
+    lastChillarDate: today,
+    streakLevel: level
+  });
+
+  return { newStreak, level };
 };
 
