@@ -14,6 +14,7 @@ export interface UserProfile {
   spentToday?: number;
   lastSpentDate?: string;
   phoneNumber?: string;
+  isVerified?: boolean;
   fcmToken?: string;
   notificationsEnabled?: boolean;
 }
