@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, Search, Wallet, Shield, Sparkles, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee, PiggyBank, Check } from 'lucide-react';
+import { ArrowLeft, Send, Search, Wallet, Shield, Zap, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee, PiggyBank, Check } from 'lucide-react';
 import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { getLivePrice, calculateCryptoToSend } from '../services/priceService';
@@ -563,7 +563,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             {/* Note Input */}
             {/* <div className="w-full max-w-[240px] relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all group-focus-within:scale-110">
-                <Sparkles size={14} className="text-[#E5D5B3] opacity-50 group-focus-within:opacity-100 transition-opacity" />
+                <Zap size={14} className="text-[#E5D5B3] opacity-50 group-focus-within:opacity-100 transition-opacity" />
               </div>
               <input
                 type="text"

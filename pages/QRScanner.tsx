@@ -1,57 +1,91 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Html5QrcodeScanner } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, Sparkles, X, Info, Zap, Radio, Waves, AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
+import { ArrowLeft, Camera, QrCode, X, Info, Zap, Radio, Waves, AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
   const [error, setError] = useState('');
   const [isFlashOn, setIsFlashOn] = useState(false);
   const [scanResult, setScanResult] = useState<{ pa: string, pn: string, am?: string, platform?: string, type: 'upi' | 'stellar' } | null>(null);
-  const [scannerInstance, setScannerInstance] = useState<Html5QrcodeScanner | null>(null);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const [isScannerInitialized, setIsScannerInitialized] = useState(false);
 
   useEffect(() => {
-    const scanner = new Html5QrcodeScanner(
-      "reader",
-      {
-        fps: 20,
-        qrbox: (viewfinderWidth, viewfinderHeight) => {
+    let isMounted = true;
+
+    const startScanner = async () => {
+      // Small delay to ensure the DOM element "reader" is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (!isMounted) return;
+
+      const html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
+
+      const config = {
+        fps: 15,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
           const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const qrboxSize = Math.max(50, Math.floor(minEdge * 0.7));
+          const qrboxSize = Math.max(150, Math.floor(minEdge * 0.7));
           return { width: qrboxSize, height: qrboxSize };
         },
         aspectRatio: 1.0,
-        videoConstraints: {
-          facingMode: { ideal: "environment" }
-        },
-        rememberLastUsedCamera: true,
-        showTorchButtonIfSupported: true
-      },
-      false
-    );
+      };
 
-    const getPlatform = (pa: string) => {
-      const handle = pa.split('@')[1]?.toLowerCase();
-      if (!handle) return 'Unknown';
-
-      if (handle.startsWith('ok')) return 'Google Pay';
-      if (['ybl', 'ibl', 'axl'].includes(handle)) return 'PhonePe';
-      if (handle === 'paytm') return 'Paytm';
-      if (handle === 'apl') return 'Amazon Pay';
-      if (handle === 'supermoney') return 'super.money';
-      if (handle === 'pop') return 'Pop';
-      if (handle === 'upi') return 'BHIM';
-      if (handle.startsWith('wa')) return 'WhatsApp Pay';
-      if (handle === 'slice' || handle === 'sliceit') return 'Slice';
-      if (handle.includes('jupiter')) return 'Jupiter';
-
-      return 'UPI Node';
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          onScanSuccess,
+          onScanFailure
+        );
+        if (isMounted) setIsScannerInitialized(true);
+      } catch (err) {
+        console.error("Scanner start failed", err);
+        if (isMounted) setError("Camera access denied or device not found");
+      }
     };
 
-    setScannerInstance(scanner);
-    scanner.render(onScanSuccess, onScanFailure);
+    const stopScanner = async () => {
+      if (scannerRef.current && scannerRef.current.isScanning) {
+        try {
+          await scannerRef.current.stop();
+          console.log("Scanner stopped successfully");
+        } catch (err) {
+          console.error("Scanner stop failed", err);
+        }
+      }
+    };
 
-    function onScanSuccess(decodedText: string) {
+    async function onScanSuccess(decodedText: string) {
+      if (!isMounted) return;
+      console.log("Scan successful:", decodedText);
+
+      // Stop camera immediately on success to release it
+      await stopScanner();
+
+      // 1. Handle plain Stellar address
+      if (decodedText.length === 56 && (decodedText.startsWith('G') || decodedText.startsWith('S'))) {
+        navigate(`/send?to=${decodedText}`);
+        return;
+      }
+
+      // 2. Handle Stellar URL format (stellar.sep7)
+      if (decodedText.startsWith('web+stellar:pay')) {
+        try {
+          const url = new URL(decodedText.replace('web+stellar:', 'https:'));
+          const destination = url.searchParams.get('destination') || url.pathname.slice(1);
+          const amount = url.searchParams.get('amount') || '';
+          const memo = url.searchParams.get('memo') || '';
+
+          navigate(`/send?to=${destination}&amt=${amount}&note=${memo}`);
+          return;
+        } catch (e) {
+          console.error("Stellar SEP7 Parse Error", e);
+        }
+      }
+
+      // 3. Handle UPI
       if (decodedText.startsWith('upi://pay')) {
         try {
           const url = new URL(decodedText);
@@ -59,7 +93,6 @@ const QRScanner: React.FC = () => {
           const pn = url.searchParams.get('pn') || '';
           const am = url.searchParams.get('am') || '';
 
-          scanner.clear();
           navigate(`/send?to=${pa}&amt=${am}&pn=${pn}&mode=upi`);
           return;
         } catch (e) {
@@ -67,69 +100,96 @@ const QRScanner: React.FC = () => {
         }
       }
 
+      // 4. Handle Federation / Email-style Stellar ID
+      if (decodedText.includes('@') && !decodedText.includes('://')) {
+        navigate(`/send?to=${decodedText}`);
+        return;
+      }
+
+      // 5. General URL fallback for split/subscribe/etc.
       try {
         let url: URL;
         try {
           url = new URL(decodedText);
         } catch (e) {
-          // Fallback for custom protocols that URL doesn't like
           if (decodedText.includes('://')) {
-            const tempUrl = decodedText.replace('://', '://host/');
-            url = new URL(tempUrl);
+            url = new URL(decodedText.replace('://', '://host/'));
           } else {
             throw e;
           }
         }
 
-        let to = url.searchParams.get('to');
-        let planId = url.searchParams.get('planId');
+        const to = url.searchParams.get('to');
+        const planId = url.searchParams.get('planId');
         const amt = url.searchParams.get('amt') || '';
         const note = url.searchParams.get('note') || '';
 
-        // Manual backup parsing if searchParams didn't catch it
-        if (!to && !planId) {
-          const searchPart = decodedText.split('?')[1];
-          if (searchPart) {
-            const params = new URLSearchParams(searchPart);
-            to = params.get('to');
-            planId = params.get('planId');
+        if (planId) {
+          navigate(`/subscribe/${planId}`);
+        } else if (to) {
+          navigate(`/send?to=${to}&amt=${amt}&note=${note}`);
+        } else {
+          throw new Error("Generic URL");
+        }
+      } catch (e) {
+        // Final fallback
+        if (decodedText.includes('G') && decodedText.length > 50) {
+          const match = decodedText.match(/G[A-Z0-9]{55}/);
+          if (match) {
+            navigate(`/send?to=${match[0]}`);
+            return;
           }
         }
 
-        if (planId) {
-          scanner.clear();
-          navigate(`/subscribe/${planId}`);
-          return;
-        } else if (to) {
-          scanner.clear();
-          navigate(`/send?to=${to}&amt=${amt}&note=${note}`);
-          return;
-        } else if (decodedText.includes('@')) {
-          scanner.clear();
-          navigate(`/send?to=${decodedText}`);
-          return;
-        } else {
-          setError("Invalid QR Code Format");
-          setTimeout(() => setError(''), 3000);
-        }
-      } catch (e) {
-        if (decodedText.includes('@')) {
-          scanner.clear();
-          navigate(`/send?to=${decodedText}`);
-        } else {
-          console.error("Scan error", e);
-          setError("Unknown QR type");
-          setTimeout(() => setError(''), 3000);
-        }
+        // If we failed to handle but already stopped camera, we might need to restart it
+        // Or just show error and navigate back. Let's restart.
+        setError("Invalid QR Code");
+        setTimeout(() => {
+          if (isMounted) {
+            setError('');
+            startScanner(); // Restart if invalid
+          }
+        }, 3000);
       }
     }
 
-    function onScanFailure(error: any) { }
+    function onScanFailure(error: any) {
+      // Noise - don't log every failure frame
+    }
+
+    startScanner();
 
     return () => {
-      scanner.clear().catch(e => console.error("Scanner clear failed", e));
+      isMounted = false;
+      stopScanner();
     };
   }, [navigate]);
+
+  const toggleFlash = async () => {
+    if (!scannerRef.current || !isScannerInitialized) return;
+    try {
+      const newFlashState = !isFlashOn;
+      // Note: torch control through applyVideoConstraints is only supported on some browsers/devices
+      await scannerRef.current.applyVideoConstraints({
+        // @ts-ignore
+        advanced: [{ torch: newFlashState }]
+      });
+      setIsFlashOn(newFlashState);
+    } catch (err) {
+      console.warn("Flash toggle failed - likely not supported on this device/browser", err);
+    }
+  };
+
+  const handleClose = async () => {
+    if (scannerRef.current && scannerRef.current.isScanning) {
+      try {
+        await scannerRef.current.stop();
+      } catch (e) {
+        console.error("Stop failed during close", e);
+      }
+    }
+    navigate("/");
+  };
 
   return (
     <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden font-sans">
@@ -139,7 +199,7 @@ const QRScanner: React.FC = () => {
       {/* Top Header - Native Style */}
       <div className="relative z-20 pt-14 px-6 flex items-center justify-between">
         <button
-          onClick={() => navigate("/")}
+          onClick={handleClose}
           className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/10 active:scale-95 transition-all"
         >
           <ArrowLeft size={22} className="text-white" />
@@ -147,12 +207,14 @@ const QRScanner: React.FC = () => {
         <div className="flex flex-col items-center">
           <span className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500 mb-1">Scanner</span>
           <div className="flex items-center gap-1.5 px-3 py-1 bg-[#E5D5B3]/10 border border-[#E5D5B3]/20 rounded-full">
-            <div className="w-1 h-1 bg-[#E5D5B3] rounded-full animate-pulse"></div>
-            <span className="text-[9px] font-black uppercase tracking-widest text-[#E5D5B3]">Active</span>
+            <div className={`w-1 h-1 bg-[#E5D5B3] rounded-full shadow-[0_0_8px_rgba(229,213,179,0.5)] ${isScannerInitialized ? 'animate-pulse' : 'opacity-20'}`}></div>
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#E5D5B3]">
+              {isScannerInitialized ? 'Active' : 'Initializing'}
+            </span>
           </div>
         </div>
         <button
-          onClick={() => navigate("/")}
+          onClick={handleClose}
           className="w-12 h-12 flex items-center justify-center rounded-full bg-white/10 backdrop-blur-xl border border-white/10 active:scale-95 transition-all"
         >
           <X size={22} className="text-white" />
@@ -172,16 +234,11 @@ const QRScanner: React.FC = () => {
           {/* Scanner Window */}
           <div className="relative w-full h-full bg-zinc-950 rounded-[.5rem] overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] z-10 group">
             <div id="reader" className="w-full h-full"></div>
-
-            {/* Scan Line Animation */}
-
-            {/* Inner Glow */}
-            {/* <div className="absolute inset-0 border-[20px] border-black/20 pointer-events-none z-20"></div> */}
           </div>
 
           {/* Error Message Tooltip */}
           {error && (
-            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-max max-w-[280px] px-6 py-4 bg-rose-500 text-white rounded-2xl font-bold text-xs shadow-2xl z-50 flex items-center gap-3 animate-bounce">
+            <div className="absolute -bottom-24 left-1/2 -translate-x-1/2 w-max max-w-[280px] px-6 py-4 bg-rose-500 text-white rounded-2xl font-bold text-xs shadow-2xl z-50 flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-300">
               <AlertCircle size={18} />
               {error}
             </div>
@@ -249,7 +306,6 @@ const QRScanner: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Testnet Messaging */}
                 <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl mb-8 flex gap-3 text-left">
                   <AlertCircle size={16} className="text-amber-500 shrink-0 mt-0.5" />
                   <div className="space-y-1">
@@ -290,11 +346,11 @@ const QRScanner: React.FC = () => {
       {/* Bottom Controls - Native Cam Look */}
       {!scanResult && (
         <div className="relative z-20 pb-20 px-10 flex justify-center items-center gap-10 animate-in fade-in duration-300">
-          <button className="flex flex-col items-center gap-3 group">
-            <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-zinc-400 group-hover:bg-white/10 group-hover:text-white transition-all backdrop-blur-lg">
+          <button onClick={toggleFlash} className={`flex flex-col items-center gap-3 group ${!isScannerInitialized ? 'opacity-30 pointer-events-none' : ''}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all backdrop-blur-lg border ${isFlashOn ? 'bg-[#E5D5B3] text-black border-[#E5D5B3]' : 'bg-white/5 text-zinc-400 border-white/10 group-hover:bg-white/10 group-hover:text-white'}`}>
               <Zap size={24} fill={isFlashOn ? "currentColor" : "none"} />
             </div>
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Flash</span>
+            <span className={`text-[10px] font-black uppercase tracking-widest ${isFlashOn ? 'text-[#E5D5B3]' : 'text-zinc-500'}`}>Flash</span>
           </button>
 
           <button className="flex flex-col items-center gap-3 group">
@@ -313,6 +369,14 @@ const QRScanner: React.FC = () => {
         </div>
       )}
 
+      {/* Instructions continued... */}
+      <div className="flex flex-col items-center gap-1 mb-8 opacity-40">
+        <div className="flex items-center gap-1.5 text-[#E5D5B3]">
+          <Zap size={14} className="opacity-80" />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em]">Neural Engine</span>
+        </div>
+      </div>
+
       <style>{`
         @keyframes scan-line-slow {
             0% { transform: translateY(0); opacity: 0 }
@@ -324,7 +388,7 @@ const QRScanner: React.FC = () => {
             animation: scan-line-slow 2.5s ease-in-out infinite;
         }
         #reader { border: none !important; background: transparent !important; }
-        #reader > div { border: none !important; } /* Hides the library's default white box */
+        #reader > div { border: none !important; } 
         #reader video { 
             border-radius: 1.5rem; 
             object-fit: cover !important; 
@@ -332,17 +396,7 @@ const QRScanner: React.FC = () => {
             height: 100% !important;
         }
         #reader__dashboard_section_csr button { 
-            background: #E5D5B3 !important; 
-            color: black !important; 
-            border-radius: 1rem !important;
-            font-weight: 900 !important;
-            padding: 12px 24px !important;
-            border: none !important;
-            text-transform: uppercase;
-            font-size: 0.7rem;
-            letter-spacing: 0.1em;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-            margin-top: 10px;
+            display: none !important;
         }
         #reader__status_span {
             display: none !important;

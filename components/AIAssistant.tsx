@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, Sparkles, Loader2, Mic, MicOff, AudioLines, Search, ArrowUp } from 'lucide-react';
+import { Send, X, Loader2, Mic, MicOff, AudioLines, Search, ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { processAIQuery, transcribeAudio } from '../services/aiService';

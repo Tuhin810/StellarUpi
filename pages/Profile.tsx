@@ -16,7 +16,7 @@ import {
     Save,
     RefreshCw,
     ChevronRight,
-    Sparkles,
+    Zap,
     Lock,
     Bell,
     Camera,
@@ -320,7 +320,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
 
                     <button className="flex items-center gap-3 p-4 bg-gradient-to-br from-[#E5D5B3]/20 to-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-2xl hover:from-[#E5D5B3]/30 transition-all">
                         <div className="w-10 h-10 bg-[#E5D5B3]/20 rounded-xl flex items-center justify-center text-[#E5D5B3]">
-                            <Sparkles size={18} />
+                            <Zap size={18} />
                         </div>
                         <div className="text-left">
                             <p className="font-semibold text-sm text-[#E5D5B3]">Premium</p>

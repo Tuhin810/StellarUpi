@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Wallet, Shield, TrendingUp, History, Info, Sparkles, PiggyBank } from 'lucide-react';
+import { ArrowLeft, Wallet, Shield, TrendingUp, History, Info, PiggyBank, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserProfile } from '../types';
 import { getBalance } from '../services/stellar';
@@ -64,7 +64,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                         exit={{ y: -100, x: '-50%', opacity: 0 }}
                         className="fixed top-0 left-1/2 z-[100] bg-emerald-500 text-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center gap-2"
                     >
-                        <Sparkles size={16} />
+                        <Zap size={16} />
                         Yield Collected: +₹{justYielded.toFixed(4)}
                     </motion.div>
                 )}
@@ -118,7 +118,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                         {/* Yield Highlight */}
                         <div className="flex flex-col items-center mb-6">
                             <div className="flex items-center gap-1.5 text-emerald-400">
-                                <Sparkles size={14} className="opacity-80" />
+                                <Zap size={14} className="opacity-80" />
                                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Total Yield Earned</span>
                             </div>
                             <p className="text-sm font-black text-emerald-400 italic">
@@ -161,7 +161,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                 </div>
                 <div className="bg-zinc-900/20 backdrop-blur-xl border border-white/5 p-8 rounded-[2rem] shadow-xl group hover:border-[#E5D5B3]/10 transition-all">
                     <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 mb-4 border border-emerald-500/10 shadow-inner">
-                        <Sparkles size={24} />
+                        <Zap size={24} />
                     </div>
                     <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">Interest</p>
                     <p className="text-white font-black text-sm">STREAK YIELD</p>
