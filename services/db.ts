@@ -170,8 +170,10 @@ export const updatePersonalSpend = async (uid: string, amount: number) => {
 };
 
 export const createGroup = async (groupData: any) => {
+  const network = localStorage.getItem('stellar_network') || 'testnet';
   const docRef = await addDoc(collection(db, 'groups'), {
     ...groupData,
+    network,
     timestamp: serverTimestamp()
   });
   return docRef.id;
@@ -183,17 +185,21 @@ export const updateGroupMembers = async (groupId: string, members: string[]) => 
 };
 
 export const getGroups = async (stellarId: string) => {
+  const network = localStorage.getItem('stellar_network') || 'testnet';
   const q = query(
     collection(db, 'groups'),
-    where('members', 'array-contains', stellarId)
+    where('members', 'array-contains', stellarId),
+    where('network', '==', network)
   );
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
 export const recordSplitExpense = async (expense: any) => {
+  const network = localStorage.getItem('stellar_network') || 'testnet';
   await addDoc(collection(db, 'splitExpenses'), {
     ...expense,
+    network,
     timestamp: serverTimestamp()
   });
 };

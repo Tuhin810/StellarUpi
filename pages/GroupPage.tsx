@@ -71,13 +71,23 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
             setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         };
 
-        const chatQ = query(collection(db, 'chats'), where('groupId', '==', groupId));
+        const network = localStorage.getItem('stellar_network') || 'testnet';
+
+        const chatQ = query(
+            collection(db, 'chats'),
+            where('groupId', '==', groupId),
+            where('network', '==', network)
+        );
         const unsubChats = onSnapshot(chatQ, (snap) => {
             chatsRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'chat' }));
             updateUnified();
         });
 
-        const expenseQ = query(collection(db, 'splitExpenses'), where('groupId', '==', groupId));
+        const expenseQ = query(
+            collection(db, 'splitExpenses'),
+            where('groupId', '==', groupId),
+            where('network', '==', network)
+        );
         const unsubExpenses = onSnapshot(expenseQ, (snap) => {
             expensesRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'tx' }));
             updateUnified();
@@ -92,12 +102,14 @@ const GroupPage: React.FC<Props> = ({ profile }) => {
 
     const handleSendMessage = async () => {
         if (!inputText.trim() || !profile || !groupId) return;
+        const network = localStorage.getItem('stellar_network') || 'testnet';
         try {
             await addDoc(collection(db, 'chats'), {
                 senderId: profile.stellarId,
                 groupId: groupId,
                 text: inputText,
                 type: 'text',
+                network: network,
                 timestamp: serverTimestamp()
             });
             setInputText('');

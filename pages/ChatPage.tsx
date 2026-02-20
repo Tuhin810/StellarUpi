@@ -58,12 +58,14 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
             setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         };
 
+        const network = localStorage.getItem('stellar_network') || 'testnet';
+
         // Listen to text messages
         const chatQuery = query(
             collection(db, 'chats'),
             or(
-                and(where('senderId', '==', profile.stellarId), where('receiverId', '==', contactId)),
-                and(where('senderId', '==', contactId), where('receiverId', '==', profile.stellarId))
+                and(where('senderId', '==', profile.stellarId), where('receiverId', '==', contactId), where('network', '==', network)),
+                and(where('senderId', '==', contactId), where('receiverId', '==', profile.stellarId), where('network', '==', network))
             ),
             orderBy('timestamp', 'asc'),
             limit(50)
@@ -78,8 +80,8 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
         const txQuery = query(
             collection(db, 'transactions'),
             or(
-                and(where('fromId', '==', profile.stellarId), where('toId', '==', contactId)),
-                and(where('fromId', '==', contactId), where('toId', '==', profile.stellarId))
+                and(where('fromId', '==', profile.stellarId), where('toId', '==', contactId), where('network', '==', network)),
+                and(where('fromId', '==', contactId), where('toId', '==', profile.stellarId), where('network', '==', network))
             ),
             orderBy('timestamp', 'asc'),
             limit(50)
@@ -99,12 +101,14 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
     const handleSendMessage = async () => {
         if (!inputText.trim() || !profile || !contactId) return;
 
+        const network = localStorage.getItem('stellar_network') || 'testnet';
         try {
             await addDoc(collection(db, 'chats'), {
                 senderId: profile.stellarId,
                 receiverId: contactId,
                 text: inputText,
                 type: 'text',
+                network: network,
                 timestamp: serverTimestamp()
             });
             setInputText('');
@@ -116,6 +120,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
     const handleSendRequest = async () => {
         if (!requestAmount || isNaN(parseFloat(requestAmount)) || !profile || !contactId) return;
         setRequestLoading(true);
+        const network = localStorage.getItem('stellar_network') || 'testnet';
         try {
             await addDoc(collection(db, 'chats'), {
                 senderId: profile.stellarId,
@@ -123,6 +128,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                 amount: parseFloat(requestAmount),
                 type: 'request',
                 status: 'PENDING',
+                network: network,
                 timestamp: serverTimestamp()
             });
             setShowRequestModal(false);
