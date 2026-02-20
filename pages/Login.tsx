@@ -8,6 +8,7 @@ import { useWeb3Modal, useWeb3ModalProvider, useWeb3ModalAccount, generateUPIFro
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BrowserProvider } from 'ethers';
 import { ShieldCheck, Mail, Phone, Lock, ChevronRight, X, Loader2 } from 'lucide-react';
+import { UserProfile } from '../types';
 
 import { useAuth } from '../context/AuthContext';
 
@@ -132,7 +133,7 @@ const Login: React.FC = () => {
       const { publicKey, secret } = await createWallet();
       const encryptedSecret = encryptSecret(secret, tempSignature);
 
-      const profile = {
+      const profile: UserProfile = {
         uid: addressLower!,
         email: emailInput || `${addressLower!.substring(2, 8)}@ching.pay`,
         phoneNumber: phoneInput,
@@ -142,7 +143,10 @@ const Login: React.FC = () => {
         encryptedSecret,
         isFamilyOwner: true,
         displayName: addressLower!.substring(0, 6) + '...' + addressLower!.substring(38),
-        avatarSeed: addressLower!
+        avatarSeed: addressLower!,
+        createdAt: new Date().toISOString(),
+        currentStreak: 0,
+        streakLevel: 'orange'
       };
 
       await saveUser(profile);

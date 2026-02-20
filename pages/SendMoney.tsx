@@ -425,8 +425,11 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
           hash = await sendPayment(secret, recipientPubKey, xlmAmount.toString(), memo || `UPI Pay: ${selectedContact.id}`);
 
-          // Generate ZK Proof of Payment
-          setGeneratingProof(true);
+        }
+
+        // Generate ZK Proof of Payment (Required for UPI Payout Verification)
+        setGeneratingProof(true);
+        try {
           const proof = await ZKProofService.generateProofOfPayment(
             secret,
             hash,
@@ -437,6 +440,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           // Trigger SDK Payout Verification
           await ZKProofService.triggerUPIPayout(proof);
           setZkProof(proof);
+        } catch (zkErr) {
+          console.error("ZK Proof failed:", zkErr);
+          // Don't fail the whole TX if ZK proof fails, but maybe log it
+        } finally {
           setGeneratingProof(false);
         }
 
