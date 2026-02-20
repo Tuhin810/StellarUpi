@@ -326,11 +326,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           category: category
         });
 
-        // Trigger remote notification
-        NotificationService.triggerRemoteNotification(
+        // Trigger in-app notification
+        NotificationService.sendInAppNotification(
           selectedContact.id,
-          amtNum.toString(),
-          selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]
+          "Payment Received",
+          `You received ₹${amtNum} from ${selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]} (Family Wallet)`,
+          'payment'
         );
       } else {
         if (profile.dailyLimit && profile.dailyLimit > 0) {
@@ -397,11 +398,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         // Record Chillar as a separate small internal record or just part of this?
         // Let's just keep it linked to this TX hash.
 
-        // Trigger remote notification
-        NotificationService.triggerRemoteNotification(
+        // Trigger in-app notification
+        NotificationService.sendInAppNotification(
           selectedContact.id,
-          amtNum.toString(),
-          profile.displayName || profile.stellarId.split('@')[0]
+          "Payment Received",
+          `You received ₹${amtNum} from ${profile.displayName || profile.stellarId.split('@')[0]}`,
+          'payment'
         );
       }
 

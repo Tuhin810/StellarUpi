@@ -16,13 +16,13 @@ export class AutopayService {
         }
 
         if (this.intervalId) return;
-        
+
         this.currentProfileId = profile.uid;
         console.log("🚀 Autopay Worker Started for", profile.stellarId);
-        
+
         // Run once immediately
         this.processDueSubscriptions(profile);
-        
+
         // Then every 30 seconds for responsiveness
         this.intervalId = setInterval(() => {
             this.processDueSubscriptions(profile);
@@ -41,7 +41,7 @@ export class AutopayService {
     private static async processDueSubscriptions(profile: UserProfile) {
         try {
             console.log(`🔍 Checking subscriptions for ${profile.stellarId}...`);
-            
+
             // ALWAYS fetch the freshest profile from DB to avoid staleness
             const freshProfile = await getProfile(profile.uid);
             if (!freshProfile) {
@@ -82,7 +82,7 @@ export class AutopayService {
 
     private static async executePayment(profile: UserProfile, sub: UserSubscription) {
         console.log(`💸 EXECUTING: ${sub.planName} (₹${sub.amount})`);
-        
+
         try {
             const password = localStorage.getItem('temp_vault_key');
             if (!password) {
@@ -103,7 +103,7 @@ export class AutopayService {
 
             // Convert INR to XLM 
             const xlmAmount = (sub.amount / 8.42).toFixed(7);
-            
+
             // Check balance
             const balanceStr = await getBalance(profile.publicKey);
             const balance = parseFloat(balanceStr);
@@ -120,9 +120,9 @@ export class AutopayService {
             }
 
             const hash = await sendPayment(
-                secret, 
-                merchantInfo.publicKey, 
-                xlmAmount, 
+                secret,
+                merchantInfo.publicKey,
+                xlmAmount,
                 `AutoPay: ${sub.planName}`
             );
 
@@ -149,11 +149,12 @@ export class AutopayService {
                 category: 'Bills'
             });
 
-            // Trigger notification
-            NotificationService.triggerRemoteNotification(
+            // Trigger in-app notification
+            NotificationService.sendInAppNotification(
                 sub.merchantStellarId,
-                sub.amount.toString(),
-                profile.displayName || profile.stellarId.split('@')[0]
+                "AutoPay Received",
+                `Received ₹${sub.amount} for ${sub.planName} from ${profile.displayName || profile.stellarId.split('@')[0]}`,
+                'payment'
             );
 
             console.log(`✅ AutoPay SUCCESS: ${sub.planName}. Next scheduled: ${nextDate.toLocaleString()}`);

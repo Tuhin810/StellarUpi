@@ -94,11 +94,12 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
         spenderId: profile.stellarId
       });
 
-      // Trigger remote notification
-      NotificationService.triggerRemoteNotification(
+      // Trigger in-app notification
+      NotificationService.sendInAppNotification(
         recipientId,
-        amtNum.toString(),
-        ownerData.displayName || ownerData.stellarId.split('@')[0]
+        "Payment Received",
+        `You received ₹${amtNum} from ${ownerData.displayName || ownerData.stellarId.split('@')[0]} (Family Wallet)`,
+        'payment'
       );
 
       navigate('/transactions');

@@ -1,112 +1,40 @@
 
-/// <reference types="vite/client" />
-import OneSignal from 'react-onesignal';
 import { db } from "./firebase";
-import { collection, query, where, onSnapshot, limit, orderBy, updateDoc, doc } from "firebase/firestore";
-import axios from 'axios';
+import { collection, query, where, onSnapshot, limit, orderBy, addDoc, serverTimestamp } from "firebase/firestore";
+
+export type InAppNotificationType = 'success' | 'error' | 'info' | 'payment' | 'split';
 
 export const NotificationService = {
-  _isInitialized: false,
-  _isInitializing: false,
-
   /**
-   * Initialize OneSignal
+   * Send an in-app notification to another user via Firestore
    */
-  async init(uid?: string) {
-    if (this._isInitializing) return;
-    this._isInitializing = true;
-
+  async sendInAppNotification(
+    targetStellarId: string,
+    title: string,
+    message: string,
+    type: InAppNotificationType = 'info'
+  ) {
     try {
-      // @ts-ignore
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-
-      return new Promise<void>((resolve) => {
-        // @ts-ignore
-        window.OneSignalDeferred.push(async (OneSignal) => {
-          try {
-            // @ts-ignore
-            if (!OneSignal.initialized) {
-              await OneSignal.init({
-                appId: import.meta.env.VITE_ONESIGNAL_APP_ID || "03d252b2-074b-4d2d-866e-5560da7cb094",
-                safari_web_id: import.meta.env.VITE_ONESIGNAL_SAFARI_ID || "web.onesignal.auto.36762c33-c595-4251-8e66-ea9a822d3713",
-                allowLocalhostAsSecureOrigin: true,
-                // @ts-ignore
-                notifyButton: { enable: true }
-              });
-              console.log('OneSignal init success');
-            }
-
-            this._isInitialized = true;
-            this._isInitializing = false;
-
-            if (uid) {
-              console.log('Syncing OneSignal User:', uid);
-              await OneSignal.login(uid);
-            }
-            resolve();
-          } catch (err: any) {
-            console.error('OneSignal Deferred Error:', err);
-            this._isInitializing = false;
-            resolve();
-          }
-        });
+      console.log(`Sending in-app notification to ${targetStellarId}...`);
+      await addDoc(collection(db, 'notifications'), {
+        toId: targetStellarId,
+        title,
+        message,
+        type,
+        read: false,
+        timestamp: serverTimestamp()
       });
+      return { success: true };
     } catch (error: any) {
-      this._isInitializing = false;
-      console.error('OneSignal Init Wrapper Error:', error);
+      console.error('Failed to send in-app notification:', error);
+      return { success: false, error: error.message };
     }
   },
 
-  async checkStatus() {
-    return new Promise((resolve) => {
-      // @ts-ignore
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      // @ts-ignore
-      window.OneSignalDeferred.push(async (OneSignal) => {
-        try {
-          // @ts-ignore
-          const permission = Notification.permission;
-          const subscriptionId = OneSignal.User?.PushSubscription?.id;
-          resolve({
-            permission: permission,
-            subscriptionId: subscriptionId || null,
-            isLoaded: true,
-          });
-        } catch (e) {
-          resolve({ permission: 'error', isLoaded: false });
-        }
-      });
-    });
-  },
-
   /**
-   * Request permission for notifications
+   * Listener for incoming events (Payments, Splits, and In-App Notifications)
    */
-  async requestPermission(force: boolean = false) {
-    // @ts-ignore
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    // @ts-ignore
-    window.OneSignalDeferred.push(async (OneSignal) => {
-      try {
-        console.log('Requesting notification permission...');
-        // @ts-ignore
-        if (Notification.permission === 'denied') {
-          console.warn('Notifications are denied by the browser.');
-          return;
-        }
-        await OneSignal.Slidedown.promptPush({ force });
-      } catch (error) {
-        console.error('Error in Slidedown prompt:', error);
-      }
-    });
-  },
-
-  /**
-   * Listener for incoming payments and group splits
-   * (Keeping this as it uses Firestore for real-time UI updates/local notifications)
-   */
-  setupRealtimeNotifications(stellarId: string) {
-    if (!("Notification" in window)) return;
+  setupRealtimeNotifications(stellarId: string, onNotify: (title: string, message: string, type: InAppNotificationType) => void) {
     console.log(`Setting up realtime notifications for: ${stellarId}`);
 
     // 1. Listen for new incoming transactions
@@ -126,11 +54,11 @@ export const NotificationService = {
       snap.docChanges().forEach((change) => {
         if (change.type === 'added') {
           const tx = change.doc.data();
-          console.log('Incoming transaction detected via Firestore listener');
-          this.sendLocalNotification(
+          console.log('Incoming transaction detected');
+          onNotify(
             "Payment Received! 💰",
             `You received ₹${tx.amount} from ${tx.fromName || tx.fromId}`,
-            '/icon-192.png'
+            'payment'
           );
         }
       });
@@ -164,11 +92,10 @@ export const NotificationService = {
             if (change.type === 'added') {
               const expense = change.doc.data();
               if (expense.paidBy !== stellarId) {
-                console.log('New split detected via Firestore listener');
-                this.sendLocalNotification(
+                onNotify(
                   `New Split in ${groupDoc.data().name} 👥`,
                   `${expense.description}: Total ₹${expense.totalAmount} split by ${expense.paidBy.split('@')[0]}`,
-                  '/icon-192.png'
+                  'split'
                 );
               }
             }
@@ -180,77 +107,36 @@ export const NotificationService = {
       console.error('Firestore Group listener error:', error);
     });
 
+    // 3. Listen for specific In-App Notifications
+    const notifyQuery = query(
+      collection(db, 'notifications'),
+      where('toId', '==', stellarId),
+      orderBy('timestamp', 'desc'),
+      limit(1)
+    );
+
+    let initialNotifyLoad = true;
+    const unsubNotify = onSnapshot(notifyQuery, (snap) => {
+      if (initialNotifyLoad) {
+        initialNotifyLoad = false;
+        return;
+      }
+      snap.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const data = change.doc.data();
+          onNotify(data.title, data.message, data.type as InAppNotificationType);
+        }
+      });
+    }, (error) => {
+      console.error('Firestore Notifications listener error:', error);
+    });
+
     return () => {
       unsubTx();
       unsubGroups();
+      unsubNotify();
       groupSubs.forEach(u => u());
     };
-  },
-
-  /**
-   * Trigger a remote push notification via Vercel Serverless Function
-   */
-  async triggerRemoteNotification(
-    targetStellarId: string | string[],
-    amount?: string,
-    senderName?: string,
-    title?: string,
-    message?: string
-  ) {
-    try {
-      console.log(`Attempting to trigger remote push for ${targetStellarId}...`);
-
-      // Avoid 404 errors during local development if the backend isn't running
-      if (window.location.hostname === 'localhost' || window.location.hostname.includes('pinggy.link')) {
-        console.warn('Remote notification skipped: Backend API (/api/notify) is only available when deployed to Netlify.');
-        return { success: true, mocked: true };
-      }
-
-      const response = await axios.post('/api/notify', {
-        recipientUserId: targetStellarId,
-        amount,
-        senderName,
-        title,
-        message
-      });
-
-      console.log('Notification API response:', response.data);
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        console.warn('Notification API not found (404). This is expected in local dev unless you are running Netlify Dev.');
-      } else {
-        console.error('Failed to trigger remote notification:', error);
-      }
-      return { success: false, error: error.message };
-    }
-  },
-
-
-  async sendLocalNotification(title: string, body: string, icon: string = '/icon-192.png') {
-    console.log('Sending local notification:', title);
-    if (Notification.permission === "granted") {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        if (registration) {
-          // @ts-ignore
-          registration.showNotification(title, {
-            body,
-            icon,
-            badge: icon,
-            vibrate: [200, 100, 200],
-            tag: 'Ching Pay-update'
-          } as any);
-        } else {
-          new Notification(title, { body, icon });
-        }
-      } catch (e) {
-        console.error('Local notification error:', e);
-        new Notification(title, { body, icon });
-      }
-    } else {
-      console.warn('Local notification suppressed: Permission not granted');
-    }
   }
 };
 

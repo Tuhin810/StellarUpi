@@ -137,10 +137,11 @@ const PaymentLink: React.FC = () => {
                 isFamilySpend: false
             });
 
-            NotificationService.triggerRemoteNotification(
+            NotificationService.sendInAppNotification(
                 recipient.stellarId,
-                amount,
-                senderProfile.displayName || senderProfile.stellarId.split('@')[0]
+                "Payment Link Received",
+                `Received ${amount} XLM from ${senderProfile.displayName || senderProfile.stellarId.split('@')[0]}`,
+                'payment'
             );
 
             setSuccess(true);

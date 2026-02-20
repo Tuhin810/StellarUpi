@@ -62,21 +62,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
             setPhoneEntry(profile.phoneNumber || '');
         }
 
-        const checkNotif = async () => {
-            const status = await NotificationService.checkStatus() as any;
-            if (status.permission === 'granted') {
-                if (status.subscriptionId) {
-                    setNotificationStatus('ACTIVE');
-                } else {
-                    setNotificationStatus('ENABLE');
-                }
-            } else if (status.permission === 'denied') {
-                setNotificationStatus('DISABLED');
-            } else {
-                setNotificationStatus('ENABLE');
-            }
-        };
-        checkNotif();
+        setNotificationStatus('ACTIVE');
     }, [profile]);
 
     if (!profile) return null;
@@ -166,53 +152,18 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const [notificationStatus, setNotificationStatus] = useState<string>('');
 
     const handleEnableNotifications = async () => {
-        setSaving(true);
-        try {
-            console.log("Forcing notification prompt...");
-
-            // 1. Ensure OneSignal is initialized with the current user
-            if (profile) {
-                await NotificationService.init(profile.stellarId);
-            }
-
-            // 2. Force the prompt to show (even if shown before)
-            await NotificationService.requestPermission(true);
-
-            // 3. Wait a bit for the user to interact and status to update
-            setTimeout(async () => {
-                const status = await NotificationService.checkStatus() as any;
-                if (status.permission === 'granted') {
-                    if (status.subscriptionId) {
-                        setNotificationStatus('ACTIVE');
-                    } else {
-                        setNotificationStatus('PENDING');
-                    }
-                } else if (status.permission === 'denied') {
-                    setNotificationStatus('DENIED');
-                    alert("Notifications are Blocked. Please click the Lock icon in the address bar to Allow them.");
-                } else {
-                    setNotificationStatus('ENABLE');
-                }
-                setSaving(false);
-            }, 2000);
-
-            return; // Exit here as timeout handles the state update
-        } catch (e) {
-            console.error('Notification error:', e);
-            setNotificationStatus('FAILED');
-        }
-        setSaving(false);
+        setNotificationStatus('ACTIVE');
+        alert("In-app notifications enabled!");
     };
 
     const handleSendTestNotification = async () => {
         if (!profile) return;
         setSaving(true);
-        await NotificationService.triggerRemoteNotification(
+        await NotificationService.sendInAppNotification(
             profile.stellarId,
-            "0",
-            "System",
             "Notification Test ✅",
-            "Great! Your premium notification system is fully operational."
+            "Great! Your premium in-app notification system is fully operational.",
+            "success"
         );
         setSaving(false);
         alert("Test notification sent! It should arrive in a few seconds.");
