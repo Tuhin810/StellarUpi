@@ -20,3 +20,7 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
 export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+
+// "site": "ching123",
+// firebase deploy --only hosting:ching123
