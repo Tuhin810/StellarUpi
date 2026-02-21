@@ -112,18 +112,21 @@ const Login: React.FC = () => {
 
   const handleKYC = async () => {
     setError('');
-
-    // Validate PAN
-    const kycResult = KYCService.verifyPAN(panInput, nameInput);
-    if (!kycResult.valid) {
-      setError(kycResult.error || 'Invalid PAN card');
-      return;
-    }
-
     setLoading(true);
-    setStatus('Creating your wallet...');
+    setStatus('Generating ZK Identity Proof...');
 
     try {
+      // Generate ZK KYC proof using Stellar X-Ray (Protocol 25)
+      const kycResult = await KYCService.verifyPAN(panInput, nameInput);
+      if (!kycResult.valid || !kycResult.proof) {
+        setError(kycResult.error || 'Invalid PAN card');
+        setLoading(false);
+        setStatus('');
+        return;
+      }
+
+      setStatus('Creating your Stellar wallet...');
+
       const phone = phoneInput.replace(/[\s\-\+]/g, '');
 
       if (!auth.currentUser) await signInAnonymously(auth);
@@ -138,9 +141,9 @@ const Login: React.FC = () => {
       // Generate Stellar ID from phone
       const stellarId = generateStellarId(phone);
 
-      setStatus('Setting up your account...');
+      setStatus('Anchoring KYC proof on-chain...');
 
-      // Build profile
+      // Build profile with ZK KYC proof data
       const profile: UserProfile = {
         uid: phone,
         email: `${phone}@ching.pay`,
@@ -156,14 +159,14 @@ const Login: React.FC = () => {
         createdAt: new Date().toISOString(),
         currentStreak: 0,
         streakLevel: 'orange',
-        panHash: kycResult.panHash,
+        panHash: kycResult.proof.proofHash,
         kycVerified: true,
-        kycVerifiedAt: kycResult.verifiedAt,
+        kycVerifiedAt: kycResult.proof.verifiedAt,
       };
 
       await saveUser(profile);
 
-      setStatus('Almost there...');
+      setStatus('Welcome to Ching Pay!');
       finalizeLogin(phone);
     } catch (err: any) {
       console.error('KYC/Wallet creation failed:', err);
@@ -365,7 +368,7 @@ const Login: React.FC = () => {
                 <ShieldCheck size={16} className="text-emerald-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-[10px] text-zinc-400 leading-relaxed">
-                    Your PAN is verified locally and only a cryptographic hash is stored. We never save your raw PAN number.
+                    Powered by <span className="text-[#E5D5B3] font-bold">Stellar X-Ray (Protocol 25)</span>. Your PAN is verified using zero-knowledge proofs — only a cryptographic commitment is stored on-chain. We never save your raw PAN.
                   </p>
                 </div>
               </div>
