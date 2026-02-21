@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 import { auth } from '../services/firebase';
 import { saveUser, getProfile } from '../services/db';
@@ -7,11 +7,12 @@ import { createWallet } from '../services/stellar';
 import { encryptSecret } from '../services/encryption';
 import { generateStellarId } from '../services/web3';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ShieldCheck, Phone, Lock, ChevronRight, Loader2, CreditCard, User, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Phone, Lock, ChevronRight, Loader2, CreditCard, User, ArrowLeft, CheckCircle2, Camera, ScanLine } from 'lucide-react';
 import { UserProfile } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { VerificationService } from '../services/verificationService';
 import { KYCService } from '../services/kycService';
+import { PANScannerService } from '../services/panScannerService';
 
 type Step = 'welcome' | 'phone' | 'otp' | 'kyc';
 
@@ -33,6 +34,59 @@ const Login: React.FC = () => {
   // KYC
   const [panInput, setPanInput] = useState('');
   const [nameInput, setNameInput] = useState('');
+
+  // Scanner
+  const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+  const [scanDetected, setScanDetected] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ─── SCAN HANDLER ───
+
+  const handleScanPAN = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setScanning(true);
+    setScanProgress(0);
+    setScanDetected(false);
+    setError('');
+
+    try {
+      // Pre-process image for better OCR accuracy
+      const processed = await PANScannerService.preprocessImage(file);
+
+      setScanProgress(20);
+
+      // Run OCR
+      const result = await PANScannerService.scanPANCard(processed);
+
+      setScanProgress(100);
+
+      if (result.panNumber) {
+        setPanInput(result.panNumber);
+        setScanDetected(true);
+      }
+      if (result.fullName) {
+        setNameInput(result.fullName);
+        setScanDetected(true);
+      }
+
+      if (!result.panNumber && !result.fullName) {
+        setError('Could not detect PAN details. Please try again or enter manually.');
+      }
+
+      // Brief delay to show success state
+      setTimeout(() => setScanning(false), 600);
+    } catch (err: any) {
+      console.error('PAN scan error:', err);
+      setError('Scan failed. Please try again or enter manually.');
+      setScanning(false);
+    }
+
+    // Reset file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   // ─── STEP HANDLERS ───
 
@@ -281,9 +335,7 @@ const Login: React.FC = () => {
           </button>
 
           <div className="flex-1 flex flex-col">
-            <div className="w-16 h-16 bg-[#E5D5B3]/10 rounded-2xl flex items-center justify-center text-[#E5D5B3] mb-6 border border-[#E5D5B3]/20">
-              <Lock size={28} />
-            </div>
+
             <h2 className="text-2xl font-black tracking-tight mb-2">Verify SMS Code</h2>
             <p className="text-zinc-500 text-sm mb-10">Enter the 6-digit code sent to <span className="text-[#E5D5B3]">{phoneInput}</span></p>
 
@@ -327,13 +379,65 @@ const Login: React.FC = () => {
             <ArrowLeft size={20} />
           </button>
 
-          <div className="flex-1 flex flex-col">
-            <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-500 mb-6 border border-emerald-500/20">
-              <ShieldCheck size={28} />
+          {/* Scanning Overlay */}
+          {scanning && (
+            <div className="fixed inset-0 z-50 bg-black/90 flex flex-col items-center justify-center px-8">
+              <div className="relative w-24 h-24 mb-8">
+                <div className="absolute inset-0 rounded-3xl border-2 border-[#E5D5B3]/30 animate-pulse" />
+                <div className="absolute inset-0 rounded-3xl flex items-center justify-center">
+                  <ScanLine size={40} className="text-[#E5D5B3] animate-bounce" />
+                </div>
+              </div>
+              <h3 className="text-xl font-black text-white mb-2">Scanning PAN Card</h3>
+              <p className="text-zinc-500 text-sm mb-6">Extracting details using ML...</p>
+              <div className="w-full max-w-[200px] h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#D4874D] to-[#E5C36B] rounded-full transition-all duration-500"
+                  style={{ width: `${scanProgress}%` }}
+                />
+              </div>
+              <p className="text-[#E5D5B3] text-xs font-bold mt-3 uppercase tracking-wider">{scanProgress < 100 ? 'Processing...' : 'Done!'}</p>
             </div>
-            <h2 className="text-2xl font-black tracking-tight mb-2">Verify Identity</h2>
-            <p className="text-zinc-500 text-sm mb-8">Complete KYC with your PAN card to activate your wallet</p>
+          )}
 
+          <div className="flex-1 flex flex-col">
+            <h2 className="text-2xl font-black tracking-tight mb-2">Verify Identity</h2>
+            <p className="text-zinc-500 text-sm mb-6">Scan your PAN card or enter details manually</p>
+
+            {/* Scan Button */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleScanPAN}
+              className="hidden"
+              id="panScanInput"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanning}
+              className="w-full bg-[#E5D5B3]/10 border border-[#E5D5B3]/20 rounded-2xl py-4 px-5 flex items-center gap-4 mb-6 active:scale-[0.98] transition-all hover:bg-[#E5D5B3]/15 disabled:opacity-50"
+            >
+              <div className="w-12 h-12 bg-[#E5D5B3]/10 rounded-xl flex items-center justify-center">
+                <Camera size={22} className="text-[#E5D5B3]" />
+              </div>
+              <div className="text-left flex-1">
+                <p className="text-sm font-black text-white">Scan PAN Card</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Take photo or upload image</p>
+              </div>
+              <ChevronRight size={16} className="text-zinc-600" />
+            </button>
+
+            {/* Scan success indicator */}
+            {scanDetected && (
+              <div className="flex items-center gap-2 mb-4 px-1">
+                <CheckCircle2 size={14} className="text-emerald-500" />
+                <p className="text-emerald-500 text-xs font-bold uppercase tracking-wider">Details detected — review below</p>
+              </div>
+            )}
+
+            {/* Manual Input Fields */}
             <div className="space-y-4 mb-6">
               <div className="relative group">
                 <User className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-[#E5D5B3] transition-colors" size={18} />
@@ -343,7 +447,6 @@ const Login: React.FC = () => {
                   value={nameInput}
                   onChange={(e) => { setNameInput(e.target.value); setError(''); }}
                   className="w-full bg-zinc-950 border border-white/5 rounded-2xl py-5 pl-14 pr-6 font-bold text-sm outline-none focus:border-[#E5D5B3]/20 transition-all capitalize"
-                  autoFocus
                 />
               </div>
 
