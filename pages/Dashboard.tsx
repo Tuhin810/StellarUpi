@@ -107,30 +107,6 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
 
       <BalanceCard publicKey={profile.publicKey} stellarId={profile.stellarId} />
 
-      {/* Compact Premium Security Alert */}
-      {!profile.pin && (
-        <div className="relative mx-0 mt-10 mb-8 overflow-hidden rounded-[1.5rem] border border-amber-500/20 bg-zinc-900/40 p-4 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 duration-1000">
-          <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-amber-500/5 blur-[40px]"></div>
-
-          <div className="relative z-10 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/10 text-amber-500 ring-1 ring-amber-500/20">
-                <Shield size={20} className="animate-pulse" />
-              </div>
-              <div>
-                <h4 className="text-sm font-black tracking-tight text-white mb-0.5">Unsecured Vault</h4>
-                <p className="text-[10px] font-medium text-zinc-500">Enable PIN for full protection</p>
-              </div>
-            </div>
-            <button
-              onClick={() => navigate('/profile')}
-              className="rounded-lg bg-white px-4 py-2 text-[10px] font-black uppercase tracking-widest text-black shadow-lg hover:scale-105 active:scale-95 transition-all"
-            >
-              Secure
-            </button>
-          </div>
-        </div>
-      )}
 
       <QuickActions onReceiveClick={() => navigate('/receive')} />
 

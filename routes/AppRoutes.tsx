@@ -27,6 +27,7 @@ import Rewards from '../pages/Rewards';
 import ClaimFunds from '../pages/ClaimFunds';
 import Gullak from '../pages/Gullak';
 import StreakPage from '../pages/StreakPage';
+import Security from '../pages/Security';
 
 const AppRoutes: React.FC = () => {
     const { isAuthenticated, profile } = useAuth();
@@ -62,6 +63,7 @@ const AppRoutes: React.FC = () => {
                 <Route path="/rewards" element={<Rewards />} />
                 <Route path="/gullak" element={<Gullak profile={profile!} />} />
                 <Route path="/streak" element={<StreakPage />} />
+                <Route path="/security" element={<Security profile={profile!} />} />
             </Route>
 
             <Route path="*" element={<Navigate to="/" />} />
