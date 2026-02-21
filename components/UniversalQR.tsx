@@ -4,27 +4,40 @@ import { QrCode } from 'lucide-react';
 
 interface UniversalQRProps {
     stellarId: string;
+    publicKey?: string; // Added for Freighter compatibility
     amount?: string;
     note?: string;
     size?: number;
     className?: string;
 }
 
-const UniversalQR: React.FC<UniversalQRProps> = ({ stellarId, amount, note, size = 300, className = "" }) => {
+const UniversalQR: React.FC<UniversalQRProps> = ({ stellarId, publicKey, amount, note, size = 300, className = "" }) => {
+    // 1. Universal Smart-Link (Web compatibility)
     const getUniversalLink = () => {
-        // Construct the Universal Smart-Link URL
-        const baseUrl = "https://test-ching.netlify.app/pay";
+        const baseUrl = `${window.location.origin}/pay`;
         const url = new URL(`${baseUrl}/${stellarId}`);
-
         if (amount) url.searchParams.append('amt', amount);
         if (note) url.searchParams.append('note', note);
-
         return url.toString();
     };
 
-    // Using Level 'H' (High) Error Correction as requested
-    // qrserver.com uses 'ecc' parameter for error correction level
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(getUniversalLink())}&color=1A1A1A&bgcolor=E5D5B3&ecc=H`;
+    // 2. Stellar SEP-7 Link (Freighter & Wallet compatibility)
+    const getSEP7Link = () => {
+        // Use publicKey if available, otherwise stellarId
+        const destination = publicKey || stellarId;
+        const params = new URLSearchParams();
+        if (amount) params.append('amount', amount);
+        if (note) params.append('memo', note);
+
+        // SEP-7 format: web+stellar:pay?destination=...
+        return `web+stellar:pay?destination=${destination}${params.toString() ? '&' + params.toString() : ''}`;
+    };
+
+    // Prioritize Universal Link for the widest compatibility (Camera/Guest)
+    const qrData = getUniversalLink();
+
+    // Using Level 'H' (High) Error Correction
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrData)}&color=1A1A1A&bgcolor=E5D5B3&ecc=H`;
 
     return (
         <div className={`relative flex flex-col items-center ${className}`}>

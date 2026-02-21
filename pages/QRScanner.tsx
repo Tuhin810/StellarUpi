@@ -30,38 +30,6 @@ const QRScanner: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const startScanner = async () => {
-      // Small delay to ensure the DOM element "reader" is ready
-      await new Promise(resolve => setTimeout(resolve, 100));
-      if (!isMounted) return;
-
-      const html5QrCode = new Html5Qrcode("reader");
-      scannerRef.current = html5QrCode;
-
-      const config = {
-        fps: 15,
-        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
-          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-          const qrboxSize = Math.max(150, Math.floor(minEdge * 0.7));
-          return { width: qrboxSize, height: qrboxSize };
-        },
-        aspectRatio: 1.0,
-      };
-
-      try {
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          config,
-          onScanSuccess,
-          onScanFailure
-        );
-        if (isMounted) setIsScannerInitialized(true);
-      } catch (err) {
-        console.error("Scanner start failed", err);
-        if (isMounted) setError("Camera access denied or device not found");
-      }
-    };
-
     const stopScanner = async () => {
       if (scannerRef.current && scannerRef.current.isScanning) {
         try {
@@ -80,16 +48,7 @@ const QRScanner: React.FC = () => {
       // Stop camera immediately on success to release it
       await stopScanner();
 
-      // 0. Handle Internal Smart-Link (test-ching.netlify.app/pay/...)
-      if (decodedText.includes('test-ching.netlify.app/pay/')) {
-        try {
-          const url = new URL(decodedText);
-          navigate(url.pathname + url.search);
-          return;
-        } catch (e) {
-          console.error("Internal Smart-Link Parse Error", e);
-        }
-      }
+      // 0. Handled by generic URL parser below (Step 5)
 
       // 1. Handle MetaMask QR / Ethereum URI
       if (decodedText.startsWith('ethereum:')) {
@@ -117,21 +76,19 @@ const QRScanner: React.FC = () => {
         return;
       }
 
-      // 2. Handle Stellar URL format (stellar.sep7)
-      if (decodedText.startsWith('web+stellar:pay')) {
+      // 2. Handle Stellar URL format (stellar.sep7 / Freighter compatible)
+      if (decodedText.startsWith('web+stellar:pay') || decodedText.startsWith('stellar:pay')) {
         try {
-          const url = new URL(decodedText.replace('web+stellar:', 'https:'));
+          const rawUrl = decodedText.startsWith('web+stellar:')
+            ? decodedText.replace('web+stellar:', 'https:')
+            : decodedText.replace('stellar:', 'https:');
+          const url = new URL(rawUrl);
           const destination = url.searchParams.get('destination') || url.pathname.slice(1);
           const amount = url.searchParams.get('amount') || '';
-          const memo = url.searchParams.get('memo') || '';
+          const memo = url.searchParams.get('memo') || url.searchParams.get('note') || '';
 
-          setUniversalChoice({
-            type: 'STELLAR',
-            address: destination,
-            amount: amount,
-            memo: memo,
-            rawUri: decodedText
-          });
+          // Directly navigate to send screen for Stellar Native experience
+          navigate(`/send?to=${destination}&amt=${amount}&note=${memo}`);
           return;
         } catch (e) {
           console.error("Stellar SEP7 Parse Error", e);
@@ -159,52 +116,39 @@ const QRScanner: React.FC = () => {
         return;
       }
 
-      // 5. Handle the app's own hash-routed URLs
-      // e.g. https://test-ching.netlify.app/#/pay/9181010@stellar
-      //      https://app.ching.pay/#/link/abc123
+      // 5. Handle the app's own hash-routed URLs (Standardized)
       try {
         const url = new URL(decodedText);
-        const hash = url.hash; // e.g. "#/pay/9181010@stellar"
+        const hash = url.hash; // e.g. "#/pay/user@stellar"
+        const pathToCheck = hash ? hash.slice(1) : url.pathname;
 
-        if (hash) {
-          // Parse hash-based routes: #/pay/:id, #/link/:id, #/send?to=...
-          const hashPath = hash.slice(1); // Remove leading #
+        if (pathToCheck && pathToCheck !== '/') {
+          // Standardize: ensure it starts with /
+          const normalizedPath = pathToCheck.startsWith('/') ? pathToCheck : '/' + pathToCheck;
 
-          // /pay/:stellarId — redirect to gateway page
-          const payMatch = hashPath.match(/^\/pay\/(.+)/);
-          if (payMatch) {
-            navigate(hashPath);
+          // INTERCEPT: If it's a payment link, navigate to internal "Send" screen instead of the web gateway
+          if (normalizedPath.startsWith('/pay/')) {
+            const recipientId = normalizedPath.split('/pay/')[1];
+            const searchParams = new URLSearchParams(url.search);
+            const amt = searchParams.get('amt') || '';
+            const note = searchParams.get('note') || '';
+            navigate(`/send?to=${recipientId}&amt=${amt}&note=${note}`);
             return;
           }
 
-          // /link/:linkId — payment link
-          const linkMatch = hashPath.match(/^\/link\/(.+)/);
-          if (linkMatch) {
-            navigate(hashPath);
-            return;
-          }
-
-          // /claim?sk=...&amount=... — claim funds
-          if (hashPath.startsWith('/claim')) {
-            navigate(hashPath);
-            return;
-          }
-
-          // /send?to=...&amt=... — send with params
-          if (hashPath.startsWith('/send')) {
-            navigate(hashPath);
-            return;
-          }
-
-          // /subscribe/:planId
-          const subMatch = hashPath.match(/^\/subscribe\/(.+)/);
-          if (subMatch) {
-            navigate(hashPath);
+          // Check for other known routes
+          if (
+            normalizedPath.startsWith('/link/') ||
+            normalizedPath.startsWith('/claim') ||
+            normalizedPath.startsWith('/send') ||
+            normalizedPath.startsWith('/subscribe/')
+          ) {
+            navigate(normalizedPath + url.search);
             return;
           }
         }
 
-        // Fallback: check searchParams on non-hash URLs
+        // Fallback: check searchParams on non-matched URLs
         const to = url.searchParams.get('to');
         const planId = url.searchParams.get('planId');
         const amt = url.searchParams.get('amt') || '';
@@ -240,6 +184,38 @@ const QRScanner: React.FC = () => {
     function onScanFailure(error: any) {
       // Noise - don't log every failure frame
     }
+
+    const startScanner = async () => {
+      // Small delay to ensure the DOM element "reader" is ready
+      await new Promise(resolve => setTimeout(resolve, 100));
+      if (!isMounted) return;
+
+      const html5QrCode = new Html5Qrcode("reader");
+      scannerRef.current = html5QrCode;
+
+      const config = {
+        fps: 15,
+        qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.max(150, Math.floor(minEdge * 0.7));
+          return { width: qrboxSize, height: qrboxSize };
+        },
+        aspectRatio: 1.0,
+      };
+
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          config,
+          onScanSuccess,
+          onScanFailure
+        );
+        if (isMounted) setIsScannerInitialized(true);
+      } catch (err) {
+        console.error("Scanner start failed", err);
+        if (isMounted) setError("Camera access denied or device not found");
+      }
+    };
 
     startScanner();
 

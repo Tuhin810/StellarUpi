@@ -15,6 +15,8 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { NotificationService } from '../services/notification';
 import { PasskeyService } from '../services/passkeyService';
+import { KYCService } from '../services/kycService';
+import { encryptSecret, decryptSecret } from '../services/encryption';
 
 interface Props {
     profile: UserProfile | null;
@@ -69,13 +71,40 @@ const Security: React.FC<Props> = ({ profile }) => {
         if (pinEntry.length !== 4) return;
         setSaving(true);
         try {
-            await updateUserDetails(profile.uid, { pin: pinEntry });
+            // CRITICAL: When changing PIN, we MUST re-encrypt the Stellar Secret
+            // because the encryption key is derived from Phone + PIN.
+            const oldPin = profile.pin || '0000';
+            const phone = localStorage.getItem('ching_phone') || '';
+
+            const oldVaultKey = KYCService.deriveEncryptionKey(phone, oldPin);
+            const newVaultKey = KYCService.deriveEncryptionKey(phone, pinEntry);
+
+            // Decrypt with old key
+            const rawSecret = decryptSecret(profile.encryptedSecret, oldVaultKey);
+
+            if (!rawSecret || !rawSecret.startsWith('S')) {
+                throw new Error("Failed to re-encrypt vault. Please ensure your old PIN/Session is valid.");
+            }
+
+            // Encrypt with new key
+            const newEncryptedSecret = encryptSecret(rawSecret, newVaultKey);
+
+            await updateUserDetails(profile.uid, {
+                pin: pinEntry,
+                encryptedSecret: newEncryptedSecret
+            });
+
             setShowPinModal(false);
             setPinEntry('');
-            alert("PIN saved!");
-        } catch (err) {
+            NotificationService.sendInAppNotification(
+                profile.stellarId,
+                "Security PIN Updated 🔒",
+                "Your Stellar Vault has been re-keyed for protection.",
+                "success"
+            );
+        } catch (err: any) {
             console.error(err);
-            alert("Failed to save PIN.");
+            alert(err.message || "Failed to save PIN.");
         } finally {
             setSaving(false);
         }

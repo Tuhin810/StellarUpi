@@ -4,11 +4,28 @@ import { X, ExternalLink } from 'lucide-react';
 
 interface ReceiveQRModalProps {
     stellarId: string;
+    publicKey?: string;
     onClose: () => void;
 }
 
-const ReceiveQRModal: React.FC<ReceiveQRModalProps> = ({ stellarId, onClose }) => {
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=stellar:pay?to=${stellarId}&color=1A1A1A&bgcolor=E5D5B3`;
+const ReceiveQRModal: React.FC<ReceiveQRModalProps> = ({ stellarId, publicKey, onClose }) => {
+    // Priority: Universal Link for Guest/Camera compatibility
+    const universalLink = `${window.location.origin}/#/pay/${stellarId}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(universalLink)}&color=1A1A1A&bgcolor=E5D5B3`;
+
+    const handleShare = () => {
+        const universalLink = `${window.location.origin}/#/pay/${stellarId}`;
+        if (navigator.share) {
+            navigator.share({
+                title: 'Pay me on Ching Pay',
+                text: `Send money to my Stellar ID: ${stellarId}`,
+                url: universalLink,
+            });
+        } else {
+            navigator.clipboard.writeText(universalLink);
+            alert('Payment link copied to clipboard!');
+        }
+    };
 
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6">
@@ -36,8 +53,11 @@ const ReceiveQRModal: React.FC<ReceiveQRModalProps> = ({ stellarId, onClose }) =
                     Show this QR to receive payments directly into your wallet
                 </p>
 
-                <button className="w-full py-4 bg-[#E5D5B3] text-black rounded-2xl font-semibold text-sm flex items-center justify-center gap-2">
-                    <ExternalLink size={16} /> Share QR Code
+                <button
+                    onClick={handleShare}
+                    className="w-full py-4 bg-[#E5D5B3] text-black rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                >
+                    <ExternalLink size={16} /> Share Payment Link
                 </button>
             </div>
         </div>

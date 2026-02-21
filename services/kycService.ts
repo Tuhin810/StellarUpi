@@ -259,6 +259,11 @@ export class KYCService {
      * Used to encrypt/decrypt the Stellar secret key.
      */
     static deriveEncryptionKey(phone: string, pin: string = '0000'): string {
-        return CryptoJS.SHA256(phone + pin).toString();
+        // Robust normalization to ensure consistency across all versions of the app
+        let clean = phone.replace(/[\s\-\+\(\)]/g, '');
+        if (clean.length === 12 && clean.startsWith('91')) clean = clean.slice(2);
+        if (clean.length === 11 && clean.startsWith('0')) clean = clean.slice(1);
+
+        return CryptoJS.SHA256(clean + (pin || '0000')).toString();
     }
 }

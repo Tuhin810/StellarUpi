@@ -96,8 +96,8 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                     <ArrowLeft size={18} />
                 </button>
                 <div className="flex items-center gap-2">
-                    <PiggyBank size={18} className="text-[#E5D5B3]" />
-                    <span className="text-sm font-black tracking-tight">Gullak</span>
+                    <img src="/gullak.png" className="w-5 h-5 object-contain" alt="Gullak" />
+                    <span className="text-sm font-black tracking-tight uppercase">Gullak</span>
                 </div>
                 <div className="w-11" />
             </div>
@@ -352,10 +352,10 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
             <div className="fixed bottom-0 left-0 right-0 z-40 p-6 pb-10 bg-gradient-to-t from-[#050505] via-[#050505] to-transparent">
                 <button
                     onClick={() => navigate('/withdraw')}
-                    className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-[0.97] transition-all flex items-center justify-center gap-2 text-black"
+                    className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-[0.97] transition-all flex items-center justify-center gap-3 text-black"
                     style={{ background: 'linear-gradient(90deg, #D4874D 0%, #E5C36B 50%, #F0D98A 100%)' }}
                 >
-                    <PiggyBank size={18} strokeWidth={2.5} />
+                    <img src="/gullak.png" className="w-6 h-6 object-contain" alt="Gullak" />
                     Withdraw Savings
                 </button>
             </div>

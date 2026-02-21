@@ -83,13 +83,25 @@ const PaymentLink: React.FC = () => {
 
         setSending(true);
         try {
-            const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', senderProfile.pin || '0000');
-            if (!password) {
-                setError('Vault locked. Please login again.');
+            const phone = localStorage.getItem('ching_phone') || '';
+            const currentPin = senderProfile.pin || '0000';
+
+            // Smart Decryption Strategy
+            let password = KYCService.deriveEncryptionKey(phone, currentPin);
+            let secret = decryptSecret(senderProfile.encryptedSecret, password);
+
+            // Legacy Fallback (handles old PIN-sync bug)
+            if ((!secret || !secret.startsWith('S')) && currentPin !== '0000') {
+                const fallbackPassword = KYCService.deriveEncryptionKey(phone, '0000');
+                secret = decryptSecret(senderProfile.encryptedSecret, fallbackPassword);
+            }
+
+            if (!secret || !secret.startsWith('S')) {
+                setError('Your Stellar Vault is locked. Try logging out and back in once to sync your keys.');
                 setSending(false);
                 return;
             }
-            const secret = decryptSecret(senderProfile.encryptedSecret, password);
+
             const txHash = await sendPayment(secret, recipient.publicKey, amount, note || 'Payment Link');
 
             // Generate ZK Proof of Payment
@@ -218,50 +230,70 @@ const PaymentLink: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main Selection Hub */}
-            <div className="w-full max-w-md grid grid-cols-1 gap-6 mb-12">
-                {/* 1. MetaMask Option (The most requested) */}
-                <div className="relative group p-1 bg-gradient-to-br from-orange-500/20 to-transparent rounded-[2.5rem]">
-                    <div className="bg-[#0d1210] border border-orange-500/20 rounded-[2.4rem] p-8 flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center mb-6">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Mirror_Logo.svg" className="w-10 h-10" alt="MetaMask" />
+            {/* Main Selection Hub - Reorganized for Freighter Priority */}
+            <div className="w-full max-w-lg grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                {/* 1. Freighter / Stellar Wallet (Primary for this app) */}
+                <div className="relative group p-1 bg-gradient-to-br from-purple-500/20 to-transparent rounded-[2.5rem]">
+                    <div className="bg-[#0d1210] border border-purple-500/20 rounded-[2.4rem] p-6 flex flex-col items-center text-center h-full">
+                        <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-4">
+                            <Wallet size={28} className="text-purple-400" />
                         </div>
-                        <h3 className="text-xl font-black mb-2">Pay with MetaMask</h3>
-                        <p className="text-zinc-500 text-xs leading-relaxed mb-8 px-4 font-medium uppercase tracking-widest opacity-60">
-                            Transfer directly to recipient's <br />
-                            <span className="text-orange-400 font-black">{recipient?.ethAddress ? `${recipient.ethAddress.slice(0, 6)}...${recipient.ethAddress.slice(-4)}` : 'ETH address'}</span>
+                        <h3 className="text-lg font-black mb-2">Freighter</h3>
+                        <p className="text-zinc-500 text-[9px] leading-relaxed mb-6 px-2 font-medium uppercase tracking-widest opacity-60 flex-grow">
+                            Launch Stellar Wallet <br />
+                            <span className="text-purple-400 font-black">Direct Protocol</span>
                         </p>
 
                         <button
-                            onClick={handlePayWithMetaMask}
-                            disabled={!recipient?.ethAddress}
-                            className="w-full py-5 bg-orange-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.3em] active:scale-[0.98] transition-all shadow-[0_15px_30px_rgba(249,115,22,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
+                            onClick={handlePayWithStellarWallet}
+                            disabled={!recipient?.publicKey}
+                            className="w-full py-4 bg-purple-600 text-white font-black rounded-xl text-[9px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-lg hover:bg-purple-500 disabled:opacity-30"
                         >
-                            <Sparkles size={16} />
-                            Launch MetaMask
+                            Pay with Wallet
                         </button>
                     </div>
                 </div>
 
                 {/* 2. Ching Pay Native Option */}
                 <div className="relative group p-1 bg-gradient-to-br from-[#E5D5B3]/20 to-transparent rounded-[2.5rem]">
-                    <div className="bg-[#0d1210] border border-[#E5D5B3]/20 rounded-[2.4rem] p-8 flex flex-col items-center text-center">
-                        <div className="w-16 h-16 bg-[#E5D5B3]/10 rounded-2xl flex items-center justify-center mb-6">
-                            <Zap size={32} className="text-[#E5D5B3]" />
+                    <div className="bg-[#0d1210] border border-[#E5D5B3]/20 rounded-[2.4rem] p-6 flex flex-col items-center text-center h-full scale-[1.05] shadow-2xl relative z-10">
+                        <div className="w-14 h-14 bg-[#E5D5B3]/10 rounded-2xl flex items-center justify-center mb-4">
+                            <Zap size={28} className="text-[#E5D5B3]" />
                         </div>
-                        <h3 className="text-xl font-black mb-2">Pay with Ching Pay</h3>
-                        <p className="text-zinc-500 text-xs leading-relaxed mb-8 font-medium uppercase tracking-widest opacity-60">
-                            Instant Web3 UPI Checkout <br />
-                            <span className="text-[#E5D5B3] font-black">Powered by Stellar Vault</span>
+                        <h3 className="text-lg font-black mb-2 text-[#E5D5B3]">Native</h3>
+                        <p className="text-zinc-500 text-[9px] leading-relaxed mb-6 px-2 font-medium uppercase tracking-widest opacity-60 flex-grow">
+                            Web3 Checkout <br />
+                            <span className="text-[#E5D5B3] font-black">Vault Powered</span>
                         </p>
 
                         <button
                             onClick={isAuthenticated ? handlePay : () => navigate('/login', { state: { from: `/pay/${stellarId}${searchParams.toString() ? '?' + searchParams.toString() : ''}` } })}
                             disabled={!amount || sending}
-                            className="w-full py-5 gold-gradient text-black font-black rounded-2xl text-[10px] uppercase tracking-[0.3em] active:scale-[0.98] transition-all shadow-[0_15px_30px_rgba(229,213,179,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
+                            className="w-full py-4 gold-gradient text-black font-black rounded-xl text-[9px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-xl disabled:opacity-30"
                         >
-                            {sending ? <Loader2 className="animate-spin" size={16} /> : <ArrowRight size={18} />}
-                            {isAuthenticated ? 'Native Checkout' : 'Login & Pay'}
+                            {sending ? <Loader2 className="animate-spin" size={14} /> : 'Pay Native'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* 3. MetaMask Option */}
+                <div className="relative group p-1 bg-gradient-to-br from-orange-500/20 to-transparent rounded-[2.5rem]">
+                    <div className="bg-[#0d1210] border border-orange-500/20 rounded-[2.4rem] p-6 flex flex-col items-center text-center h-full">
+                        <div className="w-14 h-14 bg-orange-500/10 rounded-2xl flex items-center justify-center mb-4">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Mirror_Logo.svg" className="w-8 h-8" alt="MetaMask" />
+                        </div>
+                        <h3 className="text-lg font-black mb-2">MetaMask</h3>
+                        <p className="text-zinc-500 text-[9px] leading-relaxed mb-6 px-2 font-medium uppercase tracking-widest opacity-60 flex-grow">
+                            Pay with ETH/WXL <br />
+                            <span className="text-orange-400 font-black">Cross-Chain</span>
+                        </p>
+
+                        <button
+                            onClick={handlePayWithMetaMask}
+                            disabled={!recipient?.ethAddress}
+                            className="w-full py-4 bg-orange-600 text-white font-black rounded-xl text-[9px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-lg hover:bg-orange-500 disabled:opacity-30"
+                        >
+                            Pay with ETH
                         </button>
                     </div>
                 </div>
@@ -330,76 +362,6 @@ const PaymentLink: React.FC = () => {
                 </div>
             </div>
 
-            {/* Main Payment Choices */}
-            <div className="w-full max-w-md grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                {/* 1. MetaMask Option */}
-                <div className="relative group p-1 bg-gradient-to-br from-orange-500/20 to-transparent rounded-[2.5rem]">
-                    <div className="bg-[#0d1210] border border-orange-500/20 rounded-[2.4rem] p-8 flex flex-col items-center text-center h-full">
-                        <div className="w-16 h-16 bg-orange-500/10 rounded-2xl flex items-center justify-center mb-6">
-                            <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Mirror_Logo.svg" className="w-10 h-10" alt="MetaMask" />
-                        </div>
-                        <h3 className="text-xl font-black mb-2">Pay with MetaMask</h3>
-                        <p className="text-zinc-500 text-xs leading-relaxed mb-8 px-4 font-medium uppercase tracking-widest opacity-60 flex-grow">
-                            Transfer directly to recipient's <br />
-                            <span className="text-orange-400 font-black">{recipient?.ethAddress ? `${recipient.ethAddress.slice(0, 6)}...${recipient.ethAddress.slice(-4)}` : 'ETH address'}</span>
-                        </p>
-
-                        <button
-                            onClick={handlePayWithMetaMask}
-                            disabled={!recipient?.ethAddress || !amount}
-                            className="w-full py-5 bg-orange-500 text-white font-black rounded-2xl text-[10px] uppercase tracking-[0.3em] active:scale-[0.98] transition-all shadow-[0_15px_30px_rgba(249,115,22,0.2)] disabled:opacity-30 flex items-center justify-center gap-2"
-                        >
-                            <Sparkles size={16} />
-                            Launch MetaMask
-                        </button>
-                    </div>
-                </div>
-
-                {/* 2. Ching Pay Native Option */}
-                <div className="relative group p-1 bg-gradient-to-br from-[#E5D5B3]/20 to-transparent rounded-[2.5rem]">
-                    <div className="bg-[#0d1210] border border-[#E5D5B3]/20 rounded-[2.4rem] p-8 flex flex-col items-center text-center h-full">
-                        {/* Decorative background logo */}
-                        <div className="absolute -right-4 -bottom-4 opacity-5 pointer-events-none group-hover:scale-110 transition-transform">
-                            <Zap size={100} className="text-[#E5D5B3]" />
-                        </div>
-
-                        <div className="w-16 h-16 bg-[#E5D5B3]/10 rounded-2xl flex items-center justify-center mb-6 relative z-10">
-                            <Zap size={32} className="text-[#E5D5B3]" />
-                        </div>
-                        <h3 className="text-xl font-black mb-2 relative z-10">Pay with Ching Pay</h3>
-                        <p className="text-zinc-500 text-xs leading-relaxed mb-8 font-medium uppercase tracking-widest opacity-60 flex-grow relative z-10">
-                            Instant Web3 UPI Checkout <br />
-                            <span className="text-[#E5D5B3] font-black">Powered by Stellar Vault</span>
-                        </p>
-
-                        <button
-                            onClick={isAuthenticated ? handlePay : () => navigate('/login', { state: { from: `/pay/${stellarId}${searchParams.toString() ? '?' + searchParams.toString() : ''}` } })}
-                            disabled={!amount || sending}
-                            className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all relative z-10 ${amount && !sending
-                                ? 'gold-gradient text-black shadow-xl shadow-[#E5D5B3]/20 active:scale-[0.98]'
-                                : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                                }`}
-                        >
-                            {sending ? (
-                                <div className="flex items-center gap-2">
-                                    {generatingProof ? <Shield size={20} className="text-[#E5D5B3] animate-pulse" /> : <Loader2 size={22} className="animate-spin" />}
-                                    <span className="text-sm uppercase tracking-widest">{generatingProof ? 'Generating ZK Proof...' : 'Processing...'}</span>
-                                </div>
-                            ) : (
-                                <>
-                                    <ArrowRight size={22} />
-                                    {isAuthenticated ? 'Native Checkout' : 'Login & Pay'}
-                                </>
-                            )}
-                        </button>
-                        {!isAuthenticated && (
-                            <p className="text-[10px] text-zinc-500 font-bold text-center mt-4 uppercase tracking-widest relative z-10">
-                                No account? Continue with one-click login
-                            </p>
-                        )}
-                    </div>
-                </div>
-            </div>
 
             {/* Onboarding Section - "New to Ching Pay?" (Only show for Guests) */}
             {!isAuthenticated && (
