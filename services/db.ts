@@ -21,14 +21,25 @@ import { db } from './firebase';
 import { UserProfile, FamilyMember, TransactionRecord, SubscriptionPlan, UserSubscription } from '../types';
 import { getNetworkConfig } from '../context/NetworkContext';
 
+/** Normalize phone: strip formatting, remove +91/91/0 country prefix → bare 10-digit */
+export const normalizePhone = (raw: string): string => {
+  let n = raw.replace(/[\s\-\+\(\)]/g, '');
+  if (n.startsWith('91') && n.length === 12) n = n.slice(2);
+  if (n.startsWith('0') && n.length === 11) n = n.slice(1);
+  return n;
+};
+
 export const saveUser = async (profile: UserProfile) => {
+  const normalizedUid = normalizePhone(profile.uid);
   const data = {
     ...profile,
+    uid: normalizedUid,
+    phoneNumber: normalizePhone(profile.phoneNumber || normalizedUid),
     createdAt: profile.createdAt || new Date().toISOString()
   };
-  await setDoc(doc(db, 'upiAccounts', profile.uid), data);
+  await setDoc(doc(db, 'upiAccounts', normalizedUid), data);
   // Also create a mapping for ID lookup
-  await setDoc(doc(db, 'ids', profile.stellarId), { uid: profile.uid, publicKey: profile.publicKey });
+  await setDoc(doc(db, 'ids', profile.stellarId), { uid: normalizedUid, publicKey: profile.publicKey });
 };
 
 export const getUserById = async (stellarId: string): Promise<{ uid: string, publicKey: string } | null> => {
@@ -38,8 +49,16 @@ export const getUserById = async (stellarId: string): Promise<{ uid: string, pub
 };
 
 export const getProfile = async (uid: string): Promise<UserProfile | null> => {
-  const snap = await getDoc(doc(db, 'upiAccounts', uid));
+  const normalized = normalizePhone(uid);
+
+  // Try normalized (10-digit) first
+  const snap = await getDoc(doc(db, 'upiAccounts', normalized));
   if (snap.exists()) return snap.data() as UserProfile;
+
+  // Fallback: try with 91 prefix (backward compat with older records)
+  const snap91 = await getDoc(doc(db, 'upiAccounts', '91' + normalized));
+  if (snap91.exists()) return snap91.data() as UserProfile;
+
   return null;
 };
 

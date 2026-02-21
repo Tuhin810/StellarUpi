@@ -2,9 +2,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { onSnapshot, doc } from 'firebase/firestore';
+import { onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { UserProfile } from '../types';
+import { normalizePhone } from '../services/db';
 
 interface AuthContextType {
     profile: UserProfile | null;
@@ -20,13 +21,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [loading, setLoading] = useState(true);
 
     const setupProfileListener = (uid: string) => {
-        return onSnapshot(doc(db, 'upiAccounts', uid.toLowerCase()), (snap) => {
+        const normalized = normalizePhone(uid);
+        return onSnapshot(doc(db, 'upiAccounts', normalized), (snap) => {
             if (snap.exists()) {
                 setProfile(snap.data() as UserProfile);
+                setLoading(false);
             } else {
-                setProfile(null);
+                // Fallback: try 91-prefixed doc (backward compat)
+                onSnapshot(doc(db, 'upiAccounts', '91' + normalized), (snap91) => {
+                    if (snap91.exists()) {
+                        setProfile(snap91.data() as UserProfile);
+                    } else {
+                        setProfile(null);
+                    }
+                    setLoading(false);
+                });
             }
-            setLoading(false);
         }, (err) => {
             console.error("Profile listen error", err);
             setLoading(false);

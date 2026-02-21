@@ -2,7 +2,7 @@
 import React, { useState, useRef } from 'react';
 import { signInAnonymously } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { saveUser, getProfile } from '../services/db';
+import { saveUser, getProfile, normalizePhone } from '../services/db';
 import { createWallet } from '../services/stellar';
 import { encryptSecret } from '../services/encryption';
 import { generateStellarId } from '../services/web3';
@@ -91,7 +91,7 @@ const Login: React.FC = () => {
   // ─── STEP HANDLERS ───
 
   const handleSendOTP = async () => {
-    const cleaned = phoneInput.replace(/[\s\-\+]/g, '');
+    const cleaned = normalizePhone(phoneInput);
     if (cleaned.length < 10) {
       setError('Enter a valid 10-digit phone number');
       return;
@@ -133,7 +133,7 @@ const Login: React.FC = () => {
     setStatus('Verifying...');
 
     try {
-      const phone = phoneInput.replace(/[\s\-\+]/g, '');
+      const phone = normalizePhone(phoneInput);
       const success = await VerificationService.verifyOTP(phone, otpInput);
 
       if (!success) {
@@ -181,7 +181,7 @@ const Login: React.FC = () => {
 
       setStatus('Creating your Stellar wallet...');
 
-      const phone = phoneInput.replace(/[\s\-\+]/g, '');
+      const phone = normalizePhone(phoneInput);
 
       if (!auth.currentUser) await signInAnonymously(auth);
 
