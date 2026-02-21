@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Wallet, ArrowRight, User, Loader2, AlertCircle, CheckCircle2, Zap, Shield } from 'lucide-react';
+import { Wallet, ArrowRight, User, Loader2, AlertCircle, CheckCircle2, Zap, Shield, Sparkles } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 import { getProfileByStellarId } from '../services/db';
 import { UserProfile } from '../types';
@@ -10,9 +10,7 @@ import { sendPayment } from '../services/stellar';
 import { recordTransaction } from '../services/db';
 import { decryptSecret } from '../services/encryption';
 import { NotificationService } from '../services/notification';
-
-import { useWeb3Modal, useWeb3ModalAccount, useWeb3ModalProvider } from '../services/web3';
-import { BrowserProvider, parseEther } from 'ethers';
+import { KYCService } from '../services/kycService';
 import { ZKProofService, PaymentProof } from '../services/zkProofService';
 
 const PaymentLink: React.FC = () => {
@@ -20,9 +18,6 @@ const PaymentLink: React.FC = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { isAuthenticated, profile: senderProfile } = useAuth();
-    const { open } = useWeb3Modal();
-    const { address: evmAddress, isConnected } = useWeb3ModalAccount();
-    const { walletProvider } = useWeb3ModalProvider();
 
     const [recipient, setRecipient] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
@@ -31,7 +26,6 @@ const PaymentLink: React.FC = () => {
     const [note, setNote] = useState(searchParams.get('note') || '');
     const [sending, setSending] = useState(false);
     const [success, setSuccess] = useState(false);
-    const [bridging, setBridging] = useState(false);
     const [zkProof, setZkProof] = useState<PaymentProof | null>(null);
     const [generatingProof, setGeneratingProof] = useState(false);
 
@@ -59,66 +53,14 @@ const PaymentLink: React.FC = () => {
         loadRecipient();
     }, [stellarId]);
 
-    const handleEvmPay = async () => {
-        if (!amount || !recipient) return;
 
-        try {
-            if (!isConnected) {
-                await open();
-                return;
-            }
-
-            setSending(true);
-            setBridging(true);
-
-            // In a real app, we would:
-            // 1. Get a quote from a bridge API (Li.Fi / Squid / Allbridge)
-            // 2. Execute the cross-chain swap
-
-            const provider = new BrowserProvider(walletProvider as any);
-            const signer = await provider.getSigner();
-
-            // Simulate a bridge transaction (sending small amount of native gas to a bridge address)
-            // Bridge address: 0x71C7656EC7ab88b098defB751B7401B5f6d8dAD7 (example)
-            const ethAmount = (parseFloat(amount) * 0.00005).toFixed(6); // Dummy conversion
-
-            const tx = await signer.sendTransaction({
-                to: "0x71C7656EC7ab88b098defB751B7401B5f6d8dAD7",
-                value: parseEther(ethAmount)
-            });
-
-            console.log("Bridge transaction sent:", tx.hash);
-            await tx.wait();
-
-            // Record bridging event
-            await recordTransaction({
-                fromId: evmAddress || 'ETH_WALLET',
-                toId: recipient.stellarId,
-                fromName: 'External Wallet',
-                toName: recipient.displayName || recipient.stellarId,
-                amount: parseFloat(amount),
-                currency: 'XLM',
-                status: 'SUCCESS',
-                memo: `Bridged: ${note || 'Universal Pay'}`,
-                txHash: tx.hash,
-                isFamilySpend: false
-            });
-
-            setSuccess(true);
-        } catch (e: any) {
-            setError(e.message || 'MetaMask transaction failed');
-        } finally {
-            setSending(false);
-            setBridging(false);
-        }
-    };
 
     const handlePay = async () => {
         if (!senderProfile || !recipient || !amount) return;
 
         setSending(true);
         try {
-            const password = localStorage.getItem('temp_vault_key');
+            const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', senderProfile.pin || '0000');
             if (!password) {
                 setError('Vault locked. Please login again.');
                 setSending(false);
@@ -305,7 +247,7 @@ const PaymentLink: React.FC = () => {
             {/* Pay Button */}
             <div className="w-full max-w-md space-y-6">
                 <button
-                    onClick={isAuthenticated ? handlePay : handleEvmPay}
+                    onClick={isAuthenticated ? handlePay : () => navigate('/login', { state: { from: `/pay/${stellarId}${searchParams.toString() ? '?' + searchParams.toString() : ''}` } })}
                     disabled={!amount || sending}
                     className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all ${amount && !sending
                         ? 'gold-gradient text-black shadow-xl shadow-[#E5D5B3]/20 active:scale-[0.98]'
@@ -319,25 +261,14 @@ const PaymentLink: React.FC = () => {
                         </div>
                     ) : (
                         <>
-                            {isAuthenticated ? <ArrowRight size={22} /> : (
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Mirror_Logo.svg" className="w-6 h-6" alt="" />
-                            )}
-                            {isAuthenticated ? 'Pay Now' : (isConnected ? 'Pay with MetaMask' : 'Checkout with MetaMask')}
+                            <ArrowRight size={22} />
+                            {isAuthenticated ? 'Pay Now' : 'Login to Pay'}
                         </>
                     )}
                 </button>
 
                 {/* Secondary Login Option for Guests */}
-                {!isAuthenticated && (
-                    <div className="text-center">
-                        <button
-                            onClick={() => navigate('/login', { state: { from: `/pay/${stellarId}${searchParams.toString() ? '?' + searchParams.toString() : ''}` } })}
-                            className="text-zinc-500 hover:text-white text-[10px] font-black uppercase tracking-[0.3em] transition-colors"
-                        >
-                            Or login to use Stellar Wallet
-                        </button>
-                    </div>
-                )}
+
             </div>
 
             {/* Security note */}

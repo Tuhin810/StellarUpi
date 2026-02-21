@@ -138,8 +138,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=stellar:pay?to=${profile.stellarId}&color=1A1A1A&bgcolor=E5D5B3`;
 
     const handleLogout = () => {
-        localStorage.removeItem('web3_address');
-        localStorage.removeItem('temp_vault_key');
+        localStorage.removeItem('ching_phone');
         window.location.href = '/login';
     };
 

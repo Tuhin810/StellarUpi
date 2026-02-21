@@ -30,8 +30,7 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
     ];
 
     const handleLogout = () => {
-        localStorage.removeItem('web3_address');
-        localStorage.removeItem('temp_vault_key');
+        localStorage.removeItem('ching_phone');
         window.location.reload();
     };
 

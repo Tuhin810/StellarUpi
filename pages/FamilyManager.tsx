@@ -5,6 +5,7 @@ import { getFamilyMembers, addFamilyMember, removeFamilyMember, getProfileByStel
 import { ArrowLeft, Plus, User, X, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { decryptSecret, encryptSecret } from '../services/encryption';
+import { KYCService } from '../services/kycService';
 import { getAvatarUrl } from '../services/avatars';
 import { getUserById } from '../services/db';
 
@@ -56,7 +57,7 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
     setLoading(true);
     setError('');
     try {
-      const vaultKey = localStorage.getItem('temp_vault_key');
+      const vaultKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
       if (!vaultKey) throw new Error("Vault locked. Unlock your own vault first.");
 
       const rawSecret = decryptSecret(profile.encryptedSecret, vaultKey);

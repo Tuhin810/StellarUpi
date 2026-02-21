@@ -7,6 +7,7 @@ import { getUsersByPhones, getUserById, recordTransaction, getTransactions, upda
 import { sendPayment, getBalance } from '../services/stellar';
 import { getLivePrice, calculateCryptoToSend } from '../services/priceService';
 import { decryptSecret } from '../services/encryption';
+import { KYCService } from '../services/kycService';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import SuccessScreen from '../components/SuccessScreen';
@@ -329,7 +330,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         if ((selectedFamilyWallet.permission as any).sharedSecret) {
           ownerSecret = decryptSecret((selectedFamilyWallet.permission as any).sharedSecret, profile.uid.toLowerCase());
         } else {
-          const vaultKey = localStorage.getItem('temp_vault_key');
+          const vaultKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
           if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you in the Family Manager.");
           ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, vaultKey);
         }
@@ -378,7 +379,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         );
       } else if (isViralLinkMode) {
         // VIRAL LINK FLOW
-        const password = localStorage.getItem('temp_vault_key');
+        const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
         if (!password) throw new Error("Vault locked. Please login again.");
         const secret = decryptSecret(profile.encryptedSecret, password);
 
@@ -413,7 +414,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           }
         }
 
-        const password = localStorage.getItem('temp_vault_key');
+        const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
         if (!password) throw new Error("Vault locked. Please login again.");
 
         const secret = decryptSecret(profile.encryptedSecret, password);

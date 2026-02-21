@@ -4,6 +4,7 @@ import { UserProfile, FamilyMember } from '../types';
 import { getProfile, getUserById, updateFamilySpend, recordTransaction } from '../services/db';
 import { sendPayment } from '../services/stellar';
 import { decryptSecret } from '../services/encryption';
+import { KYCService } from '../services/kycService';
 import { NotificationService } from '../services/notification';
 
 import { useNavigate } from 'react-router-dom';
@@ -65,7 +66,7 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
       if ((familyPermission as any).sharedSecret) {
         ownerSecret = decryptSecret((familyPermission as any).sharedSecret, profile.uid.toLowerCase());
       } else {
-        const vaultKey = localStorage.getItem('temp_vault_key');
+        const vaultKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
         if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you.");
         ownerSecret = decryptSecret(ownerData.encryptedSecret, vaultKey);
       }

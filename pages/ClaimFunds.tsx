@@ -7,6 +7,7 @@ import { claimViralPayment } from '../services/claimableBalanceService';
 import { recordTransaction } from '../services/db';
 import { Keypair } from '@stellar/stellar-sdk';
 import { decryptSecret } from '../services/encryption';
+import { KYCService } from '../services/kycService';
 
 const ClaimFunds: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -28,7 +29,7 @@ const ClaimFunds: React.FC = () => {
         setError(null);
 
         try {
-            const password = localStorage.getItem('temp_vault_key');
+            const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
             if (!password) throw new Error("Vault locked. Please login again.");
 
             const userSecret = decryptSecret(profile.encryptedSecret, password);

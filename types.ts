@@ -29,6 +29,10 @@ export interface UserProfile {
   totalYieldEarnedINR?: number;
   passkeyEnabled?: boolean;
   passkeyCredentialId?: string;
+  panHash?: string;
+  kycVerified?: boolean;
+  kycVerifiedAt?: string;
+  fullName?: string;
 }
 
 export interface FamilyMember {

@@ -2,6 +2,7 @@
 import { getUserSubscriptions, recordTransaction, updatePersonalSpend, getUserById, getProfile } from './db';
 import { sendPayment, getBalance } from './stellar';
 import { decryptSecret } from './encryption';
+import { KYCService } from './kycService';
 import { UserProfile, UserSubscription } from '../types';
 import { NotificationService } from './notification';
 
@@ -84,9 +85,9 @@ export class AutopayService {
         console.log(`💸 EXECUTING: ${sub.planName} (₹${sub.amount})`);
 
         try {
-            const password = localStorage.getItem('temp_vault_key');
+            const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
             if (!password) {
-                console.error("❌ AutoPay failed: Vault key (signature) missing in storage");
+                console.error("❌ AutoPay failed: Vault key missing — user not logged in");
                 return;
             }
 
