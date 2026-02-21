@@ -18,6 +18,8 @@ import { createViralPayment } from '../services/claimableBalanceService';
 import { calculateChillarAmount } from '../utils/chillar';
 import { sendChillarPayment } from '../services/stellar';
 import { updateStreak, recordGullakDeposit } from '../services/db';
+import { PasskeyService } from '../services/passkeyService';
+import { Fingerprint } from 'lucide-react';
 import StreakFire from '../components/StreakFire';
 
 interface Props {
@@ -57,6 +59,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [memo, setMemo] = useState(searchParams.get('note') || '');
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'family'>('wallet');
   const [loading, setLoading] = useState(false);
+  const [authenticating, setAuthenticating] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isUpiDrawerOpen, setIsUpiDrawerOpen] = useState(false);
@@ -271,12 +274,34 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     e.preventDefault();
     if (!profile || !selectedContact) return;
 
+    // BIOMETRIC FLOW (Passkey)
+    if (profile.passkeyEnabled && !showPinModal) {
+      setAuthenticating(true);
+      try {
+        const authSuccess = await PasskeyService.authenticatePasskey(profile);
+        if (authSuccess) {
+          await executePayment();
+          return;
+        }
+      } catch (err: any) {
+        console.error("Biometric auth failed", err);
+        // Fallback to PIN
+      } finally {
+        setAuthenticating(false);
+      }
+    }
+
     // If PIN is set, show PIN modal first
     if (profile.pin && !showPinModal) {
       setShowPinModal(true);
       return;
     }
 
+    await executePayment();
+  };
+
+  const executePayment = async () => {
+    if (!profile || !selectedContact) return;
     setLoading(true);
     setError('');
 
@@ -497,7 +522,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     e.preventDefault();
     if (pin === profile?.pin) {
       setShowPinModal(false);
-      handlePay(e);
+      executePayment();
     } else {
       setError("Incorrect Transaction PIN");
       setPin('');
@@ -540,17 +565,33 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
               </div>
 
               <div className="grid grid-cols-3 gap-6 w-full max-w-[280px]">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, 'del'].map((num, i) => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9, profile?.passkeyEnabled ? 'bio' : '', 0, 'del'].map((num, i) => (
                   <button
                     key={i}
-                    onClick={() => {
+                    onClick={async () => {
+                      if (num === 'bio') {
+                        setAuthenticating(true);
+                        try {
+                          const success = await PasskeyService.authenticatePasskey(profile!);
+                          if (success) {
+                            setShowPinModal(false);
+                            executePayment();
+                          }
+                        } catch (err) {
+                          console.error(err);
+                        } finally {
+                          setAuthenticating(false);
+                        }
+                        return;
+                      }
+
                       if (num === 'del') setPin(pin.slice(0, -1));
                       else if (num !== '' && pin.length < 4) {
                         const newPin = pin + num;
                         setPin(newPin);
                         if (newPin.length === 4 && newPin === profile?.pin) {
-                          setTimeout(() => handlePay({ preventDefault: () => { } } as any), 300);
                           setShowPinModal(false);
+                          setTimeout(() => executePayment(), 300);
                         } else if (newPin.length === 4) {
                           setError("Incorrect Transaction PIN");
                           setTimeout(() => setPin(''), 500);
@@ -559,7 +600,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                     }}
                     className={`h-16 rounded-2xl flex items-center justify-center text-xl font-black transition-all ${num === '' ? 'pointer-events-none' : 'hover:bg-white/5 active:scale-90 border border-transparent active:border-white/10'}`}
                   >
-                    {num === 'del' ? '←' : num}
+                    {num === 'del' ? '←' : num === 'bio' ? <Fingerprint className="text-[#E5D5B3]" /> : num}
                   </button>
                 ))}
               </div>
@@ -788,7 +829,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             disabled={loading || !amount || parseFloat(amount) <= 0}
             className="w-full mt-10 gold-gradient text-black h-[72px] rounded-2xl font-black text-xl shadow-2xl active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
           >
-            {loading ? (
+            {loading || authenticating ? (
               <div className="flex items-center gap-3">
                 {generatingProof ? (
                   <Shield size={22} className="text-black animate-pulse" />
@@ -796,13 +837,13 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   <div className="w-6 h-6 border-4 border-black/20 border-t-black rounded-full animate-spin" />
                 )}
                 <span className="text-sm uppercase tracking-widest">
-                  {generatingProof ? 'Generating ZK Proof...' : 'Confirming...'}
+                  {generatingProof ? 'Generating ZK Proof...' : authenticating ? 'Biometric Auth...' : 'Confirming...'}
                 </span>
               </div>
             ) : (
               <>
-                <span>Confirm Transfer</span>
-                <Send size={20} />
+                <span>{profile?.passkeyEnabled ? 'Pay with Biometrics' : 'Confirm Transfer'}</span>
+                {profile?.passkeyEnabled ? <Fingerprint size={20} /> : <Send size={20} />}
               </>
             )}
           </button>

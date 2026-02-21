@@ -21,10 +21,12 @@ import {
     Bell,
     Camera,
     Image as ImageIcon,
-    Smartphone
+    Smartphone,
+    Fingerprint
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { NotificationService } from '../services/notification';
+import { PasskeyService } from '../services/passkeyService';
 
 declare global {
     interface Window {
@@ -53,6 +55,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
 
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [phoneEntry, setPhoneEntry] = useState(profile?.phoneNumber || '');
+    const [registeringPasskey, setRegisteringPasskey] = useState(false);
 
     useEffect(() => {
         if (profile) {
@@ -167,6 +170,25 @@ const Profile: React.FC<Props> = ({ profile }) => {
         );
         setSaving(false);
         alert("Test notification sent! It should arrive in a few seconds.");
+    };
+
+    const handleRegisterPasskey = async () => {
+        if (!profile) return;
+        setRegisteringPasskey(true);
+        try {
+            await PasskeyService.registerPasskey(profile);
+            NotificationService.sendInAppNotification(
+                profile.stellarId,
+                "Passkey Registered! 🔑",
+                "You can now use your Biometrics (FaceID/Fingerprint) to confirm payments.",
+                "success"
+            );
+        } catch (err: any) {
+            console.error(err);
+            alert(err.message || "Failed to register passkey");
+        } finally {
+            setRegisteringPasskey(false);
+        }
     };
 
     return (
@@ -422,6 +444,28 @@ const Profile: React.FC<Props> = ({ profile }) => {
                                 <ChevronRight size={16} className="text-white/30" />
                             </div>
                         </button>
+
+                        <button
+                            onClick={handleRegisterPasskey}
+                            disabled={registeringPasskey || !PasskeyService.isSupported()}
+                            className="w-full flex items-center justify-between p-4 border-b border-white/5 hover:bg-white/5 transition-all text-left"
+                        >
+                            <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${profile.passkeyEnabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[#E5D5B3]/10 text-[#E5D5B3]'}`}>
+                                    <Fingerprint size={16} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-medium">Biometric Access</span>
+                                    <p className="text-[9px] text-white/30 uppercase font-black">FaceID / Fingerprint</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold uppercase ${profile.passkeyEnabled ? 'text-emerald-500' : 'text-[#E5D5B3]'}`}>
+                                    {registeringPasskey ? 'WAIT...' : profile.passkeyEnabled ? 'ACTIVE' : 'ENABLE'}
+                                </span>
+                                <ChevronRight size={16} className="text-white/30" />
+                            </div>
+                        </button>
                         <button className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-all">
                             <span className="text-sm font-medium">Help & Support</span>
                             <ChevronRight size={16} className="text-white/30" />
@@ -446,8 +490,8 @@ const Profile: React.FC<Props> = ({ profile }) => {
             {/* Phone Modal */}
             <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showPhoneModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowPhoneModal(false)}></div>
-                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] p-8 flex flex-col items-center transition-transform duration-300 ease-out ${showPhoneModal ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '60vh', minHeight: '400px' }}>
-                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8"></div>
+                <div className={`absolute bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 left-0 right-0 sm:w-full sm:max-w-md bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 flex flex-col items-center transition-all duration-300 ease-out ${showPhoneModal ? 'translate-y-0 opacity-100' : 'translate-y-full sm:translate-y-[calc(-50%+20px)] sm:opacity-0'}`} style={{ height: 'auto', minHeight: '400px' }}>
+                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8 sm:hidden"></div>
                     <div className="flex items-center justify-between w-full mb-8">
                         <h3 className="text-2xl font-black tracking-tight">Phone Number</h3>
                         <button onClick={() => setShowPhoneModal(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400">
@@ -495,8 +539,8 @@ const Profile: React.FC<Props> = ({ profile }) => {
             {/* Security Modal */}
             <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showSecurityModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSecurityModal(false)}></div>
-                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] p-8 flex flex-col items-center transition-transform duration-300 ease-out ${showSecurityModal ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '60vh', minHeight: '400px' }}>
-                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8"></div>
+                <div className={`absolute bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 left-0 right-0 sm:w-full sm:max-w-md bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 flex flex-col items-center transition-all duration-300 ease-out ${showSecurityModal ? 'translate-y-0 opacity-100' : 'translate-y-full sm:translate-y-[calc(-50%+20px)] sm:opacity-0'}`} style={{ height: 'auto', minHeight: '400px' }}>
+                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8 sm:hidden"></div>
                     <div className="flex items-center justify-between w-full mb-8">
                         <h3 className="text-2xl font-black tracking-tight">Security PIN</h3>
                         <button onClick={() => setShowSecurityModal(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400">
@@ -547,8 +591,8 @@ const Profile: React.FC<Props> = ({ profile }) => {
             {/* Limit Modal */}
             <div className={`fixed inset-0 z-[100] transition-opacity duration-300 ${showLimitModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLimitModal(false)}></div>
-                <div className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] py-5 px-8 flex flex-col items-center transition-transform duration-300 ease-out ${showLimitModal ? 'translate-y-0' : 'translate-y-full'}`} style={{ height: '60vh', minHeight: '400px' }}>
-                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8"></div>
+                <div className={`absolute bottom-0 sm:bottom-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 left-0 right-0 sm:w-full sm:max-w-md bg-gradient-to-b from-zinc-900 to-black rounded-t-[2.5rem] sm:rounded-[2.5rem] py-5 px-8 flex flex-col items-center transition-all duration-300 ease-out ${showLimitModal ? 'translate-y-0 opacity-100' : 'translate-y-full sm:translate-y-[calc(-50%+20px)] sm:opacity-0'}`} style={{ height: 'auto', minHeight: '400px' }}>
+                    <div className="w-12 h-1.5 bg-zinc-700 rounded-full mb-8 sm:hidden"></div>
                     <div className="flex items-center justify-between w-full mb-8">
                         <h3 className="text-2xl font-black tracking-tight">Spending Limit</h3>
                         <button onClick={() => setShowLimitModal(false)} className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400">
