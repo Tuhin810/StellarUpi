@@ -61,6 +61,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [paymentMethod, setPaymentMethod] = useState<'wallet' | 'family'>('wallet');
   const [loading, setLoading] = useState(false);
   const [authenticating, setAuthenticating] = useState(false);
+  const isEthereumMode = searchParams.get('mode') === 'ethereum';
+  const ethAddress = searchParams.get('to') || '';
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
   const [isUpiDrawerOpen, setIsUpiDrawerOpen] = useState(false);
@@ -423,6 +425,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           status: 'SUCCESS',
           txHash: txHash,
           isFamilySpend: false,
+          blockchainNetwork: 'STELLAR',
           memo: 'Created Viral Fund Link'
         });
 
@@ -506,6 +509,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           txHash: hash,
           isFamilySpend: false,
           asset: selectedAsset,
+          blockchainNetwork: isEthereumMode ? 'ETHEREUM' : 'STELLAR',
           category: category
         });
 
@@ -643,13 +647,34 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
               setSelectedContact(null);
               setIsViralLinkMode(false);
               setClaimLink(null);
+              // If we were in ethereum mode, clear search params too maybe? 
+              // But navigate will clear them if we go back
             }}
             className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5"
           >
             <ArrowLeft size={20} />
           </button>
+          <div className="flex flex-col items-center">
+            <h2 className="text-xl font-black tracking-tight">{isEthereumMode ? 'Smart Bridge' : 'Send Money'}</h2>
+            <div className="flex items-center gap-1">
+              <div className={`w-1 h-1 rounded-full ${isEthereumMode ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]' : 'bg-[#E5D5B3]'}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{isEthereumMode ? 'Ethereum Mainnet' : 'Stellar Network'}</span>
+            </div>
+          </div>
           <div className="w-10"></div>
         </div>
+
+        {isEthereumMode && (
+          <div className="mx-6 mt-4 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Mirror_Logo.svg" className="w-7 h-7" alt="MetaMask" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-black text-white">Ethereum Address</p>
+              <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest truncate">{ethAddress}</p>
+            </div>
+          </div>
+        )}
 
         <div className="relative z-10 flex-1 flex flex-col items-center pt-2 px-6 text-white">
           <div className="flex flex-col items-center mb-10 text-center">

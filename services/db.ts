@@ -73,6 +73,7 @@ export const recordTransaction = async (tx: Partial<TransactionRecord>) => {
   await addDoc(collection(db, 'transactions'), {
     ...tx,
     network,
+    blockchainNetwork: tx.blockchainNetwork || 'STELLAR',
     timestamp: serverTimestamp()
   });
 };

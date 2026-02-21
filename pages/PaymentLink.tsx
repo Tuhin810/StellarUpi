@@ -12,17 +12,19 @@ import { decryptSecret } from '../services/encryption';
 import { NotificationService } from '../services/notification';
 import { KYCService } from '../services/kycService';
 import { ZKProofService, PaymentProof } from '../services/zkProofService';
+import { Smartphone, ExternalLink, Mail, ArrowUpRight } from 'lucide-react';
 
 const PaymentLink: React.FC = () => {
     const { stellarId } = useParams<{ stellarId: string }>();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
     const { isAuthenticated, profile: senderProfile } = useAuth();
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
     const [recipient, setRecipient] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [amount, setAmount] = useState(searchParams.get('amount') || '');
+    const [amount, setAmount] = useState(searchParams.get('amt') || searchParams.get('amount') || '');
     const [note, setNote] = useState(searchParams.get('note') || '');
     const [sending, setSending] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -54,6 +56,20 @@ const PaymentLink: React.FC = () => {
     }, [stellarId]);
 
 
+
+    const handlePayWithMetaMask = () => {
+        if (!recipient?.ethAddress) return;
+        const ethVal = amount ? amount : '0';
+        // EIP-681 standard
+        const uri = `ethereum:${recipient.ethAddress}?value=${ethVal}`;
+        window.location.href = uri;
+    };
+
+    const handlePayWithStellarWallet = () => {
+        if (!recipient?.publicKey) return;
+        const uri = `web+stellar:pay?destination=${recipient.publicKey}&amount=${amount || ''}&memo=${encodeURIComponent(note || 'Ching Pay')}`;
+        window.location.href = uri;
+    };
 
     const handlePay = async () => {
         if (!senderProfile || !recipient || !amount) return;
@@ -244,8 +260,53 @@ const PaymentLink: React.FC = () => {
                 </div>
             )}
 
-            {/* Pay Button */}
+            {/* Universal Wallet Triggers (The Gateway) */}
+            <div className="w-full max-w-md space-y-4 mb-8">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500 text-center mb-2">Bridge to External Wallets</p>
+
+                <button
+                    onClick={handlePayWithMetaMask}
+                    disabled={!recipient?.ethAddress}
+                    className="w-full py-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-between px-6 group hover:bg-orange-500/20 transition-all active:scale-[0.98] disabled:opacity-30 disabled:grayscale"
+                >
+                    <div className="flex items-center gap-4 text-left">
+                        <div className="w-10 h-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
+                            <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Mirror_Logo.svg" className="w-6 h-6" alt="MetaMask" />
+                        </div>
+                        <div>
+                            <p className="font-black text-sm text-white">Ethereum (MetaMask)</p>
+                            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{recipient?.ethAddress ? `${recipient.ethAddress.slice(0, 6)}...${recipient.ethAddress.slice(-4)}` : 'Address Not Set'}</p>
+                        </div>
+                    </div>
+                    <ArrowUpRight size={18} className="text-orange-500 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </button>
+
+                <button
+                    onClick={handlePayWithStellarWallet}
+                    disabled={!recipient?.publicKey}
+                    className="w-full py-4 bg-[#7C3AED]/10 border border-[#7C3AED]/20 rounded-2xl flex items-center justify-between px-6 group hover:bg-[#7C3AED]/20 transition-all active:scale-[0.98] disabled:opacity-30"
+                >
+                    <div className="flex items-center gap-4 text-left">
+                        <div className="w-10 h-10 rounded-xl bg-[#7C3AED]/20 flex items-center justify-center">
+                            <Wallet className="w-5 h-5 text-[#7C3AED]" />
+                        </div>
+                        <div>
+                            <p className="font-black text-sm text-white">Stellar (LOBSTR / Solar)</p>
+                            <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{recipient?.publicKey ? `${recipient.publicKey.slice(0, 6)}...${recipient.publicKey.slice(-4)}` : 'Loading...'}</p>
+                        </div>
+                    </div>
+                    <ArrowUpRight size={18} className="text-[#7C3AED] group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </button>
+            </div>
+
+            {/* Internal Pay Button */}
             <div className="w-full max-w-md space-y-6">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className="h-px flex-1 bg-white/5" />
+                    <span className="text-[10px] font-black text-zinc-700 uppercase tracking-widest">Or Use Ching Pay</span>
+                    <div className="h-px flex-1 bg-white/5" />
+                </div>
+
                 <button
                     onClick={isAuthenticated ? handlePay : () => navigate('/login', { state: { from: `/pay/${stellarId}${searchParams.toString() ? '?' + searchParams.toString() : ''}` } })}
                     disabled={!amount || sending}
@@ -262,13 +323,10 @@ const PaymentLink: React.FC = () => {
                     ) : (
                         <>
                             <ArrowRight size={22} />
-                            {isAuthenticated ? 'Pay Now' : 'Login to Pay'}
+                            {isAuthenticated ? 'Pay Now' : 'Login & Pay'}
                         </>
                     )}
                 </button>
-
-                {/* Secondary Login Option for Guests */}
-
             </div>
 
             {/* Security note */}

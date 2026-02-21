@@ -13,6 +13,7 @@ import {
     Radio
 } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
+import UniversalQR from '../components/UniversalQR';
 
 interface Props {
     profile: UserProfile | null;
@@ -35,17 +36,12 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     };
 
     const getPaymentLink = () => {
-        // Get absolute base URL (e.g., https://site.com/ or https://site.com/app/)
-        const currentUrl = window.location.href;
-        const base = currentUrl.split('#')[0].split('?')[0];
-        const normalizedBase = base.endsWith('/') ? base : base + '/';
+        // Updated to use the smart-link gateway format
+        const base = "https://chingpay.app/pay";
+        let link = `${base}/${profile.stellarId}`;
 
-        // Construct the hash route
-        let link = `${normalizedBase}#/pay/${profile.stellarId}`;
-
-        // Add query parameters after the hash route
         const params = new URLSearchParams();
-        if (linkAmount) params.append('amount', linkAmount);
+        if (linkAmount) params.append('amt', linkAmount);
         if (linkNote) params.append('note', linkNote);
 
         const queryString = params.toString();
@@ -85,7 +81,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
         }
     };
 
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(getPaymentLink())}&color=1A1A1A&bgcolor=E5D5B3`;
     const avatarUrl = getAvatarUrl(profile.avatarSeed || profile.stellarId);
 
     return (
@@ -125,8 +120,13 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                         </div>
                     </div>
 
-                    <div className="bg-white p-6 rounded-[2.5rem] shadow-inner mb-8 border-4 border-black/5">
-                        <img src={qrUrl} alt="QR Code" className="w-60 h-60" />
+                    <div className="mb-8">
+                        <UniversalQR
+                            stellarId={profile.stellarId}
+                            amount={linkAmount}
+                            note={linkNote}
+                            size={300}
+                        />
                     </div>
 
                     <p className="text-center font-bold text-black/60 text-[11px] px-4 leading-relaxed uppercase tracking-widest mb-2">

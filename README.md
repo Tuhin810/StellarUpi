@@ -42,12 +42,12 @@ The application supports Web3 wallet authentication, family spending controls, g
 - **Auto-Generated UPI IDs** - Human-readable payment IDs derived from your Ethereum address (e.g., `0xab12cd@stellar`)
 - **Session Persistence** - Secure session management with automatic wallet change detection
 
-### 🔔 **Native Push Notifications**
-- **Real-Time Payment Alerts** - Get notified instantly when you receive money, even if the app is in the foreground or background.
-- **Group Split Notifications** - Stay updated when a new split expense is created in one of your groups.
-- **Service Worker Integration** - Background notification handling using Firebase Cloud Messaging (FCM).
-- **Foreground Alert System** - In-app notification banners for active users.
-- **Custom Haptics & Branding** - Notifications include the Ching Pay logo and vibration support for a native feel.
+### 🔔 **Premium In-App Notifications**
+- **Dynamic Real-Time Alerts** - Custom notification system featuring instant top-of-screen status banners.
+- **Chat & Request Notifications** - Get notified immediately when someone messages you or sends a payment request.
+- **Real-Time Payment Listeners** - Foreground listeners for incoming transactions with interactive "Quick Actions".
+- **Visual Context** - Notifications include contact names, message previews, and specific icons for payments, splits, and info.
+- **Haptic Feedback** - Integrated vibrational alerts for iOS/Android when receiving money or requests.
 
 ### 💸 **Send & Receive Payments**
 - **UPI-Style Transfers** - Send money using simple `name@stellar` addresses
@@ -100,12 +100,13 @@ The application supports Web3 wallet authentication, family spending controls, g
 - **Transaction Analysis** - Ask about your spending habits, debts, or pending splits in natural language.
 - **Deep Tool Integration** - AI can search users, fetch financial summaries, and track group debts.
 
-### 🛡️ **Security Features**
-- **4-Digit Transaction PIN** - Optional PIN protection for all transactions
-- **AES-256 Encryption** - Military-grade encryption for Stellar private keys
-- **Client-Side Key Management** - Private keys never leave your device
-- **Personal Spending Limits** - Set daily transaction limits for self-control
-- **Account Verification Status** - Display verified account badges
+### 🛡️ **Security & Biometric Features**
+- **Biometric Passkey Integration (WebAuthn)** - Securely authorize transactions using **FaceID**, **TouchID**, or Windows Hello.
+- **Hardware-Backed Cryptography** - FIDO2/WebAuthn standard for phishing-resistant authentication.
+- **4-Digit Transaction PIN** - Secure fallback PIN protection for all transactions.
+- **Premium Security Alerts** - Dynamic "Unsecured Vault" detection with proactive remediation banners on the Dashboard.
+- **AES-256 Encryption** - Military-grade encryption for local Stellar secrets.
+- **KYC Identity Verification** - Secure PAN-based KYC verification with on-device scanning and hashing.
 
 ### 🌐 **Network Flexibility**
 - **Mainnet Live** - Successfully processed real-world transactions on the Stellar Mainnet.
@@ -127,11 +128,11 @@ The application supports Web3 wallet authentication, family spending controls, g
 | Technology | Purpose |
 |------------|---------|
 | **React 19** | UI library with concurrent features |
-| **TypeScript 5.8** | Type-safe JavaScript |
-| **Vite 6** | Next-generation build tool |
-| **React Router 7** | Client-side routing |
-| **Tailwind CSS** | Utility-first styling |
+| **TypeScript 5.8** | Type-safe development |
+| **Vite 6** | Fast build & HMR tool |
+| **Framer Motion 12** | Premium UI animations & transitions |
 | **Lucide React** | Modern icon library |
+| **Tesseract.js** | On-device OCR for identity scanning |
 
 ### **Blockchain**
 | Technology | Purpose |
@@ -244,6 +245,10 @@ interface UserProfile {
   dailyLimit?: number;      // Personal spending limit
   spentToday?: number;      // Today's spending amount
   lastSpentDate?: string;   // Last spend date for reset
+  passkeyEnabled?: boolean; // Biometric auth toggle
+  passkeyCredentialId?: string; // WebAuthn credential ID
+  kycVerified?: boolean;    // Account verification status
+  panHash?: string;         // Salted hash of PAN for identity
 }
 ```
 
@@ -406,6 +411,22 @@ npm run preview
 | `getGroups(stellarId)` | Lists user's groups |
 | `recordSplitExpense(expense)` | Records group expense |
 | `searchUsers(searchTerm)` | Searches by stellarId, publicKey, or name |
+
+### Security & Identity (`services/passkeyService.ts`, `services/kycService.ts`)
+
+| Function | Description |
+|----------|-------------|
+| `registerPasskey(user)` | Registers a new WebAuthn credential for biometrics |
+| `authenticatePasskey(user)` | Authenticates user via FaceID/TouchID |
+| `verifyPAN(pan)` | Validates and hashes identity documents |
+| `onDeviceOCR(image)` | Extracts text from ID documents using Tesseract.js |
+
+### Notification Service (`services/notification.ts`)
+
+| Function | Description |
+|----------|-------------|
+| `sendInAppNotification(...)` | Broadcasts a custom alert to a user |
+| `setupRealtimeNotifications(...)` | Listens for TXs, chats, and requests in real-time |
 
 ### Encryption Service (`services/encryption.ts`)
 

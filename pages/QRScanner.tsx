@@ -11,6 +11,15 @@ const QRScanner: React.FC = () => {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isScannerInitialized, setIsScannerInitialized] = useState(false);
 
+  const initiateCrossChainPayment = (ethAddress: string, amount: string) => {
+    // Placeholder for future swap provider integration (e.g., Allbridge or Stellar Bridge)
+    console.log(`Initiating Cross-Chain Payment to ${ethAddress} for ${amount} ETH equivalent`);
+
+    // Redirect to a specialized send screen or a bridge UI
+    // Here we use the existing send screen with a special flag
+    navigate(`/send?to=${ethAddress}&amt=${amount}&mode=ethereum&network=mainnet`);
+  };
+
   useEffect(() => {
     let isMounted = true;
 
@@ -63,6 +72,38 @@ const QRScanner: React.FC = () => {
 
       // Stop camera immediately on success to release it
       await stopScanner();
+
+      // 0. Handle Internal Smart-Link (chingpay.app/pay/...)
+      if (decodedText.includes('chingpay.app/pay/')) {
+        try {
+          const url = new URL(decodedText);
+          const parts = url.pathname.split('/');
+          const stellarId = parts[parts.length - 1]; // last part of path
+          const amt = url.searchParams.get('amt') || '';
+          const note = url.searchParams.get('note') || '';
+
+          navigate(`/send?to=${stellarId}&amt=${amt}&note=${note}`);
+          return;
+        } catch (e) {
+          console.error("Internal Smart-Link Parse Error", e);
+        }
+      }
+
+      // 1. Handle MetaMask QR / Ethereum URI
+      if (decodedText.startsWith('ethereum:')) {
+        try {
+          // ethereum:0x...[?value=...]
+          const uri = decodedText.replace('ethereum:', 'https://eth.host/');
+          const url = new URL(uri);
+          const ethAddress = url.pathname.slice(1);
+          const amount = url.searchParams.get('value') || '';
+
+          initiateCrossChainPayment(ethAddress, amount);
+          return;
+        } catch (e) {
+          console.error("Ethereum URI Parse Error", e);
+        }
+      }
 
       // 1. Handle plain Stellar address
       if (decodedText.length === 56 && (decodedText.startsWith('G') || decodedText.startsWith('S'))) {

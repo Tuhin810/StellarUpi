@@ -33,6 +33,7 @@ export interface UserProfile {
   kycVerified?: boolean;
   kycVerifiedAt?: string;
   fullName?: string;
+  ethAddress?: string;
 }
 
 export interface FamilyMember {
@@ -61,6 +62,7 @@ export interface TransactionRecord {
   spenderId?: string;
   asset?: 'XLM';
   category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
+  blockchainNetwork?: 'STELLAR' | 'ETHEREUM';
   network?: 'testnet' | 'mainnet';
 }
 
