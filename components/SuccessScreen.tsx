@@ -73,6 +73,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, amount, zk
 
                         {chillarAmount && chillarAmount > 0 && (
                             <div className="mt-4 py-2 bg-[#E5D5B3]/5 border border-[#E5D5B3]/10 rounded-xl flex items-center justify-center gap-2">
+                                <img src="/gullak.png" className="w-4 h-4 object-contain" alt="Gullak" />
                                 <span className="text-[9px] font-black text-[#E5D5B3] uppercase tracking-widest">
                                     ₹{chillarAmount} Gullak Savings
                                 </span>

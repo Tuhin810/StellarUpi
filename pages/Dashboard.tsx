@@ -147,6 +147,7 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
       {showQR && (
         <ReceiveQRModal
           stellarId={profile.stellarId}
+          publicKey={profile.publicKey}
           onClose={() => setShowQR(false)}
         />
       )}

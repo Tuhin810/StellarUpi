@@ -37,7 +37,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
 
     const getPaymentLink = () => {
         // Updated to use the smart-link gateway format
-        const base = "https://test-ching.netlify.app/pay";
+        const base = `${window.location.origin}/pay`;
         let link = `${base}/${profile.stellarId}`;
 
         const params = new URLSearchParams();
@@ -123,6 +123,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                     <div className="mb-8">
                         <UniversalQR
                             stellarId={profile.stellarId}
+                            publicKey={profile.publicKey}
                             amount={linkAmount}
                             note={linkNote}
                             size={300}

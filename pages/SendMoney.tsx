@@ -877,8 +877,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             <div className="mt-6 p-4 bg-zinc-50 rounded-2xl border border-zinc-100 animate-in fade-in slide-in-from-top-2 duration-500">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#E5D5B3]/20 flex items-center justify-center text-zinc-900">
-                    <PiggyBank size={20} />
+                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-zinc-900 border border-zinc-200 shadow-sm">
+                    <img src="/gullak.png" className="w-7 h-7 object-contain" alt="Gullak" />
                   </div>
                   <div className="flex flex-col">
                     <span className="font-black text-xs text-black uppercase tracking-tight">Chillar Round-up</span>
