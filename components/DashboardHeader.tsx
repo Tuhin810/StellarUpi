@@ -33,13 +33,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ onMenuClick }) => {
                 </div>
             </div>
 
-            <motion.button
-                whileTap={{ scale: 0.9 }}
-                className="w-12 h-12 flex items-center justify-center bg-white/5 border border-white/10 rounded-2xl text-zinc-400 hover:text-white transition-all shadow-xl backdrop-blur-md relative"
-            >
-                <Bell size={20} />
-                <div className="absolute top-3.5 right-3.5 w-1.5 h-1.5 bg-[#E5D5B3] rounded-full shadow-[0_0_8px_rgba(229,213,179,0.5)]" />
-            </motion.button>
+
         </div>
     );
 };

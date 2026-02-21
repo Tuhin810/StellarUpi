@@ -23,13 +23,9 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
 
     const menuItems = [
         { icon: <User size={22} />, label: 'My Profile', path: '/profile' },
-        { icon: <PiggyBank size={22} className="text-[#E5D5B3]" />, label: 'My Gullak (Savings)', path: '/gullak' },
         { icon: <ArrowDownToLine size={22} />, label: 'Withdraw to Bank', path: '/withdraw' },
         { icon: <Repeat size={22} />, label: 'AutoPay', path: '/autopay' },
-        { icon: <Gift size={22} />, label: 'Rewards', path: '/rewards' },
         { icon: <Settings size={22} />, label: 'Settings', path: '/settings' },
-        { icon: <Shield size={22} />, label: 'Security & Privacy', path: '/security' },
-        { icon: <HelpCircle size={22} />, label: 'Help & Support', path: '/help' },
     ];
 
     const handleLogout = () => {
@@ -54,107 +50,113 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
 
             {/* Drawer */}
             <div
-                className={`fixed top-0 left-0 h-full w-[80%] max-w-[320px] bg-[#1A1A1A] z-[70] transition-transform duration-300 ease-out border-r border-white/5 flex flex-col ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={`fixed top-0 left-0 h-full w-[85%] max-w-[340px] bg-[#0A0A0A] z-[70] transition-transform duration-500 ease-[cubic-bezier(0.32,0,0.67,0)] flex flex-col border-r border-white/5 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
             >
                 {/* Header */}
-                <div className="p-8 pt-16 flex flex-col mb-8 text-white relative">
-                    <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-zinc-900 rounded-xl text-zinc-500 hover:text-white transition-colors">
-                        <X size={20} />
+                <div className="p-8 pt-16 flex flex-col relative">
+                    <button
+                        onClick={onClose}
+                        className="absolute top-8 right-8 text-zinc-600 hover:text-white transition-colors p-1"
+                    >
+                        <X size={24} strokeWidth={1.5} />
                     </button>
 
-                    <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-2xl bg-zinc-900 border border-white/5 overflow-hidden">
-                            <img src={avatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+                    <div className="flex flex-col gap-6">
+                        <div className="w-16 h-16 rounded-3xl bg-zinc-900 border border-white/10 p-1 shadow-2xl overflow-hidden group">
+                            <img
+                                src={avatarUrl}
+                                alt="User Avatar"
+                                className="w-full h-full object-cover rounded-[1.4rem] transition-transform duration-700 group-hover:scale-110"
+                            />
                         </div>
-                        <div className="flex flex-col items-start min-w-0">
-                            <h2 className="text-xl font-black tracking-tight capitalize truncate w-full">{profileName}</h2>
-                            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest mt-1 truncate w-full">{stellarId}</p>
+                        <div className="flex flex-col gap-1">
+                            <h2 className="text-2xl font-semibold tracking-tight text-white leading-tight">{profileName}</h2>
+                            <p className="text-zinc-500 text-[11px] font-mono tracking-wider truncate bg-zinc-900/50 w-fit px-2 py-0.5 rounded-md border border-white/5 uppercase">
+                                {stellarId.slice(0, 8)}...{stellarId.slice(-8)}
+                            </p>
                         </div>
                     </div>
                 </div>
-
-                {/* Streak Section */}
+                {/* Streak (if active) */}
                 {streak !== undefined && streak > 0 && (
-                    <div className="px-5 mb-4">
+                    <div className="mt-6 px-2">
                         <button
                             onClick={() => {
                                 navigate('/streak');
                                 onClose();
                             }}
-                            className="w-full flex items-center justify-between p-4 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-[#FF6B00]/30 transition-all group overflow-hidden relative"
+                            className="w-full flex items-center justify-between p-4 rounded-2xl bg-gradient-to-br from-zinc-900 to-zinc-950 border border-white/5 hover:border-zinc-700/50 transition-all group"
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#FF6B00]/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <StreakFire streak={streak} level={streakLevel || 'orange'} />
-                            <ChevronRight size={18} className="text-zinc-700 group-hover:text-[#FF6B00] transition-colors relative z-10" />
+                            <div className="p-1.5 bg-zinc-800 rounded-lg text-zinc-500 group-hover:text-white transition-colors">
+                                <ChevronRight size={14} />
+                            </div>
                         </button>
                     </div>
                 )}
+                {/* Main Content */}
+                <div className="flex-1 px-4 mt-8">
+                    <div className="grid gap-2">
+                        {menuItems.map((item, idx) => (
+                            <button
+                                key={idx}
+                                onClick={() => {
+                                    navigate(item.path);
+                                    onClose();
+                                }}
+                                className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-zinc-900/50 transition-all duration-300 group"
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className="text-zinc-500 group-hover:text-white transition-colors duration-300">
+                                        {item.icon}
+                                    </div>
+                                    <span className="font-medium text-[15px] tracking-tight text-zinc-300 group-hover:text-white transition-colors duration-300">
+                                        {item.label}
+                                    </span>
+                                </div>
+                                <ChevronRight
+                                    size={16}
+                                    className="text-zinc-800 group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all duration-300"
+                                />
+                            </button>
+                        ))}
+                    </div>
 
-                {/* Menu Items */}
-                <div className="flex-1 px-4 space-y-1">
-                    {menuItems.map((item, idx) => (
-                        <button
-                            key={idx}
-                            onClick={() => {
-                                navigate(item.path);
-                                onClose();
-                            }}
-                            className="w-full flex items-center justify-between p-4 rounded-2xl hover:bg-zinc-900 transition-all group"
-                        >
-                            <div className="flex items-center gap-4 text-zinc-400 group-hover:text-[#E5D5B3]">
-                                {item.icon}
-                                <span className="font-bold text-sm tracking-tight text-white">{item.label}</span>
-                            </div>
-                            <ChevronRight size={18} className="text-zinc-800 group-hover:text-[#E5D5B3] transition-all" />
-                        </button>
-                    ))}
+
                 </div>
 
                 {/* Footer */}
-                <div className="p-8 border-t border-white/5 space-y-6">
-                    {/* Network Toggle */}
-                    <button
-                        onClick={handleNetworkToggle}
-                        className="w-full flex items-center justify-between bg-zinc-900/50 p-4 rounded-2xl border border-white/5 hover:bg-zinc-900 transition-all group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg ${isMainnet
-                                ? 'bg-emerald-500 text-white'
-                                : 'gold-gradient text-black'
-                                }`}>
-                                <Zap size={16} />
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Stellar Network</p>
-                                <p className={`text-xs font-bold ${isMainnet ? 'text-emerald-400' : 'text-[#E5D5B3]'}`}>
-                                    {networkName}
-                                </p>
-                            </div>
-                        </div>
-                        <div className="text-zinc-500 group-hover:text-white transition-colors">
-                            {isMainnet ? <ToggleRight size={28} className="text-emerald-400" /> : <ToggleLeft size={28} />}
-                        </div>
-                    </button>
+                <div className="p-8 space-y-8 bg-[#0C0C0C]/50 border-t border-white/5">
+                    {/* Network Selector */}
+                    <div className="space-y-3">
+                        <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-600 px-1">
+                            Environment
+                        </label>
+                        <button
+                            onClick={handleNetworkToggle}
+                            className="w-full flex items-center justify-between bg-zinc-900/30 p-1.5 rounded-2xl border border-white/5 hover:bg-zinc-900/80 transition-all duration-300 group"
+                        >
+                            <div className="flex items-center gap-3">
 
-                    {/* Mainnet Warning */}
-                    {isMainnet && (
-                        <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-3">
-                            <p className="text-emerald-400 text-[10px] font-bold uppercase tracking-widest">
-                                ⚡ Real XLM Mode
-                            </p>
-                            <p className="text-zinc-400 text-[10px] mt-1">
-                                Transactions use real cryptocurrency
-                            </p>
-                        </div>
-                    )}
+                                <div className="text-left">
+                                    <p className={`text-[13px] font-semibold tracking-tight ${isMainnet ? 'text-emerald-400' : 'text-[#E5D5B3]'}`}>
+                                        {networkName}
+                                    </p>
+                                    <p className="text-[10px] text-zinc-600 font-medium">Stellar Protocol</p>
+                                </div>
+                            </div>
+                            <div className="pr-3">
+                                <div className={`w-10 h-5 rounded-full relative transition-colors duration-500 ${isMainnet ? 'bg-emerald-500/20' : 'bg-zinc-800'}`}>
+                                    <div className={`absolute top-1 w-3 h-3 rounded-full transition-all duration-500 ease-out ${isMainnet
+                                        ? 'left-6 bg-emerald-400'
+                                        : 'left-1 bg-zinc-500'
+                                        }`} />
+                                </div>
+                            </div>
+                        </button>
+                    </div>
 
-                    <button
-                        onClick={handleLogout}
-                        className="w-full flex items-center gap-4 p-4 text-rose-500 font-black text-sm uppercase tracking-widest hover:bg-rose-500/5 rounded-2xl transition-all"
-                    >
-                        <LogOut size={20} />
-                        Logout Account
-                    </button>
+
                 </div>
             </div>
         </>
