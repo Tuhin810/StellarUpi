@@ -13,7 +13,7 @@ interface UniversalQRProps {
 const UniversalQR: React.FC<UniversalQRProps> = ({ stellarId, amount, note, size = 300, className = "" }) => {
     const getUniversalLink = () => {
         // Construct the Universal Smart-Link URL
-        const baseUrl = "https://chingpay.app/pay";
+        const baseUrl = "https://test-ching.netlify.app/pay";
         const url = new URL(`${baseUrl}/${stellarId}`);
 
         if (amount) url.searchParams.append('amt', amount);

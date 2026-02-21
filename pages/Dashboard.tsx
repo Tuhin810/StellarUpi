@@ -13,6 +13,7 @@ import CreateGroupModal from '../components/CreateGroupModal';
 import { getTransactions, getProfileByStellarId, getGroups } from '../services/db';
 import StreakFire from '../components/StreakFire';
 import { Shield } from 'lucide-react';
+import SecurityPrompt from '../components/SecurityPrompt';
 
 interface Props {
   profile: UserProfile | null;
@@ -33,6 +34,8 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const [showSecurityPrompt, setShowSecurityPrompt] = useState(false);
+  const [securityPromptType, setSecurityPromptType] = useState<'PIN' | 'BIOMETRIC'>('PIN');
 
   useEffect(() => {
     const loadData = async () => {
@@ -86,6 +89,19 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
     };
 
     loadData();
+
+    // Security Prompt Nudge Logic
+    if (profile && !profile.pin && !profile.passkeyEnabled) {
+      const lastNudge = sessionStorage.getItem('security_nudge_shown');
+      if (!lastNudge) {
+        const timer = setTimeout(() => {
+          setSecurityPromptType('PIN');
+          setShowSecurityPrompt(true);
+          sessionStorage.setItem('security_nudge_shown', 'true');
+        }, 3000); // 3-second delay after dashboard load for better UX
+        return () => clearTimeout(timer);
+      }
+    }
   }, [profile]);
 
   if (!profile) return null;
@@ -132,6 +148,17 @@ const Dashboard: React.FC<Props> = ({ profile }) => {
         <ReceiveQRModal
           stellarId={profile.stellarId}
           onClose={() => setShowQR(false)}
+        />
+      )}
+
+      {showSecurityPrompt && (
+        <SecurityPrompt
+          type={securityPromptType}
+          onClose={() => setShowSecurityPrompt(false)}
+          onSetup={() => {
+            setShowSecurityPrompt(false);
+            navigate('/security');
+          }}
         />
       )}
     </div>

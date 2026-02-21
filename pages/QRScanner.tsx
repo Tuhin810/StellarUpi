@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
-import { ArrowLeft, Camera, QrCode, X, Info, Zap, Radio, Waves, AlertCircle, Smartphone, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Camera, QrCode, X, Info, Zap, Radio, Waves, AlertCircle, Smartphone, CheckCircle2, Wallet } from 'lucide-react';
 
 const QRScanner: React.FC = () => {
   const navigate = useNavigate();
@@ -10,6 +10,13 @@ const QRScanner: React.FC = () => {
   const [scanResult, setScanResult] = useState<{ pa: string, pn: string, am?: string, platform?: string, type: 'upi' | 'stellar' } | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [isScannerInitialized, setIsScannerInitialized] = useState(false);
+  const [universalChoice, setUniversalChoice] = useState<{
+    type: 'ETH' | 'STELLAR';
+    address: string;
+    amount: string;
+    memo?: string;
+    rawUri?: string;
+  } | null>(null);
 
   const initiateCrossChainPayment = (ethAddress: string, amount: string) => {
     // Placeholder for future swap provider integration (e.g., Allbridge or Stellar Bridge)
@@ -73,16 +80,11 @@ const QRScanner: React.FC = () => {
       // Stop camera immediately on success to release it
       await stopScanner();
 
-      // 0. Handle Internal Smart-Link (chingpay.app/pay/...)
-      if (decodedText.includes('chingpay.app/pay/')) {
+      // 0. Handle Internal Smart-Link (test-ching.netlify.app/pay/...)
+      if (decodedText.includes('test-ching.netlify.app/pay/')) {
         try {
           const url = new URL(decodedText);
-          const parts = url.pathname.split('/');
-          const stellarId = parts[parts.length - 1]; // last part of path
-          const amt = url.searchParams.get('amt') || '';
-          const note = url.searchParams.get('note') || '';
-
-          navigate(`/send?to=${stellarId}&amt=${amt}&note=${note}`);
+          navigate(url.pathname + url.search);
           return;
         } catch (e) {
           console.error("Internal Smart-Link Parse Error", e);
@@ -92,13 +94,17 @@ const QRScanner: React.FC = () => {
       // 1. Handle MetaMask QR / Ethereum URI
       if (decodedText.startsWith('ethereum:')) {
         try {
-          // ethereum:0x...[?value=...]
           const uri = decodedText.replace('ethereum:', 'https://eth.host/');
           const url = new URL(uri);
           const ethAddress = url.pathname.slice(1);
           const amount = url.searchParams.get('value') || '';
 
-          initiateCrossChainPayment(ethAddress, amount);
+          setUniversalChoice({
+            type: 'ETH',
+            address: ethAddress,
+            amount: amount,
+            rawUri: decodedText
+          });
           return;
         } catch (e) {
           console.error("Ethereum URI Parse Error", e);
@@ -119,7 +125,13 @@ const QRScanner: React.FC = () => {
           const amount = url.searchParams.get('amount') || '';
           const memo = url.searchParams.get('memo') || '';
 
-          navigate(`/send?to=${destination}&amt=${amount}&note=${memo}`);
+          setUniversalChoice({
+            type: 'STELLAR',
+            address: destination,
+            amount: amount,
+            memo: memo,
+            rawUri: decodedText
+          });
           return;
         } catch (e) {
           console.error("Stellar SEP7 Parse Error", e);
@@ -158,11 +170,10 @@ const QRScanner: React.FC = () => {
           // Parse hash-based routes: #/pay/:id, #/link/:id, #/send?to=...
           const hashPath = hash.slice(1); // Remove leading #
 
-          // /pay/:stellarId — direct payment QR
+          // /pay/:stellarId — redirect to gateway page
           const payMatch = hashPath.match(/^\/pay\/(.+)/);
           if (payMatch) {
-            const stellarId = decodeURIComponent(payMatch[1]);
-            navigate(`/send?to=${stellarId}`);
+            navigate(hashPath);
             return;
           }
 
@@ -439,6 +450,88 @@ const QRScanner: React.FC = () => {
             </div>
             <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">Sonic Pulse</span>
           </button>
+        </div>
+      )}
+
+      {/* Universal Choice Modal - MetaMask vs Ching Pay Selection */}
+      {universalChoice && (
+        <div className="fixed inset-0 z-[110] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/90 backdrop-blur-xl" onClick={() => setUniversalChoice(null)}></div>
+
+          <div className="relative w-full max-w-md bg-[#0a0f0a] rounded-t-[3rem] p-8 border-t border-white/10 animate-in slide-in-from-bottom duration-500">
+            <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-8" />
+
+            <div className="text-center mb-10">
+              <h3 className="text-2xl font-black mb-2 tracking-tight">Choice of Payment</h3>
+              <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em]">Universal Protocol Detected</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 mb-8">
+              {/* Option 1: External Wallet (MetaMask / Stellar Wallet) */}
+              <button
+                onClick={() => {
+                  if (universalChoice.rawUri) window.location.href = universalChoice.rawUri;
+                  setUniversalChoice(null);
+                }}
+                className="w-full p-6 bg-white/5 border border-white/10 rounded-3xl flex items-center justify-between group hover:bg-white/10 transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-4 text-left">
+                  <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                    {universalChoice.type === 'ETH' ? (
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Mirror_Logo.svg" className="w-8 h-8" alt="MetaMask" />
+                    ) : (
+                      <Wallet className="w-7 h-7 text-[#7C3AED]" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-black text-white text-sm">Use External App</p>
+                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                      {universalChoice.type === 'ETH' ? 'Launch MetaMask' : 'Launch Stellar Wallet'}
+                    </p>
+                  </div>
+                </div>
+                <ArrowLeft className="rotate-[135deg] text-zinc-600 group-hover:text-white transition-colors" size={20} />
+              </button>
+
+              {/* Option 2: Native Ching Pay Bridge */}
+              <button
+                onClick={() => {
+                  if (universalChoice.type === 'ETH') {
+                    initiateCrossChainPayment(universalChoice.address, universalChoice.amount);
+                  } else {
+                    navigate(`/send?to=${universalChoice.address}&amt=${universalChoice.amount}&note=${universalChoice.memo || ''}`);
+                  }
+                  setUniversalChoice(null);
+                }}
+                className="w-full p-6 bg-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-3xl flex items-center justify-between group hover:bg-[#E5D5B3]/10 transition-all active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-4 text-left">
+                  <div className="w-12 h-12 bg-[#E5D5B3]/20 rounded-2xl flex items-center justify-center">
+                    <Zap size={24} className="text-[#E5D5B3]" />
+                  </div>
+                  <div>
+                    <p className="font-black text-white text-sm">Pay via Ching Pay</p>
+                    <p className="text-[10px] font-bold text-[#E5D5B3]/60 uppercase tracking-widest">
+                      On-Platform Smart Bridge
+                    </p>
+                  </div>
+                </div>
+                <ArrowLeft className="rotate-[135deg] text-[#E5D5B3] group-hover:scale-110 transition-transform" size={20} />
+              </button>
+            </div>
+
+            <div className="bg-zinc-900/50 rounded-2xl p-4 flex items-center gap-4 border border-white/5">
+              <div className="w-10 h-10 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
+                <Info size={18} className="text-zinc-600" />
+              </div>
+              <div className="text-left">
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest leading-normal">
+                  You are paying {universalChoice.type === 'ETH' ? 'Ethereum' : 'Stellar'} address: <br />
+                  <span className="text-zinc-400 break-all">{universalChoice.address.slice(0, 20)}...</span>
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

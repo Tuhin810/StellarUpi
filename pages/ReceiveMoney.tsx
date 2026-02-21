@@ -37,7 +37,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
 
     const getPaymentLink = () => {
         // Updated to use the smart-link gateway format
-        const base = "https://chingpay.app/pay";
+        const base = "https://test-ching.netlify.app/pay";
         let link = `${base}/${profile.stellarId}`;
 
         const params = new URLSearchParams();
