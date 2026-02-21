@@ -1,11 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Wallet, Shield, TrendingUp, History, Info, PiggyBank, Zap } from 'lucide-react';
+import { ArrowLeft, TrendingUp, PiggyBank, Zap, Flame, ArrowUpRight, ArrowDownLeft, Clock, ChevronRight, Sparkles, Target, Calendar, Shield, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { UserProfile } from '../types';
 import { getBalance } from '../services/stellar';
 import { getLivePrice } from '../services/priceService';
-import { applyGullakYield } from '../services/db';
+import { applyGullakYield, getTransactions } from '../services/db';
 import { useNetwork } from '../context/NetworkContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,28 +15,28 @@ interface Props {
 
 const GullakPage: React.FC<Props> = ({ profile }) => {
     const navigate = useNavigate();
-    const { isMainnet, networkName } = useNetwork();
+    const { isMainnet } = useNetwork();
     const [balance, setBalance] = useState<string>('0.00');
     const [xlmRate, setXlmRate] = useState<number>(15.02);
     const [loading, setLoading] = useState(true);
     const [justYielded, setJustYielded] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<'overview' | 'history'>('overview');
 
     useEffect(() => {
         const loadData = async () => {
             if (profile?.uid) {
-                // Apply daily yield bonus logic
                 const bonus = await applyGullakYield(profile.uid);
-                if (bonus) setJustYielded(bonus);
+                if (bonus) {
+                    setJustYielded(bonus);
+                    setTimeout(() => setJustYielded(null), 4000);
+                }
 
                 if (profile.gullakPublicKey) {
                     try {
                         const [balData, rate] = await Promise.all([
-                            getBalance(profile.gullakPublicKey).catch(err => {
-                                return { total: '0.00', spendable: '0.00', reserve: '1.00' };
-                            }),
+                            getBalance(profile.gullakPublicKey).catch(() => '0.00'),
                             getLivePrice('stellar')
                         ]);
-
                         const totalBal = typeof balData === 'string' ? balData : (balData as any).total || '0.00';
                         setBalance(totalBal);
                         setXlmRate(rate);
@@ -52,142 +52,308 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
 
     if (!profile) return null;
 
-    const inrValue = parseFloat(balance) * xlmRate;
+    const totalSavings = profile.totalSavingsINR || 0;
+    const totalYield = profile.totalYieldEarnedINR || 0;
+    const streak = profile.currentStreak || 0;
+    const streakLevel = profile.streakLevel || 'orange';
+
+    const streakConfig = {
+        orange: { label: 'Starter', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', apr: '3.6%', rate: '0.01%/day', next: 5, nextLabel: 'Blue' },
+        blue: { label: 'Saver', color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', apr: '11%', rate: '0.03%/day', next: 15, nextLabel: 'Purple' },
+        purple: { label: 'Pro Saver', color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', apr: '18%', rate: '0.05%/day', next: 0, nextLabel: 'MAX' },
+    };
+
+    const cfg = streakConfig[streakLevel];
+    const progressToNext = cfg.next > 0 ? Math.min(100, (streak / cfg.next) * 100) : 100;
 
     return (
         <div className="min-h-screen bg-[#050505] text-white pb-32 relative overflow-hidden">
+            {/* Yield Toast */}
             <AnimatePresence>
                 {justYielded && (
                     <motion.div
                         initial={{ y: -100, x: '-50%', opacity: 0 }}
-                        animate={{ y: 20, x: '-50%', opacity: 1 }}
+                        animate={{ y: 60, x: '-50%', opacity: 1 }}
                         exit={{ y: -100, x: '-50%', opacity: 0 }}
                         className="fixed top-0 left-1/2 z-[100] bg-emerald-500 text-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center gap-2"
                     >
-                        <Zap size={16} />
-                        Yield Collected: +₹{justYielded.toFixed(4)}
+                        <Sparkles size={16} />
+                        Daily Yield: +₹{justYielded.toFixed(4)}
                     </motion.div>
                 )}
             </AnimatePresence>
-            {/* Background Accents */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#E5D5B3]/5 blur-[120px] rounded-full pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#E5D5B3]/5 blur-[120px] rounded-full pointer-events-none"></div>
+
+            {/* Ambient Glow */}
+            <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[80%] h-[50%] bg-[#E5D5B3]/5 blur-[150px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[40%] bg-emerald-500/3 blur-[120px] rounded-full pointer-events-none" />
 
             {/* Header */}
-            <div className="pt-10 px-6 flex items-center justify-between mb-12 relative z-10">
+            <div className="pt-14 px-6 flex items-center justify-between relative z-10">
                 <button
                     onClick={() => navigate('/')}
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-zinc-900 border border-white/5 text-zinc-400 hover:text-white transition-all shadow-xl active:scale-95"
+                    className="w-11 h-11 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white transition-all active:scale-95"
                 >
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={18} />
                 </button>
-                <div className="flex flex-col items-center">
-                    <h1 className="text-xl font-black tracking-tight italic text-zinc-100">My Gullak</h1>
-                    <p className="text-[9px] font-black uppercase tracking-[0.4em] text-[#E5D5B3] opacity-60">Digital Savings</p>
+                <div className="flex items-center gap-2">
+                    <PiggyBank size={18} className="text-[#E5D5B3]" />
+                    <span className="text-sm font-black tracking-tight">Gullak</span>
                 </div>
-                <div className="w-12"></div>
+                <div className="w-11" />
             </div>
 
-            {/* Main Savings Card */}
-            <div className="px-6 mb-10 relative z-10">
-                <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="relative"
-                >
-                    {/* Floating Piggy Icon Aura */}
-                    <div className="absolute -top-10 left-1/2 -translate-x-1/2 w-32 h-32 bg-[#E5D5B3]/10 blur-3xl rounded-full"></div>
+            {/* ═══ BALANCE HERO ═══ */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="px-6 pt-8 pb-4 relative z-10"
+            >
+                <div className="flex flex-col items-center">
+                    {/* Animated Ring */}
+                    <div className="relative w-44 h-44 flex items-center justify-center mb-6">
+                        {/* Background Ring */}
+                        <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 176 176">
+                            <circle cx="88" cy="88" r="80" fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth="6" />
+                            <motion.circle
+                                cx="88" cy="88" r="80" fill="none"
+                                stroke="url(#goldGradient)" strokeWidth="6"
+                                strokeLinecap="round"
+                                strokeDasharray={502.65}
+                                initial={{ strokeDashoffset: 502.65 }}
+                                animate={{ strokeDashoffset: 502.65 * (1 - Math.min(1, totalSavings / 10000)) }}
+                                transition={{ duration: 2, ease: 'easeOut' }}
+                            />
+                            <defs>
+                                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stopColor="#D4874D" />
+                                    <stop offset="50%" stopColor="#E5C36B" />
+                                    <stop offset="100%" stopColor="#F0D98A" />
+                                </linearGradient>
+                            </defs>
+                        </svg>
 
-                    <div className="relative bg-zinc-900/10 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-12 flex flex-col items-center shadow-2xl overflow-hidden">
-                        {/* Internal Accents */}
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-full -mr-16 -mt-16"></div>
-
-                        <div className="w-20 h-20 bg-gradient-to-b from-[#E5D5B3]/20 to-[#E5D5B3]/5 rounded-3xl flex items-center justify-center text-[#E5D5B3] mb-8 border border-[#E5D5B3]/20 shadow-inner">
-                            <PiggyBank size={40} className="drop-shadow-lg" />
-                        </div>
-
-                        <span className="text-[11px] font-black uppercase tracking-[0.5em] text-zinc-500 mb-4 opacity-80">Total Savings</span>
-
-                        <div className="flex items-center gap-3 mb-4">
-                            <span className="text-[#E5D5B3] text-4xl font-black opacity-30 italic">₹</span>
-                            <h2 className="text-7xl font-black tracking-tighter text-white">
-                                {loading ? '...' : (profile.totalSavingsINR || 0).toLocaleString('en-IN')}
-                            </h2>
-                        </div>
-
-                        {/* Yield Highlight */}
-                        <div className="flex flex-col items-center mb-6">
-                            <div className="flex items-center gap-1.5 text-emerald-400">
-                                <Zap size={14} className="opacity-80" />
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Total Yield Earned</span>
+                        {/* Center Content */}
+                        <div className="flex flex-col items-center">
+                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-600 mb-1">Total Saved</span>
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-[#E5D5B3]/40 text-2xl font-black">₹</span>
+                                <span className="text-4xl font-black tracking-tight">
+                                    {loading ? '...' : totalSavings.toLocaleString('en-IN')}
+                                </span>
                             </div>
-                            <p className="text-sm font-black text-emerald-400 italic">
-                                +₹{(profile.totalYieldEarnedINR || 0).toFixed(4)}
-                            </p>
                         </div>
+                    </div>
 
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.3 }}
-                            className="flex items-center gap-2 px-6 py-2 bg-emerald-500/10 rounded-full border border-emerald-500/20 shadow-inner"
-                        >
-                            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                            <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400">
-                                {parseFloat(balance).toFixed(2)} XLM SAVED
-                            </span>
-                        </motion.div>
+                    {/* Yield Earned Badge */}
+                    <motion.div
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.4 }}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/15 rounded-full mb-2"
+                    >
+                        <TrendingUp size={12} className="text-emerald-400" />
+                        <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">
+                            +₹{totalYield.toFixed(2)} yield earned
+                        </span>
+                    </motion.div>
 
-                        <div className="mt-10 pt-10 border-t border-white/5 w-full flex flex-col gap-4">
-                            <div className="flex flex-col items-center gap-1 opacity-40">
-                                <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Gullak Address</p>
-                                <p className="text-[9px] font-medium text-zinc-300">
-                                    {profile.gullakPublicKey?.substring(0, 12)}...{profile.gullakPublicKey?.substring(44)}
+                    {/* XLM Balance */}
+                    <p className="text-[10px] text-zinc-600 font-bold">
+                        {parseFloat(balance).toFixed(4)} XLM • ₹{(parseFloat(balance) * xlmRate).toFixed(2)} value
+                    </p>
+                </div>
+            </motion.div>
+
+            {/* ═══ STREAK TIER CARD ═══ */}
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="px-6 mb-6 relative z-10"
+            >
+                <div className={`${cfg.bg} border ${cfg.border} rounded-3xl p-5 relative overflow-hidden`}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/5 to-transparent rounded-full -mr-16 -mt-16 pointer-events-none" />
+
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl ${cfg.bg} border ${cfg.border} flex items-center justify-center`}>
+                                <Flame size={20} className={cfg.color} />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <span className={`text-xs font-black ${cfg.color}`}>{cfg.label} Tier</span>
+                                    <span className="text-[8px] font-bold text-zinc-600 px-1.5 py-0.5 bg-white/5 rounded-md uppercase">{cfg.apr} APR</span>
+                                </div>
+                                <p className="text-[10px] text-zinc-500 font-bold mt-0.5">
+                                    {streak} day streak • {cfg.rate}
                                 </p>
                             </div>
                         </div>
+                        <div className="flex flex-col items-end">
+                            <span className={`text-2xl font-black ${cfg.color}`}>{streak}</span>
+                            <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-wider">Days</span>
+                        </div>
                     </div>
+
+                    {/* Progress Bar */}
+                    {cfg.next > 0 && (
+                        <div>
+                            <div className="flex justify-between items-center mb-1.5">
+                                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider">Next: {cfg.nextLabel} Tier</span>
+                                <span className="text-[9px] font-bold text-zinc-500">{streak}/{cfg.next} days</span>
+                            </div>
+                            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <motion.div
+                                    className="h-full rounded-full"
+                                    style={{ background: 'linear-gradient(90deg, #D4874D, #E5C36B, #F0D98A)' }}
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${progressToNext}%` }}
+                                    transition={{ duration: 1.5, ease: 'easeOut' }}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    {cfg.next === 0 && (
+                        <div className="flex items-center gap-2 mt-1">
+                            <Sparkles size={12} className="text-purple-400" />
+                            <span className="text-[10px] font-bold text-purple-400">Max tier reached! Earning highest yield rate.</span>
+                        </div>
+                    )}
+                </div>
+            </motion.div>
+
+            {/* ═══ TAB SWITCHER ═══ */}
+            <div className="px-6 mb-5 relative z-10">
+                <div className="flex bg-zinc-900/50 border border-white/5 rounded-2xl p-1">
+                    {(['overview', 'history'] as const).map((tab) => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === tab
+                                ? 'bg-white/10 text-white'
+                                : 'text-zinc-600 hover:text-zinc-400'
+                                }`}
+                        >
+                            {tab === 'overview' ? 'Overview' : 'Activity'}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* ═══ OVERVIEW TAB ═══ */}
+            {activeTab === 'overview' && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="px-6 relative z-10"
+                >
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-3 mb-6">
+                        <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center text-center">
+                            <Target size={16} className="text-[#E5D5B3] mb-2 opacity-60" />
+                            <span className="text-lg font-black">{streak}</span>
+                            <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-wider mt-0.5">Day Streak</span>
+                        </div>
+                        <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center text-center">
+                            <TrendingUp size={16} className="text-emerald-400 mb-2 opacity-60" />
+                            <span className="text-lg font-black text-emerald-400">+{totalYield.toFixed(1)}</span>
+                            <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-wider mt-0.5">Yield ₹</span>
+                        </div>
+                        <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center text-center">
+                            <Shield size={16} className="text-blue-400 mb-2 opacity-60" />
+                            <span className="text-lg font-black">{cfg.apr}</span>
+                            <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-wider mt-0.5">APR</span>
+                        </div>
+                    </div>
+
+                    {/* How It Works */}
+                    <div className="bg-zinc-900/20 border border-white/5 rounded-3xl p-5 mb-6">
+                        <div className="flex items-center gap-2 mb-4">
+                            <Gift size={14} className="text-[#E5D5B3]" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#E5D5B3]">How Gullak Works</span>
+                        </div>
+
+                        <div className="space-y-4">
+                            {[
+                                { step: '01', title: 'Pay Normally', desc: 'Make any UPI payment through Ching Pay', icon: ArrowUpRight },
+                                { step: '02', title: 'Auto Round-up', desc: 'Amount rounds up to nearest ₹10 automatically', icon: Sparkles },
+                                { step: '03', title: 'Earn Yield', desc: `${cfg.apr} APR based on your ${streak}-day streak`, icon: TrendingUp },
+                            ].map((item, i) => (
+                                <div key={i} className="flex items-start gap-4">
+                                    <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                                        <span className="text-[9px] font-black text-[#E5D5B3]">{item.step}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-black text-white mb-0.5">{item.title}</p>
+                                        <p className="text-[10px] text-zinc-500 font-medium leading-relaxed">{item.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Gullak Address */}
+                    {profile.gullakPublicKey && (
+                        <div className="bg-zinc-900/20 border border-white/5 rounded-2xl p-4 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                                <Shield size={14} className="text-zinc-500" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-wider">Vault Address</p>
+                                <p className="text-[10px] text-zinc-400 font-mono truncate">
+                                    {profile.gullakPublicKey}
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </motion.div>
-            </div>
+            )}
 
-            {/* Stats Grid */}
-            <div className="px-6 grid grid-cols-2 gap-5 mb-10 relative z-10">
-                <div className="bg-zinc-900/20 backdrop-blur-xl border border-white/5 p-8 rounded-[2rem] shadow-xl group hover:border-[#E5D5B3]/10 transition-all">
-                    <div className="w-12 h-12 bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-400 mb-4 border border-blue-500/10 shadow-inner">
-                        <Shield size={24} />
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">Asset Vault</p>
-                    <p className="text-white font-black text-sm">100% SECURE</p>
-                </div>
-                <div className="bg-zinc-900/20 backdrop-blur-xl border border-white/5 p-8 rounded-[2rem] shadow-xl group hover:border-[#E5D5B3]/10 transition-all">
-                    <div className="w-12 h-12 bg-emerald-500/10 rounded-2xl flex items-center justify-center text-emerald-400 mb-4 border border-emerald-500/10 shadow-inner">
-                        <Zap size={24} />
-                    </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">Interest</p>
-                    <p className="text-white font-black text-sm">STREAK YIELD</p>
-                </div>
-            </div>
+            {/* ═══ HISTORY TAB ═══ */}
+            {activeTab === 'history' && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="px-6 relative z-10"
+                >
+                    {(profile.streakHistory && profile.streakHistory.length > 0) ? (
+                        <div className="space-y-3">
+                            {profile.streakHistory.slice().reverse().slice(0, 20).map((date: string, i: number) => (
+                                <div key={i} className="flex items-center gap-4 py-3 border-b border-white/5 last:border-0">
+                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                        <ArrowDownLeft size={16} className="text-emerald-400" />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-xs font-bold text-white">Chillar Saved</p>
+                                        <p className="text-[10px] text-zinc-600 font-medium">{new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs font-black text-emerald-400">+₹</p>
+                                        <p className="text-[9px] text-zinc-600 font-bold">Round-up</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="flex flex-col items-center py-16 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-zinc-900/50 border border-white/5 flex items-center justify-center mb-4">
+                                <Clock size={24} className="text-zinc-700" />
+                            </div>
+                            <p className="text-sm font-bold text-zinc-500 mb-1">No savings yet</p>
+                            <p className="text-xs text-zinc-700 max-w-[200px]">
+                                Make your first Chillar-enabled payment to start saving
+                            </p>
+                        </div>
+                    )}
+                </motion.div>
+            )}
 
-            {/* Info Card */}
-            <div className="px-6 mb-12 relative z-10">
-                <div className="bg-[#E5D5B3]/5 backdrop-blur-md border border-[#E5D5B3]/10 rounded-[2rem] p-8 flex gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-[#E5D5B3]/10 flex items-center justify-center text-[#E5D5B3] flex-shrink-0">
-                        <Info size={24} />
-                    </div>
-                    <div>
-                        <h4 className="text-xs font-black uppercase tracking-[0.3em] text-[#E5D5B3] mb-2">How it works</h4>
-                        <p className="text-[11px] text-zinc-400 leading-relaxed font-bold opacity-80 uppercase tracking-tight">
-                            Every transaction rounds up to the nearest ₹10. This amount is automatically diverted to your separate Gullak vault, building protocol yield silently.
-                        </p>
-                    </div>
-                </div>
-            </div>
-
-            {/* Bottom Action */}
-            <div className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-sm px-8 z-40">
+            {/* ═══ STICKY BOTTOM CTA ═══ */}
+            <div className="fixed bottom-0 left-0 right-0 z-40 p-6 pb-10 bg-gradient-to-t from-[#050505] via-[#050505] to-transparent">
                 <button
                     onClick={() => navigate('/withdraw')}
-                    className="w-full gold-gradient text-black py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-[0_20px_40px_rgba(229,213,179,0.25)] active:scale-[0.96] transition-all flex items-center justify-center gap-3 hover:brightness-110"
+                    className="w-full h-14 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl active:scale-[0.97] transition-all flex items-center justify-center gap-2 text-black"
+                    style={{ background: 'linear-gradient(90deg, #D4874D 0%, #E5C36B 50%, #F0D98A 100%)' }}
                 >
                     <PiggyBank size={18} strokeWidth={2.5} />
                     Withdraw Savings
