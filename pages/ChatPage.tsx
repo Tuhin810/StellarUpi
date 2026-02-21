@@ -12,9 +12,7 @@ import {
     onSnapshot,
     addDoc,
     serverTimestamp,
-    limit,
-    or,
-    and
+    limit
 } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { ArrowLeft, Send, Zap, CheckCircle2, IndianRupee, MessageCircle, MoreVertical } from 'lucide-react';
@@ -44,57 +42,97 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
     useEffect(() => {
         if (!profile || !contactId) return;
 
-        const chatsRef = { current: [] as any[] };
-        const txsRef = { current: [] as any[] };
+        // Use separate refs for each query direction to merge results
+        const chatsSentRef = { current: [] as any[] };
+        const chatsRecvRef = { current: [] as any[] };
+        const txsSentRef = { current: [] as any[] };
+        const txsRecvRef = { current: [] as any[] };
 
         const updateUnifiedMessages = () => {
-            const unified = [...chatsRef.current, ...txsRef.current].sort((a, b) => {
+            // Deduplicate by id before merging
+            const allChats = [...chatsSentRef.current, ...chatsRecvRef.current];
+            const allTxs = [...txsSentRef.current, ...txsRecvRef.current];
+            const seen = new Set<string>();
+            const deduped: any[] = [];
+            for (const item of [...allChats, ...allTxs]) {
+                if (!seen.has(item.id)) {
+                    seen.add(item.id);
+                    deduped.push(item);
+                }
+            }
+            deduped.sort((a, b) => {
                 const timeA = a.timestamp?.seconds || 0;
                 const timeB = b.timestamp?.seconds || 0;
                 return timeA - timeB;
             });
-            setMessages(unified);
+            setMessages(deduped);
             setLoading(false);
             setTimeout(() => scrollRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
         };
 
         const network = localStorage.getItem('stellar_network') || 'testnet';
 
-        // Listen to text messages
-        const chatQuery = query(
+        // Listen to chats SENT by me to this contact
+        const chatSentQuery = query(
             collection(db, 'chats'),
-            or(
-                and(where('senderId', '==', profile.stellarId), where('receiverId', '==', contactId), where('network', '==', network)),
-                and(where('senderId', '==', contactId), where('receiverId', '==', profile.stellarId), where('network', '==', network))
-            ),
+            where('senderId', '==', profile.stellarId),
+            where('receiverId', '==', contactId),
+            orderBy('timestamp', 'asc'),
+            limit(50)
+        );
+        // Listen to chats RECEIVED from this contact
+        const chatRecvQuery = query(
+            collection(db, 'chats'),
+            where('senderId', '==', contactId),
+            where('receiverId', '==', profile.stellarId),
             orderBy('timestamp', 'asc'),
             limit(50)
         );
 
-        const unsubChats = onSnapshot(chatQuery, (snap) => {
-            chatsRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'chat' }));
+        const unsubChatSent = onSnapshot(chatSentQuery, (snap) => {
+            chatsSentRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'chat' }));
             updateUnifiedMessages();
-        });
+        }, (err) => console.error('Chat sent query error:', err));
 
-        // Listen to transactions
-        const txQuery = query(
+        const unsubChatRecv = onSnapshot(chatRecvQuery, (snap) => {
+            chatsRecvRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'chat' }));
+            updateUnifiedMessages();
+        }, (err) => console.error('Chat recv query error:', err));
+
+        // Listen to transactions SENT by me to this contact
+        const txSentQuery = query(
             collection(db, 'transactions'),
-            or(
-                and(where('fromId', '==', profile.stellarId), where('toId', '==', contactId), where('network', '==', network)),
-                and(where('fromId', '==', contactId), where('toId', '==', profile.stellarId), where('network', '==', network))
-            ),
+            where('fromId', '==', profile.stellarId),
+            where('toId', '==', contactId),
+            where('network', '==', network),
+            orderBy('timestamp', 'asc'),
+            limit(50)
+        );
+        // Listen to transactions RECEIVED from this contact
+        const txRecvQuery = query(
+            collection(db, 'transactions'),
+            where('fromId', '==', contactId),
+            where('toId', '==', profile.stellarId),
+            where('network', '==', network),
             orderBy('timestamp', 'asc'),
             limit(50)
         );
 
-        const unsubTxs = onSnapshot(txQuery, (snap) => {
-            txsRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'tx' }));
+        const unsubTxSent = onSnapshot(txSentQuery, (snap) => {
+            txsSentRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'tx' }));
             updateUnifiedMessages();
-        });
+        }, (err) => console.error('TX sent query error:', err));
+
+        const unsubTxRecv = onSnapshot(txRecvQuery, (snap) => {
+            txsRecvRef.current = snap.docs.map(d => ({ ...d.data(), id: d.id, itemType: 'tx' }));
+            updateUnifiedMessages();
+        }, (err) => console.error('TX recv query error:', err));
 
         return () => {
-            unsubChats();
-            unsubTxs();
+            unsubChatSent();
+            unsubChatRecv();
+            unsubTxSent();
+            unsubTxRecv();
         };
     }, [profile, contactId]);
 
@@ -197,7 +235,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                                                     {isMe ? 'Sent To' : 'Received From'}
                                                 </p>
                                                 <span className="text-[8px] font-black text-zinc-600">
-                                                    {msg.timestamp?.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                    {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Now'}
                                                 </span>
                                             </div>
                                             <div className="flex items-end justify-between gap-2">
@@ -261,7 +299,7 @@ const ChatPage: React.FC<Props> = ({ profile }) => {
                                 <div className={`relative px-4 py-2 rounded-2xl font-medium text-[17.5px] leading-relaxed shadow-lg ${isMe ? 'bg-gradient-to-br from-[#E5D5B3] to-[#D4C4A3] text-zinc-950 rounded-tr-none' : 'bg-zinc-900 border border-white/5 text-white rounded-tl-none'}`}>
                                     {msg.text}
                                     <div className={`text-[7px]  font-black uppercase tracking-tighter opacity-30 ${isMe ? 'text-black' : 'text-zinc-500'} flex justify-end items-center gap-1`}>
-                                        {msg.timestamp?.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}
                                         {isMe && <CheckCircle2 size={7} />}
                                     </div>
                                 </div>

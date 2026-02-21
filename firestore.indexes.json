@@ -1,0 +1,45 @@
+{
+    "indexes": [
+        {
+            "collectionGroup": "chats",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "senderId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "receiverId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "ASCENDING"
+                }
+            ]
+        },
+        {
+            "collectionGroup": "transactions",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "fromId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "toId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "network",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "timestamp",
+                    "order": "ASCENDING"
+                }
+            ]
+        }
+    ],
+    "fieldOverrides": []
+}
