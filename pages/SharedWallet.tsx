@@ -58,17 +58,31 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
       // 2. Fetch Owner's Encrypted Key
       // NOTE: In this simplified demo, the member needs to know the owner's vault key OR we'd use a more complex encryption sharing.
       // For the sake of a working demo, we assume the shared account uses a known key or the member has been granted the owner's secret via app-logic.
-      // REAL WORLD: Use multisig or a signing proxy. Here, we retrieve the owner profile.
-      const ownerRef = (await getDocs(query(collection(db, 'users'), where('uid', '==', (familyPermission as any).ownerUid)))).docs[0];
-      const ownerData = ownerRef.data() as UserProfile;
+      // 2. Fetch Owner's Profile
+      const ownerProfile = await getProfile((familyPermission as any).ownerUid);
+      if (!ownerProfile) throw new Error("Owner profile not found");
 
-      let ownerSecret: string;
+      let ownerSecret: string = '';
       if ((familyPermission as any).sharedSecret) {
         ownerSecret = decryptSecret((familyPermission as any).sharedSecret, profile.uid.toLowerCase());
-      } else {
-        const vaultKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
-        if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you.");
-        ownerSecret = decryptSecret(ownerData.encryptedSecret, vaultKey);
+
+        // Fallback
+        if (!ownerSecret || !ownerSecret.startsWith('S')) {
+          ownerSecret = decryptSecret((familyPermission as any).sharedSecret, profile.uid);
+        }
+      }
+
+      if (!ownerSecret || !ownerSecret.startsWith('S')) {
+        // Only if spender IS the owner
+        if ((familyPermission as any).ownerUid === profile.uid) {
+          const vaultKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
+          ownerSecret = decryptSecret(ownerProfile.encryptedSecret, vaultKey);
+
+          if (!ownerSecret || !ownerSecret.startsWith('S')) {
+            const fallbackKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', '0000');
+            ownerSecret = decryptSecret(ownerProfile.encryptedSecret, fallbackKey);
+          }
+        }
       }
 
       if (!ownerSecret || !ownerSecret.startsWith('S')) {
@@ -83,9 +97,9 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
       // 4. Update Limits & Records
       await updateFamilySpend(familyPermission.id, amtNum);
       await recordTransaction({
-        fromId: ownerData.stellarId,
+        fromId: ownerProfile.stellarId,
         toId: recipientId,
-        fromName: ownerData.stellarId,
+        fromName: ownerProfile.stellarId,
         toName: recipientId,
         amount: amtNum,
         currency: 'INR',
@@ -99,7 +113,7 @@ const SharedWallet: React.FC<Props> = ({ profile }) => {
       NotificationService.sendInAppNotification(
         recipientId,
         "Payment Received",
-        `You received ₹${amtNum} from ${ownerData.displayName || ownerData.stellarId.split('@')[0]} (Family Wallet)`,
+        `You received ₹${amtNum} from ${ownerProfile.displayName || ownerProfile.stellarId.split('@')[0]} (Family Wallet)`,
         'payment'
       );
 

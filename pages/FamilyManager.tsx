@@ -57,10 +57,21 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
     setLoading(true);
     setError('');
     try {
-      const vaultKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
-      if (!vaultKey) throw new Error("Vault locked. Unlock your own vault first.");
+      const phone = localStorage.getItem('ching_phone') || '';
+      const currentPin = profile.pin || '0000';
 
-      const rawSecret = decryptSecret(profile.encryptedSecret, vaultKey);
+      let vaultKey = KYCService.deriveEncryptionKey(phone, currentPin);
+      let rawSecret = decryptSecret(profile.encryptedSecret, vaultKey);
+
+      // Fallback Strategy: If current PIN fails, try legacy '0000'
+      if ((!rawSecret || !rawSecret.startsWith('S')) && currentPin !== '0000') {
+        const fallbackKey = KYCService.deriveEncryptionKey(phone, '0000');
+        rawSecret = decryptSecret(profile.encryptedSecret, fallbackKey);
+      }
+
+      if (!rawSecret || !rawSecret.startsWith('S')) {
+        throw new Error("Unable to access your Stellar Vault. Your session might be out of sync. Please logout and login again once to refresh security keys.");
+      }
       const memberInfo = await getUserById(newMemberId);
       if (!memberInfo) throw new Error("Target member not found");
 

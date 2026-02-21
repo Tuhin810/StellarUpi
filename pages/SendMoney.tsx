@@ -349,24 +349,37 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       if (paymentMethod === 'family' && selectedFamilyWallet) {
         if (amtNum > getFamilyRemainingLimit(selectedFamilyWallet)) throw new Error("Exceeds daily spending limit");
 
-        let ownerSecret: string;
+        let ownerSecret: string = '';
 
+        // Strategy 1: Use the shared secret encrypted for this member
         if ((selectedFamilyWallet.permission as any).sharedSecret) {
+          // Try with normalized UID (lowercase)
           ownerSecret = decryptSecret((selectedFamilyWallet.permission as any).sharedSecret, profile.uid.toLowerCase());
-        } else {
-          // Smart Decryption for Family Owner Secret
-          let vaultKey = KYCService.deriveEncryptionKey(phone, currentPin);
-          ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, vaultKey);
 
-          // Fallback to default if current fails
-          if ((!ownerSecret || !ownerSecret.startsWith('S')) && currentPin !== '0000') {
-            const fallbackKey = KYCService.deriveEncryptionKey(phone, '0000');
-            ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, fallbackKey);
+          // Fallback Strategy: Try without lowercase just in case
+          if (!ownerSecret || !ownerSecret.startsWith('S')) {
+            ownerSecret = decryptSecret((selectedFamilyWallet.permission as any).sharedSecret, profile.uid);
+          }
+        }
+
+        // Strategy 2: If sharedSecret is missing or decryption failed, try "Smart Decryption"
+        // This only works if the owner has specifically enabled it or if the member is also the owner
+        if (!ownerSecret || !ownerSecret.startsWith('S')) {
+          // If the spender is the owner, they can decrypt their own secret using their phone and PIN
+          if (selectedFamilyWallet.ownerProfile.uid === profile.uid) {
+            let vaultKey = KYCService.deriveEncryptionKey(phone, pin || profile.pin || '0000');
+            ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, vaultKey);
+
+            // One last fallback for owner to '0000'
+            if (!ownerSecret || !ownerSecret.startsWith('S')) {
+              const fallbackKey = KYCService.deriveEncryptionKey(phone, '0000');
+              ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, fallbackKey);
+            }
           }
         }
 
         if (!ownerSecret || !ownerSecret.startsWith('S')) {
-          throw new Error("Family authorization failed. The owner may need to re-authorize your access or your PIN is out of sync.");
+          throw new Error("Family authorization failed. The owner may need to re-authorize your access (try removing and re-adding the member) or your session is out of sync.");
         }
 
         // Apply 5% buffer for merchant/family stability
@@ -407,42 +420,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           amtNum.toString(),
           selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]
         );
-        // VIRAL LINK FLOW
-        let password = KYCService.deriveEncryptionKey(phone, currentPin);
-        let secret = decryptSecret(profile.encryptedSecret, password);
-
-        // Fallback
-        if ((!secret || !secret.startsWith('S')) && currentPin !== '0000') {
-          const fallbackPassword = KYCService.deriveEncryptionKey(phone, '0000');
-          secret = decryptSecret(profile.encryptedSecret, fallbackPassword);
-        }
-
-        if (!secret || !secret.startsWith('S')) throw new Error("Vault locked. Please login again.");
-
-        setLoading(true);
-        const { txHash, tempSecret, amount: sentAmt } = await createViralPayment(secret, (amtNum / xlmRate).toFixed(7));
-
-        // Construct the claim link
-        // Base URL: https://stellar.netlify.app/#/claim?id=[CB_ID]&sk=[TEMP_SK]&amount=[AMT]
-        // Note: Realistically, finding the CB_ID requires parsing result_meta or searching the account.
-        // For the hackathon demo, we can use the txHash and have the claimer find the CB.
-        const url = `${window.location.origin}${window.location.pathname}#/claim?sk=${tempSecret}&amount=${sentAmt}`;
-        setClaimLink(url);
-
-        await recordTransaction({
-          fromId: profile.stellarId,
-          toId: selectedContact.id, // Phone number
-          fromName: profile.displayName || profile.stellarId,
-          toName: selectedContact.name,
-          amount: amtNum,
-          currency: 'INR',
-          status: 'SUCCESS',
-          txHash: txHash,
-          isFamilySpend: false,
-          blockchainNetwork: 'STELLAR',
-          memo: 'Created Viral Fund Link'
-        });
-
+        // End Family Payment
       } else {
         if (profile.dailyLimit && profile.dailyLimit > 0) {
           const remaining = Math.max(0, profile.dailyLimit - (profile.spentToday || 0));
