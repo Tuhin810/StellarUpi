@@ -106,19 +106,53 @@ const QRScanner: React.FC = () => {
         return;
       }
 
-      // 5. General URL fallback for split/subscribe/etc.
+      // 5. Handle the app's own hash-routed URLs
+      // e.g. https://test-ching.netlify.app/#/pay/9181010@stellar
+      //      https://app.ching.pay/#/link/abc123
       try {
-        let url: URL;
-        try {
-          url = new URL(decodedText);
-        } catch (e) {
-          if (decodedText.includes('://')) {
-            url = new URL(decodedText.replace('://', '://host/'));
-          } else {
-            throw e;
+        const url = new URL(decodedText);
+        const hash = url.hash; // e.g. "#/pay/9181010@stellar"
+
+        if (hash) {
+          // Parse hash-based routes: #/pay/:id, #/link/:id, #/send?to=...
+          const hashPath = hash.slice(1); // Remove leading #
+
+          // /pay/:stellarId — direct payment QR
+          const payMatch = hashPath.match(/^\/pay\/(.+)/);
+          if (payMatch) {
+            const stellarId = decodeURIComponent(payMatch[1]);
+            navigate(`/send?to=${stellarId}`);
+            return;
+          }
+
+          // /link/:linkId — payment link
+          const linkMatch = hashPath.match(/^\/link\/(.+)/);
+          if (linkMatch) {
+            navigate(hashPath);
+            return;
+          }
+
+          // /claim?sk=...&amount=... — claim funds
+          if (hashPath.startsWith('/claim')) {
+            navigate(hashPath);
+            return;
+          }
+
+          // /send?to=...&amt=... — send with params
+          if (hashPath.startsWith('/send')) {
+            navigate(hashPath);
+            return;
+          }
+
+          // /subscribe/:planId
+          const subMatch = hashPath.match(/^\/subscribe\/(.+)/);
+          if (subMatch) {
+            navigate(hashPath);
+            return;
           }
         }
 
+        // Fallback: check searchParams on non-hash URLs
         const to = url.searchParams.get('to');
         const planId = url.searchParams.get('planId');
         const amt = url.searchParams.get('amt') || '';
@@ -129,10 +163,10 @@ const QRScanner: React.FC = () => {
         } else if (to) {
           navigate(`/send?to=${to}&amt=${amt}&note=${note}`);
         } else {
-          throw new Error("Generic URL");
+          throw new Error("No route match");
         }
       } catch (e) {
-        // Final fallback
+        // Final fallback: raw Stellar public key
         if (decodedText.includes('G') && decodedText.length > 50) {
           const match = decodedText.match(/G[A-Z0-9]{55}/);
           if (match) {
@@ -141,13 +175,11 @@ const QRScanner: React.FC = () => {
           }
         }
 
-        // If we failed to handle but already stopped camera, we might need to restart it
-        // Or just show error and navigate back. Let's restart.
         setError("Invalid QR Code");
         setTimeout(() => {
           if (isMounted) {
             setError('');
-            startScanner(); // Restart if invalid
+            startScanner();
           }
         }, 3000);
       }
