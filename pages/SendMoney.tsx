@@ -186,7 +186,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
   const syncContacts = async () => {
     if (!('contacts' in navigator && 'select' in (navigator as any).contacts)) {
-      setError("Contact Picker API not supported on this browser");
+      setError("Contact Picker API not supported on this browser. Try Android Chrome.");
       return;
     }
 
@@ -197,15 +197,35 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       const contacts = await (navigator as any).contacts.select(props, opts);
 
       if (contacts.length > 0) {
-        // Prepare phone numbers for lookup (clean formats)
+        // Normalize phone number: strip spaces, dashes, parens, +91, leading 0
+        const normalizePhone = (phone: string): string => {
+          let clean = phone.replace(/[\s\-\(\)]/g, '');
+          if (clean.startsWith('+91')) clean = clean.slice(3);
+          if (clean.startsWith('91') && clean.length === 12) clean = clean.slice(2);
+          if (clean.startsWith('0') && clean.length === 11) clean = clean.slice(1);
+          return clean;
+        };
+
         const phoneMap: { [key: string]: string } = {};
-        const cleanedPhones = contacts.map((c: any) => {
-          const rawPhone = c.tel[0].replace(/\s/g, '').replace(/-/g, '');
-          phoneMap[rawPhone] = c.name[0];
-          return rawPhone;
+        const cleanedPhones: string[] = [];
+
+        contacts.forEach((c: any) => {
+          if (!c.tel || c.tel.length === 0) return;
+          // Check all phone numbers for each contact
+          c.tel.forEach((tel: string) => {
+            const normalized = normalizePhone(tel);
+            if (normalized.length >= 10) {
+              phoneMap[normalized] = c.name?.[0] || 'Unknown';
+              cleanedPhones.push(normalized);
+            }
+          });
         });
 
-        const matchedUsers = await getUsersByPhones(cleanedPhones);
+        // Remove duplicates
+        const uniquePhones = [...new Set(cleanedPhones)];
+
+        const matchedUsers = await getUsersByPhones(uniquePhones);
+        const matchedPhones = new Set(matchedUsers.map(u => normalizePhone(u.phoneNumber || '')));
 
         const stellarContacts = matchedUsers.map(u => ({
           id: u.stellarId,
@@ -215,18 +235,18 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
         const inviteList = contacts
           .filter((c: any) => {
-            const raw = c.tel[0].replace(/\s/g, '').replace(/-/g, '');
-            return !matchedUsers.find(u => u.phoneNumber === raw);
+            if (!c.tel || c.tel.length === 0) return false;
+            // Check if ANY of the contact's phone numbers match
+            return !c.tel.some((tel: string) => matchedPhones.has(normalizePhone(tel)));
           })
           .map((c: any) => ({
-            name: c.name[0],
+            name: c.name?.[0] || 'Unknown',
             phone: c.tel[0]
           }));
 
         setOnStellarContacts(stellarContacts);
         setInviteContacts(inviteList);
 
-        // Persist to LocalStorage for "Full Access" experience
         localStorage.setItem('synced_stellar', JSON.stringify(stellarContacts));
         localStorage.setItem('invite_list', JSON.stringify(inviteList));
       }
@@ -631,7 +651,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           <div className="w-10"></div>
         </div>
 
-        <div className="relative z-10 flex-1 flex flex-col items-center pt-8 px-6 text-white">
+        <div className="relative z-10 flex-1 flex flex-col items-center pt-2 px-6 text-white">
           <div className="flex flex-col items-center mb-10 text-center">
             <div className="w-24 h-24 rounded-[2rem] bg-zinc-900 border-2 border-white/5 overflow-hidden shadow-2xl mb-4">
               <img
@@ -693,19 +713,39 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             </div> */}
 
             {/* Category Selector */}
-            <div className="w-full overflow-x-auto no-scrollbar py-2">
-              <div className="flex gap-2 px-4">
-                {(['Shopping', 'Food', 'Travel', 'Bills', 'Entertainment', 'Other'] as const).map((cat) => (
+            <div className="w-full overflow-x-auto no-scrollbar py-3">
+              <div className="flex gap-5 px-2 justify-center">
+                {([
+                  { name: 'Shopping' as const, icon: '🛍️' },
+                  { name: 'Food' as const, icon: '🍕' },
+                  { name: 'Travel' as const, icon: '✈️' },
+                  { name: 'Bills' as const, icon: '📄' },
+                  { name: 'Entertainment' as const, icon: '🎬' },
+                  { name: 'Other' as const, icon: '💸' },
+                ]).map((cat) => (
                   <button
-                    key={cat}
+                    key={cat.name}
                     type="button"
-                    onClick={() => setCategory(cat)}
-                    className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${category === cat
-                      ? 'bg-zinc-100 text-black border-zinc-100'
-                      : 'bg-transparent text-zinc-500 border-white/10 hover:border-white/20'
-                      }`}
+                    onClick={() => setCategory(cat.name)}
+                    className="flex flex-col items-center gap-2 group mb-5"
                   >
-                    {cat}
+                    <div className={`relative w-14 h-14 rounded-full flex items-center justify-center text-xl transition-all duration-300 ${category === cat.name
+                      ? 'bg-zinc-800 ring-2 ring-white/80 ring-offset-2 ring-offset-[#0a0f0a]  shadow-lg shadow-white/10'
+                      : 'bg-zinc-900/80 border border-white/10 hover:bg-zinc-800/80 hover:border-white/20'
+                      }`}>
+                      {cat.icon}
+                      {category === cat.name && (
+                        <div className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md">
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                            <path d="M2 5L4.5 7.5L8 3" stroke="black" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider transition-colors ${category === cat.name ? 'text-white' : 'text-zinc-600'
+                      }`}>
+                      {cat.name}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -993,15 +1033,23 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                       <p className="text-[10px] font-bold text-zinc-600 tracking-tight">{contact.phone}</p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setSelectedContact({ id: contact.phone, name: contact.name, avatarSeed: contact.phone });
-                      setIsViralLinkMode(true);
-                    }}
-                    className="px-4 py-2 bg-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-xl text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest hover:bg-[#E5D5B3]/10 transition-all"
-                  >
-                    Send Money
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleInvite(contact.name)}
+                      className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-zinc-400 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                    >
+                      Invite
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSelectedContact({ id: contact.phone, name: contact.name, avatarSeed: contact.phone });
+                        setIsViralLinkMode(true);
+                      }}
+                      className="px-3 py-2 bg-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-xl text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest hover:bg-[#E5D5B3]/10 transition-all"
+                    >
+                      Send ₹
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -1049,7 +1097,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

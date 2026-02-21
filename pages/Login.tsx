@@ -303,7 +303,9 @@ const Login: React.FC = () => {
               <Phone className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-[#E5D5B3] transition-colors" size={18} />
               <input
                 type="tel"
-                placeholder="e.g. 98765 43210"
+                name="phone"
+                autoComplete="tel"
+                placeholder="Enter Phone Number"
                 value={phoneInput}
                 onChange={(e) => { setPhoneInput(e.target.value); setError(''); }}
                 className="w-full bg-zinc-950 border border-white/5 rounded-2xl py-5 pl-14 pr-6 font-bold text-sm outline-none focus:border-[#E5D5B3]/20 transition-all font-mono"
@@ -342,6 +344,8 @@ const Login: React.FC = () => {
             <div className="flex justify-center mb-6">
               <input
                 type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
                 placeholder="- - - - - -"
                 value={otpInput}
