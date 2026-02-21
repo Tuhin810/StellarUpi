@@ -329,6 +329,9 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     setError('');
 
     const amtNum = parseFloat(amount);
+    const phone = localStorage.getItem('ching_phone') || '';
+    const currentPin = profile.pin || '0000';
+
     try {
       let recipientPubKey = '';
       const isInternalStellar = selectedContact.id.endsWith('@stellar');
@@ -348,17 +351,22 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
         let ownerSecret: string;
 
-        // Try using the seamless shared secret first
         if ((selectedFamilyWallet.permission as any).sharedSecret) {
           ownerSecret = decryptSecret((selectedFamilyWallet.permission as any).sharedSecret, profile.uid.toLowerCase());
         } else {
-          const vaultKey = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
-          if (!vaultKey) throw new Error("Family authorization missing. Please ask the parent account to remove and re-add you in the Family Manager.");
+          // Smart Decryption for Family Owner Secret
+          let vaultKey = KYCService.deriveEncryptionKey(phone, currentPin);
           ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, vaultKey);
+
+          // Fallback to default if current fails
+          if ((!ownerSecret || !ownerSecret.startsWith('S')) && currentPin !== '0000') {
+            const fallbackKey = KYCService.deriveEncryptionKey(phone, '0000');
+            ownerSecret = decryptSecret(selectedFamilyWallet.ownerProfile.encryptedSecret, fallbackKey);
+          }
         }
 
         if (!ownerSecret || !ownerSecret.startsWith('S')) {
-          throw new Error("Invalid Authorization Key. The family owner may need to re-authorize your access.");
+          throw new Error("Family authorization failed. The owner may need to re-authorize your access or your PIN is out of sync.");
         }
 
         // Apply 5% buffer for merchant/family stability
@@ -399,11 +407,17 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           amtNum.toString(),
           selectedFamilyWallet.ownerProfile.displayName || selectedFamilyWallet.ownerProfile.stellarId.split('@')[0]
         );
-      } else if (isViralLinkMode) {
         // VIRAL LINK FLOW
-        const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
-        if (!password) throw new Error("Vault locked. Please login again.");
-        const secret = decryptSecret(profile.encryptedSecret, password);
+        let password = KYCService.deriveEncryptionKey(phone, currentPin);
+        let secret = decryptSecret(profile.encryptedSecret, password);
+
+        // Fallback
+        if ((!secret || !secret.startsWith('S')) && currentPin !== '0000') {
+          const fallbackPassword = KYCService.deriveEncryptionKey(phone, '0000');
+          secret = decryptSecret(profile.encryptedSecret, fallbackPassword);
+        }
+
+        if (!secret || !secret.startsWith('S')) throw new Error("Vault locked. Please login again.");
 
         setLoading(true);
         const { txHash, tempSecret, amount: sentAmt } = await createViralPayment(secret, (amtNum / xlmRate).toFixed(7));
@@ -437,10 +451,22 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           }
         }
 
-        const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', profile.pin || '0000');
-        if (!password) throw new Error("Vault locked. Please login again.");
+        // Strategy: Try current PIN first, then fallback to '0000' 
+        // Handles cases where vault was NEVER re-keyed after setting a PIN.
+        let password = KYCService.deriveEncryptionKey(phone, currentPin);
+        let secret = decryptSecret(profile.encryptedSecret, password);
 
-        const secret = decryptSecret(profile.encryptedSecret, password);
+        // Fallback to default if current fails
+        if ((!secret || !secret.startsWith('S')) && currentPin !== '0000') {
+          console.log("[Vault] Primary key failed. Trying legacy '0000' fallback...");
+          const fallbackPassword = KYCService.deriveEncryptionKey(phone, '0000');
+          secret = decryptSecret(profile.encryptedSecret, fallbackPassword);
+        }
+
+        if (!secret || !secret.startsWith('S')) {
+          throw new Error("Unable to access Stellar Vault. Your session may have expired or your PIN is out of sync. Please log out and back in once.");
+        }
+
         let hash = '';
 
         if (chillarEnabled) {

@@ -83,13 +83,25 @@ const PaymentLink: React.FC = () => {
 
         setSending(true);
         try {
-            const password = KYCService.deriveEncryptionKey(localStorage.getItem('ching_phone') || '', senderProfile.pin || '0000');
-            if (!password) {
-                setError('Vault locked. Please login again.');
+            const phone = localStorage.getItem('ching_phone') || '';
+            const currentPin = senderProfile.pin || '0000';
+
+            // Smart Decryption Strategy
+            let password = KYCService.deriveEncryptionKey(phone, currentPin);
+            let secret = decryptSecret(senderProfile.encryptedSecret, password);
+
+            // Legacy Fallback (handles old PIN-sync bug)
+            if ((!secret || !secret.startsWith('S')) && currentPin !== '0000') {
+                const fallbackPassword = KYCService.deriveEncryptionKey(phone, '0000');
+                secret = decryptSecret(senderProfile.encryptedSecret, fallbackPassword);
+            }
+
+            if (!secret || !secret.startsWith('S')) {
+                setError('Your Stellar Vault is locked. Try logging out and back in once to sync your keys.');
                 setSending(false);
                 return;
             }
-            const secret = decryptSecret(senderProfile.encryptedSecret, password);
+
             const txHash = await sendPayment(secret, recipient.publicKey, amount, note || 'Payment Link');
 
             // Generate ZK Proof of Payment
