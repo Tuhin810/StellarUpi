@@ -10,6 +10,7 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import { NotificationService } from './services/notification';
 import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import AIAssistant from './components/AIAssistant';
+import Loader from './components/Loader';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading, profile } = useAuth();
@@ -49,7 +50,7 @@ const AppContent: React.FC = () => {
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-[#050505]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#E5D5B3] border-t-transparent"></div>
+        <Loader />
       </div>
     );
   }
