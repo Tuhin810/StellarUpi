@@ -1194,9 +1194,9 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <div className="text-left">
-                      <p className="font-bold text-white text-base leading-none mb-1 capitalize">{contact.name}</p>
-                      <p className="text-[10px] font-bold text-zinc-400 tracking-tight">{contact.id}</p>
+                    <div className="text-left min-w-0 flex-1">
+                      <p className="font-bold text-white text-base leading-none mb-1 capitalize truncate">{contact.name}</p>
+                      <p className="text-[10px] font-bold text-zinc-400 tracking-tight truncate">{contact.id}</p>
                     </div>
                   </div>
                   <div className="p-2 border border-white/5 rounded-xl group-hover:border-[#E5D5B3]/30 transition-all">
@@ -1221,9 +1221,9 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                     <div className="w-12 h-12 bg-zinc-900/50 rounded-2xl flex items-center justify-center text-zinc-700 border border-white/5">
                       <Smartphone size={20} />
                     </div>
-                    <div className="text-left">
-                      <p className="font-bold text-zinc-300 text-base leading-none mb-1 capitalize">{contact.name}</p>
-                      <p className="text-[10px] font-bold text-zinc-600 tracking-tight">{contact.phone}</p>
+                    <div className="text-left min-w-0 flex-1">
+                      <p className="font-bold text-zinc-300 text-base leading-none mb-1 capitalize truncate">{contact.name}</p>
+                      <p className="text-[10px] font-bold text-zinc-600 tracking-tight truncate">{contact.phone}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -1275,9 +1275,9 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <div className="text-left">
-                        <p className="font-bold text-white text-base leading-none mb-1 capitalize">{contact.name}</p>
-                        <p className="text-[10px] font-bold text-zinc-400 tracking-tight">{contact.id}</p>
+                      <div className="text-left min-w-0 flex-1">
+                        <p className="font-bold text-white text-base leading-none mb-1 capitalize truncate">{contact.name}</p>
+                        <p className="text-[10px] font-bold text-zinc-400 tracking-tight truncate">{contact.id}</p>
                       </div>
                     </div>
                     <div className="p-2 border border-white/5 rounded-xl group-hover:border-[#E5D5B3]/30 transition-all">

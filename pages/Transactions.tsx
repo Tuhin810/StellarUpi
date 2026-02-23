@@ -185,7 +185,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
                         {(tx.category === 'Other' || !tx.category) && (isSent ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />)}
                       </div>
                       <div>
-                        <p className={`font-bold ${isRawKey && !names[otherId] ? 'text-xs' : 'text-sm'} leading-none mb-1`}>
+                        <p className={`font-bold ${isRawKey && !names[otherId] ? 'text-xs' : 'text-sm'} leading-none mb-1 truncate`}>
                           {isSent ? `To: ${displayName}` : `From: ${displayName}`}
                         </p>
                         <div className="flex items-center gap-2">

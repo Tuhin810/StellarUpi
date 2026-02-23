@@ -1,13 +1,18 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { UserProfile, FamilyMember } from '../types';
-import { getFamilyMembers, addFamilyMember, removeFamilyMember, getProfileByStellarId } from '../services/db';
-import { ArrowLeft, Plus, User, X, Users } from 'lucide-react';
+import {
+  getFamilyMembers,
+  addFamilyMember,
+  removeFamilyMember,
+  getProfileByStellarId,
+  getUserById
+} from '../services/db';
+import { ArrowLeft, Plus, User, X, Users, Shield, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { decryptSecret, encryptSecret } from '../services/encryption';
 import { KYCService } from '../services/kycService';
 import { getAvatarUrl } from '../services/avatars';
-import { getUserById } from '../services/db';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
   profile: UserProfile | null;
@@ -15,6 +20,7 @@ interface Props {
 
 const FamilyManager: React.FC<Props> = ({ profile }) => {
   const navigate = useNavigate();
+
   const [members, setMembers] = useState<FamilyMember[]>([]);
   const [memberProfiles, setMemberProfiles] = useState<Record<string, UserProfile>>({});
   const [newMemberId, setNewMemberId] = useState('');
@@ -24,38 +30,43 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
   const [showAddForm, setShowAddForm] = useState(false);
 
   const fetchMembers = async () => {
-    if (profile) {
-      const m = await getFamilyMembers(profile.uid);
-      setMembers(m);
+    if (!profile) return;
 
-      const profiles: Record<string, UserProfile> = {};
-      await Promise.all(m.map(async (member) => {
+    const m = await getFamilyMembers(profile.uid);
+    setMembers(m);
+
+    const profiles: Record<string, UserProfile> = {};
+    await Promise.all(
+      m.map(async (member) => {
         const p = await getProfileByStellarId(member.stellarId);
         if (p) profiles[member.stellarId] = p;
-      }));
-      setMemberProfiles(profiles);
-    }
+      })
+    );
+
+    setMemberProfiles(profiles);
   };
 
   useEffect(() => {
     fetchMembers();
   }, [profile]);
 
-  // Calculate total spent by all family members
-  const totalFamilySpent = useMemo(() => {
-    return members.reduce((sum, member) => sum + (member.spentToday || 0), 0);
-  }, [members]);
+  const totalFamilySpent = useMemo(
+    () => members.reduce((sum, m) => sum + (m.spentToday || 0), 0),
+    [members]
+  );
 
-  // Calculate total daily limit
-  const totalDailyLimit = useMemo(() => {
-    return members.reduce((sum, member) => sum + (member.dailyLimit || 0), 0);
-  }, [members]);
+  const totalDailyLimit = useMemo(
+    () => members.reduce((sum, m) => sum + (m.dailyLimit || 0), 0),
+    [members]
+  );
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
+
     setLoading(true);
     setError('');
+
     try {
       const phone = localStorage.getItem('ching_phone') || '';
       const currentPin = profile.pin || '0000';
@@ -63,27 +74,38 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
       let vaultKey = KYCService.deriveEncryptionKey(phone, currentPin);
       let rawSecret = decryptSecret(profile.encryptedSecret, vaultKey);
 
-      // Fallback Strategy: If current PIN fails, try legacy '0000'
       if ((!rawSecret || !rawSecret.startsWith('S')) && currentPin !== '0000') {
         const fallbackKey = KYCService.deriveEncryptionKey(phone, '0000');
         rawSecret = decryptSecret(profile.encryptedSecret, fallbackKey);
       }
 
       if (!rawSecret || !rawSecret.startsWith('S')) {
-        throw new Error("Unable to access your Stellar Vault. Your session might be out of sync. Please logout and login again once to refresh security keys.");
+        throw new Error(
+          'Unable to access your wallet. Please logout and login again.'
+        );
       }
+
       const memberInfo = await getUserById(newMemberId);
-      if (!memberInfo) throw new Error("Target member not found");
+      if (!memberInfo) throw new Error('Target member not found');
 
-      const sharedEncryptedSecret = encryptSecret(rawSecret, memberInfo.uid.toLowerCase());
+      const sharedEncryptedSecret = encryptSecret(
+        rawSecret,
+        memberInfo.uid.toLowerCase()
+      );
 
-      await addFamilyMember(profile.uid, newMemberId, parseFloat(newLimit), sharedEncryptedSecret);
+      await addFamilyMember(
+        profile.uid,
+        newMemberId,
+        parseFloat(newLimit),
+        sharedEncryptedSecret
+      );
+
       setNewMemberId('');
       setNewLimit('');
       setShowAddForm(false);
       fetchMembers();
     } catch (err: any) {
-      setError(err.message || "Failed to add member");
+      setError(err.message || 'Failed to add member');
     } finally {
       setLoading(false);
     }
@@ -91,245 +113,254 @@ const FamilyManager: React.FC<Props> = ({ profile }) => {
 
   const handleRemove = async (memberId: string) => {
     if (!window.confirm('Remove this family member?')) return;
+
     try {
       await removeFamilyMember(memberId);
       fetchMembers();
     } catch (err: any) {
-      setError(err.message || "Failed to remove member");
+      setError(err.message || 'Failed to remove member');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white flex flex-col">
+    <div className="min-h-screen bg-[#020202] text-white flex flex-col relative overflow-hidden">
+      {/* Background Aesthetics */}
+      <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-[#E5D5B3]/5 blur-[100px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] bg-[#C5B38F]/5 blur-[80px] rounded-full pointer-events-none" />
+
       {/* Header */}
-      <div className="pt-5 px-6 flex items-center justify-between">
+      <div className="pt-8 px-6 flex items-center justify-between relative z-10">
         <button
-          onClick={() => navigate("/")}
-          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-white/60 hover:bg-white/10 transition-all"
+          onClick={() => navigate('/')}
+          className="w-11 h-11 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl active:scale-95 transition-all text-zinc-300"
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-lg font-semibold">Family Vault</h1>
+
+        <div className="text-center">
+          <h1 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">Family Vault</h1>
+          <div className="flex items-center justify-center gap-1.5 mt-1">
+            <Shield size={10} className="text-[#C5B38F]" />
+            <span className="text-[9px] font-black text-[#C5B38F]/80 uppercase tracking-widest">Secure Access Control</span>
+          </div>
+        </div>
+
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
-          className="w-10 h-10 flex items-center justify-center rounded-full bg-[#E5D5B3]/20 text-[#E5D5B3] hover:bg-[#E5D5B3]/30 transition-all"
+          onClick={() => setShowAddForm(true)}
+          className="w-11 h-11 flex items-center justify-center bg-[#E5D5B3] text-black rounded-2xl active:scale-95 transition-all shadow-[0_0_20px_rgba(229,213,179,0.2)]"
         >
-          <Plus size={20} />
+          <Plus size={22} />
         </button>
       </div>
 
-      {/* Centered Circular Balance Card */}
-      <div className="flex flex-col items-center justify-center py-12">
-        <div className="relative">
-          {/* Outer glow ring */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#E5D5B3]/20 via-transparent to-[#E5D5B3]/10 blur-xl scale-110"></div>
+      <div className="flex-1 px-6 pt-10 pb-32 overflow-y-auto no-scrollbar relative z-10">
 
-          {/* Main circular card */}
-          <div className="relative w-64 h-64 rounded-full bg-gradient-to-br from-[#1a2520] via-[#0d1510] to-[#1a2520] border border-white/10 flex flex-col items-center justify-center shadow-2xl">
-            {/* Inner subtle ring */}
-            <div className="absolute inset-4 rounded-full border border-white/5"></div>
+        {/* Main Spending Card - Project Theme Style */}
+        <div className="flex flex-col items-center py-6">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="w-72 h-72 rounded-full bg-gradient-to-br from-zinc-900 via-zinc-900 to-black border border-white/10 relative flex flex-col items-center justify-center shadow-2xl overflow-hidden"
+          >
+            {/* Internal Aesthetic Glows */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#E5D5B3]/10 via-transparent to-transparent pointer-events-none" />
+            <div className="absolute -inset-10 bg-white/[0.02] blur-3xl pointer-events-none" />
 
-            {/* Content */}
-            <p className="text-white/40 text-sm font-medium mb-2">Family Spending</p>
-            <p className="text-4xl font-bold text-white tracking-tight">
-              ₹{totalFamilySpent.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">
+              Aggregate Spending
             </p>
-            <p className="text-white/30 text-xs mt-2">Today's Usage</p>
 
-            {/* Member avatars at bottom */}
-            <div className="flex items-center mt-6 -space-x-2">
-              {members.slice(0, 3).map((member, idx) => (
-                <div
-                  key={member.id}
-                  className="w-9 h-9 rounded-full border-2 border-[#0d1510] overflow-hidden bg-zinc-800"
-                >
-                  <img
-                    src={getAvatarUrl(memberProfiles[member.stellarId]?.avatarSeed || member.stellarId)}
-                    className="w-full h-full object-cover"
-                    alt={member.stellarId}
-                  />
-                </div>
-              ))}
-              {members.length > 3 && (
-                <div className="w-9 h-9 rounded-full border-2 border-[#0d1510] bg-[#E5D5B3]/20 flex items-center justify-center text-[10px] font-bold text-[#E5D5B3]">
-                  +{members.length - 3}
-                </div>
-              )}
-              {members.length === 0 && (
-                <div className="w-9 h-9 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center">
-                  <Users size={14} className="text-white/30" />
-                </div>
-              )}
+            <div className="flex items-baseline gap-1.5 mt-2">
+              <span className="text-2xl font-black text-zinc-400">₹</span>
+              <p className="text-5xl font-black tracking-tighter text-white tabular-nums">
+                {Math.floor(totalFamilySpent).toLocaleString('en-IN')}
+                <span className="text-2xl text-zinc-500">.{(totalFamilySpent % 1).toFixed(2).split('.')[1]}</span>
+              </p>
+            </div>
+
+          </motion.div>
+
+          <div className="flex gap-12 mt-10">
+            <div className="text-center">
+              <p className="text-2xl font-black text-white">{members.length}</p>
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1 pl-1">Members</p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-2xl font-black text-[#E5D5B3]">
+                ₹{totalDailyLimit.toLocaleString('en-IN')}
+              </p>
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1 pl-1">Daily Limit</p>
             </div>
           </div>
         </div>
 
-        {/* Stats below circle */}
-        <div className="flex gap-8 mt-8">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-white">{members.length}</p>
-            <p className="text-[10px] uppercase tracking-widest text-white/40">Members</p>
-          </div>
-          <div className="w-px bg-white/10"></div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-[#E5D5B3]">₹{totalDailyLimit.toLocaleString('en-IN')}</p>
-            <p className="text-[10px] uppercase tracking-widest text-white/40">Daily Limit</p>
-          </div>
+        {/* Members List Header */}
+        <div className="mt-12 flex items-center justify-between mb-6">
+          <h3 className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em]">Authorized Membership List</h3>
+          <div className="h-px flex-1 bg-white/5 mx-4" />
+          <Users size={14} className="text-zinc-800" />
         </div>
-      </div>
 
-      {/* Add Member Bottom Drawer */}
-      <div
-        className={`fixed inset-0 z-50 transition-opacity duration-300 ${showAddForm ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-      >
-        {/* Backdrop */}
-        <div
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          onClick={() => setShowAddForm(false)}
-        />
-
-        {/* Drawer */}
-        <div
-          className={`absolute bottom-0 left-0 right-0 bg-gradient-to-b from-zinc-900 to-black rounded-t-[2rem] transition-transform duration-300 ease-out ${showAddForm ? 'translate-y-0' : 'translate-y-full'}`}
-          style={{ height: '50vh', minHeight: '380px' }}
-        >
-          {/* Handle */}
-          <div className="flex justify-center pt-3 pb-2">
-            <div className="w-10 h-1 bg-zinc-700 rounded-full" />
-          </div>
-
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 pb-4 pt-3">
-            <div>
-              <h3 className="text-xl font-black text-white tracking-tight">Add Family Member</h3>
-              <p className="text-[14px] font-black text-zinc-500 mt-1">Share your wallet access</p>
-            </div>
-            <button
-              onClick={() => setShowAddForm(false)}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-all"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Content */}
-          <form onSubmit={handleAdd} className="px-6 flex flex-col gap-5">
-            {/* Member ID Input */}
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                <User size={20} className="text-zinc-500" />
-              </div>
-              <input
-                type="text"
-                placeholder="Member Stellar ID"
-                required
-                value={newMemberId}
-                onChange={(e) => setNewMemberId(e.target.value)}
-                autoFocus={showAddForm}
-                className="w-full pl-12 pr-4 py-4 bg-zinc-800/60 border border-white/10 rounded-2xl text-white text-lg font-medium placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/40 focus:ring-2 focus:ring-[#E5D5B3]/20 transition-all"
-              />
-            </div>
-
-            {/* Daily Limit Input */}
-            <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                <span className="text-zinc-500 text-xl font-medium">₹</span>
-              </div>
-              <input
-                type="number"
-                placeholder="Daily Limit"
-                required
-                value={newLimit}
-                onChange={(e) => setNewLimit(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-zinc-800/60 border border-white/10 rounded-2xl text-white text-lg font-medium placeholder-zinc-600 focus:outline-none focus:border-[#E5D5B3]/40 focus:ring-2 focus:ring-[#E5D5B3]/20 transition-all"
-              />
-            </div>
-
-            {/* Error Message */}
-            {error && (
-              <p className="text-rose-400 text-sm font-medium px-2">{error}</p>
-            )}
-
-            {/* Add Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full gold-gradient text-black py-4 rounded-2xl font-black text-lg shadow-xl active:scale-[0.98] transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3"
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-              ) : (
-                <>
-                  <Plus size={20} />
-                  <span>Add Member</span>
-                </>
-              )}
-            </button>
-
-            {/* Hint Text */}
-            <p className="text-zinc-500 text-xs font-medium text-center">
-              Member will be able to spend from your wallet within the daily limit
-            </p>
-          </form>
-        </div>
-      </div>
-
-      {/* Members List */}
-      <div className="flex-1 px-6 pb-32">
-        <p className="text-[10px] uppercase tracking-[0.2em] text-white/30 mb-4">Active Members</p>
-
-        {members.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 bg-white/5 rounded-3xl border border-dashed border-white/10">
-            <Users size={32} className="text-white/20 mb-3" />
-            <p className="text-white/40 text-sm">No family members yet</p>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="mt-4 text-[#E5D5B3] text-sm font-medium"
-            >
-              + Add your first member
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {members.map((member) => (
-              <div
-                key={member.id}
-                className="bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-2xl flex items-center gap-4 group hover:bg-white/[0.07] transition-all"
+        {/* Members List */}
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {members.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-zinc-900/40 border border-dashed border-white/10 rounded-3xl p-12 text-center"
               >
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 flex-shrink-0">
-                  <img
-                    src={getAvatarUrl(memberProfiles[member.stellarId]?.avatarSeed || member.stellarId)}
-                    className="w-full h-full object-cover"
-                    alt={member.stellarId}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{memberProfiles[member.stellarId]?.displayName || member.stellarId.split('@')[0]}</p>
-                  <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-tight">@{member.stellarId.split('@')[0]}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className="text-[#E5D5B3] text-xs font-medium">₹{member.spentToday.toLocaleString()}</span>
-                    <span className="text-white/20 text-xs">/</span>
-                    <span className="text-white/40 text-xs">₹{member.dailyLimit.toLocaleString()}</span>
+                <Users size={32} className="mx-auto text-zinc-700 mb-4" />
+                <p className="text-zinc-500 text-[10px] font-black uppercase tracking-widest">
+                  No Active Authorized Members
+                </p>
+              </motion.div>
+            ) : (
+              members.map((member, idx) => (
+                <motion.div
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: idx * 0.05 }}
+                  key={member.id}
+                  className="bg-zinc-900/60 backdrop-blur-xl border border-white/5 rounded-3xl p-5 hover:bg-zinc-900/80 transition-colors group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl overflow-hidden bg-zinc-800 border border-white/10 shadow-xl">
+                      <img
+                        src={getAvatarUrl(
+                          memberProfiles[member.stellarId]?.avatarSeed ||
+                          member.stellarId
+                        )}
+                        className="w-full h-full object-cover grayscale transition-all group-hover:grayscale-0"
+                        alt={member.stellarId}
+                      />
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-black text-sm text-white/90 uppercase tracking-tight">
+                          {memberProfiles[member.stellarId]?.displayName ||
+                            member.stellarId.split('@')[0]}
+                        </p>
+                        <button
+                          onClick={() => handleRemove(member.id)}
+                          className="text-zinc-600 hover:text-rose-500 transition-colors p-1"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[11px] font-black tabular-nums">
+                        <span className="text-[#E5D5B3]">
+                          ₹{member.spentToday.toLocaleString()}
+                        </span>
+                        <span className="text-zinc-700 uppercase tracking-widest text-[9px]">
+                          Limit: ₹{member.dailyLimit.toLocaleString()}
+                        </span>
+                      </div>
+
+                      <div className="mt-3 h-1.5 bg-black rounded-full overflow-hidden border border-white/[0.03]">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{
+                            width: `${Math.min((member.spentToday / member.dailyLimit) * 100, 100)}%`
+                          }}
+                          className="h-full bg-gradient-to-r from-[#E5D5B3] to-[#C5B38F] rounded-full shadow-[0_0_10px_rgba(229,213,179,0.2)]"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  {/* Progress bar */}
-                  <div className="mt-2 h-1 bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-[#E5D5B3] to-[#c4b493] rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min((member.spentToday / member.dailyLimit) * 100, 100)}%` }}
+                </motion.div>
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* Add Member Drawer */}
+      <AnimatePresence>
+        {showAddForm && (
+          <div className="fixed inset-0 z-[100] flex items-end justify-center px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md"
+              onClick={() => setShowAddForm(false)}
+            />
+
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 200 }}
+              className="relative w-full max-w-md bg-zinc-950 rounded-t-[3rem] p-8 pb-12 border-t border-white/10"
+            >
+              <div className="w-10 h-1 bg-white/10 rounded-full mx-auto mb-8" />
+
+              <div className="mb-8">
+                <h3 className="text-xl font-black text-white tracking-tight uppercase">Provision Member</h3>
+                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1">Configure individual spending authority</p>
+              </div>
+
+              <form onSubmit={handleAdd} className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest block mb-2 px-1">
+                    Member Stellar ID
+                  </label>
+                  <div className="relative group">
+                    <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 group-focus-within:text-[#E5D5B3] transition-colors" />
+                    <input
+                      type="text"
+                      required
+                      value={newMemberId}
+                      onChange={(e) => setNewMemberId(e.target.value)}
+                      className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-white font-black outline-none focus:border-[#E5D5B3]/20 transition-all text-sm placeholder:text-zinc-800"
+                      placeholder="user@domain"
                     />
                   </div>
                 </div>
+
+                <div>
+                  <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest block mb-2 px-1">
+                    Daily Expenditure Limit (₹)
+                  </label>
+                  <div className="relative group">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 font-black text-sm group-focus-within:text-[#E5D5B3] transition-colors">₹</span>
+                    <input
+                      type="number"
+                      required
+                      value={newLimit}
+                      onChange={(e) => setNewLimit(e.target.value)}
+                      className="w-full bg-black/40 border border-white/5 rounded-2xl py-4 pl-12 pr-6 text-white font-black outline-none focus:border-[#E5D5B3]/20 transition-all text-sm placeholder:text-zinc-800"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl">
+                    <p className="text-rose-500 text-[10px] font-black uppercase tracking-widest">{error}</p>
+                  </div>
+                )}
+
                 <button
-                  onClick={() => handleRemove(member.id)}
-                  className="w-8 h-8 flex items-center justify-center rounded-full text-white/30 hover:text-rose-400 hover:bg-rose-400/10 transition-all opacity-0 group-hover:opacity-100"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-[#E5D5B3] text-black py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all disabled:opacity-20 flex items-center justify-center"
                 >
-                  <X size={16} />
+                  {loading ? (
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: "linear" }} className="w-5 h-5 border-2 border-black/20 border-t-black rounded-full" />
+                  ) : 'Grant Authorization'}
                 </button>
-              </div>
-            ))}
+              </form>
+            </motion.div>
           </div>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 };
