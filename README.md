@@ -1,506 +1,181 @@
 <p align="center">
-  <img src="https://api.dicebear.com/7.x/shapes/svg?seed=Ching Pay&backgroundColor=E5D5B3&size=128" alt="Ching Pay Logo" width="100" height="100" />
+  <img src="https://api.dicebear.com/7.x/shapes/svg?seed=StellarPay&backgroundColor=E5D5B3&size=128" alt="StellarUpi Logo" width="120" height="120" />
 </p>
 
-<h1 align="center">Ching Pay UPI</h1>
+<h1 align="center">StellarUpi (Stellar Pay)</h1>
 
 <p align="center">
-  <strong>The Next-Generation Web3 UPI Payment System</strong>
+  <strong>Bridging Decentralized Finance with the Familiarity of UPI</strong>
+  <br />
+  <em>The Next-Generation Web3 Payment System built on the Stellar Blockchain</em>
 </p>
 
 <p align="center">
+  <a href="#-vision">Vision</a> •
   <a href="#-features">Features</a> •
   <a href="#-tech-stack">Tech Stack</a> •
   <a href="#-architecture">Architecture</a> •
-  <a href="#-getting-started">Getting Started</a> •
-  <a href="#-api-reference">API Reference</a>
+  <a href="#-legal--compliance">Compliance</a> •
+  <a href="#-roadmap">Roadmap</a> •
+  <a href="#-getting-started">Getting Started</a>
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/Stellar-Blockchain-7C3AED?style=for-the-badge&logo=stellar&logoColor=white" alt="Stellar Blockchain" />
-  <img src="https://img.shields.io/badge/React-19.x-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
-  <img src="https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React 19" />
+  <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Firebase-Realtime-FFCA28?style=for-the-badge&logo=firebase&logoColor=black" alt="Firebase" />
-  <img src="https://img.shields.io/badge/Vite-6.x-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/Vite-6-646CFF?style=for-the-badge&logo=vite&logoColor=white" alt="Vite" />
+  <img src="https://img.shields.io/badge/PWA-Ready-009688?style=for-the-badge&logo=pwa&logoColor=white" alt="PWA Ready" />
 </p>
 
 ---
 
-## 📖 Overview
+## 🌟 Vision
 
-**Ching Pay UPI** is a decentralized payment application that bridges the familiar UPI experience with the power of the Stellar blockchain. It enables instant, secure, and near-zero-cost transactions using XLM (Lumens), while providing a UPI-like experience with human-readable payment addresses (e.g., `alex@stellar`).
+**StellarUpi** (formerly known as Ching Pay) aims to revolutionize the adoption of blockchain technology in India and beyond by mapping the complex world of Web3 onto the highly successful, intuitive **UPI (Unified Payments Interface)** model. 
 
-The application supports Web3 wallet authentication, family spending controls, group expense splitting, real-time chat with payment capabilities, and seamless fiat on/off-ramp integration.
+Our mission is to eliminate the friction of long, hexadecimal wallet addresses and replace them with human-readable IDs (e.g., `user@stellar`), making cross-border and local crypto transactions as easy as scanning a QR code or sending a text message.
 
 ---
 
 ## ✨ Features
 
-### 🔐 **Web3 Authentication**
-- **MetaMask & WalletConnect Integration** - Connect using any Web3 wallet via the universal Web3Modal
-- **Signature-Based Vault Encryption** - Stellar private keys are encrypted using your wallet's cryptographic signature
-- **Auto-Generated UPI IDs** - Human-readable payment IDs derived from your Ethereum address (e.g., `0xab12cd@stellar`)
-- **Session Persistence** - Secure session management with automatic wallet change detection
+### 🔐 **Advanced Web3 Onboarding**
+- **Wallet-agnostic Login**: Seamlessly connect using **MetaMask**, **WalletConnect**, or **Coinbase Wallet** via Web3Modal.
+- **Auto-Generated UPI IDs**: Your Ethereum address automatically maps to a user-friendly Stellar ID (e.g., `0xab12...cd@stellar`).
+- **Signature-based Encryption**: Your Stellar private keys are encrypted client-side using your Web3 wallet's signature. No plaintext keys ever touch a server.
 
-### 🔔 **Premium In-App Notifications**
-- **Dynamic Real-Time Alerts** - Custom notification system featuring instant top-of-screen status banners.
-- **Chat & Request Notifications** - Get notified immediately when someone messages you or sends a payment request.
-- **Real-Time Payment Listeners** - Foreground listeners for incoming transactions with interactive "Quick Actions".
-- **Visual Context** - Notifications include contact names, message previews, and specific icons for payments, splits, and info.
-- **Haptic Feedback** - Integrated vibrational alerts for iOS/Android when receiving money or requests.
+### 💸 **Seamless Payments**
+- **UPI-Style Transfers**: Send XLM and other Stellar assets using simple `name@stellar` handles.
+- **QR Code Ecosystem**: Full support for scanning and generating payment QR codes.
+- **Path Payments (USDC/XLM)**: Automatic path-finding for the best exchange rates when sending different assets.
+- **Deep-Link Integration**: Shareable payment links that open directly in the app with pre-filled details.
 
-### 💸 **Send & Receive Payments**
-- **UPI-Style Transfers** - Send money using simple `name@stellar` addresses
-- **QR Code Payments** - Generate and scan QR codes for instant payments
-- **Deep-Link Payment URLs** - Shareable payment links with pre-filled recipient and amount
-- **Transaction Categories** - Categorize payments (Shopping, Food, Travel, Bills, Entertainment, Other)
-- **Transaction Memos** - Add custom notes to your payments
-- **Real-Time Balance Updates** - Live XLM balance with INR conversion
-
-### 👨‍👩‍👧‍👦 **Family Wallet System**
-- **Shared Family Vault** - Parents can share wallet access with family members
-- **Daily Spending Limits** - Set configurable daily spending caps for each member
-- **Spend Tracking** - Monitor real-time spending against daily limits with progress bars
-- **Multi-Family Support** - Members can belong to multiple family wallets
-- **Seamless Authorization** - Encrypted secret sharing without exposing the master key
-
-### 👥 **Group Expense Splitting**
-- **Create Split Groups** - Form groups with multiple members for shared expenses
-- **Equal Split** - Automatically divide expenses equally among selected participants
-- **Custom Split Amounts** - Specify exact amounts for each participant
-- **Real-Time Group Chat** - Communicate within groups with integrated messaging
-- **Expense Activity Feed** - View chronological history of splits and messages
-- **Settlement Tracking** - Track pending and paid amounts for each participant
-
-### 💬 **In-App Chat & Payment Requests**
-- **Peer-to-Peer Messaging** - Real-time chat with any Ching Pay user
-- **Payment Request System** - Request money from contacts with one tap
-- **Transaction History in Chat** - View all payments with a contact inline
-- **Quick Pay from Chat** - Send payments directly from conversation threads
-
-### 💳 **Fiat On/Off-Ramp**
-- **Buy XLM with INR** - Integrated Onramp.money widget for purchasing XLM
-  - Supports UPI, Credit/Debit Cards, and Bank Transfers
-  - One-time KYC verification
-  - Real-time exchange rate display
-- **Sell XLM for INR** - Integrated Transak widget for withdrawals
-  - Direct bank account transfers
-  - 1-2 day settlement time
-- **Live Exchange Rates** - CoinGecko API integration for real-time XLM/INR rates
-
-### 🔄 **AutoPay & Recurring Payments**
-- **Subscription Management** - Setup automated payments for bills and subscriptions
-- **Frequency Options** - Daily, weekly, or monthly payment schedules
-- **Next Payment Preview** - View upcoming scheduled payments
+### 👨‍👩‍👧‍👦 **Family & Shared Economy**
+- **Family Vaults**: Parents can set up a master vault and add family members with granular controls.
+- **Daily Spending Limits**: Set and track real-time spending caps for children or dependents.
+- **Group Bill Splitting**: Create groups, chat in real-time, and split expenses equally or with custom amounts.
+- **Integrated Group Chat**: Discuss transactions and settle debts without leaving the app.
 
 ### 🤖 **Raze AI Assistant**
-- **Neural Financial Intelligence** - A powerful AI backbone (Gemini 1.5 Flash) integrated for instant financial insights.
-- **Voice-Activated Queries** - Transcribe and process voice requests for hands-free operations.
-- **Smart Identity Resolution** - Automatically resolves contacts and Stellar IDs from conversational context.
-- **Transaction Analysis** - Ask about your spending habits, debts, or pending splits in natural language.
-- **Deep Tool Integration** - AI can search users, fetch financial summaries, and track group debts.
+- **Neural Financial Intelligence**: Powered by **Gemini 1.5 Flash**, Raze provides instant insights into your spending habits.
+- **Voice-to-Action**: Send money or check balances using natural voice commands.
+- **Automated Identity Resolution**: Raze resolves names to Stellar addresses instantly from chat context.
+- **AI Receipt Scanner (Beta)**: Coming soon - OCR parsing of physical receipts into split expenses.
 
-### 🛡️ **Security & Biometric Features**
-- **Biometric Passkey Integration (WebAuthn)** - Securely authorize transactions using **FaceID**, **TouchID**, or Windows Hello.
-- **Hardware-Backed Cryptography** - FIDO2/WebAuthn standard for phishing-resistant authentication.
-- **4-Digit Transaction PIN** - Secure fallback PIN protection for all transactions.
-- **Premium Security Alerts** - Dynamic "Unsecured Vault" detection with proactive remediation banners on the Dashboard.
-- **AES-256 Encryption** - Military-grade encryption for local Stellar secrets.
-- **KYC Identity Verification** - Secure PAN-based KYC verification with on-device scanning and hashing.
+### 🛡️ **Premium Security & Privacy**
+- **Biometric Auth (WebAuthn)**: Authorize transactions using **FaceID**, **TouchID**, or Windows Hello.
+- **Hardware-Level Protection**: FIDO2 standards ensure your transactions are tamper-proof.
+- **On-Device KYC**: Secure identity verification using Tesseract.js for private, locally processed OCR.
+- **Real-Time Fraud Detection**: AI-driven monitoring for suspicious transaction patterns.
 
-### 🌐 **Network Flexibility**
-- **Mainnet Live** - Successfully processed real-world transactions on the Stellar Mainnet.
-- **Testnet Support** - Sandbox environment for testing and development.
-- **Automatic Friendbot Funding** - Instant test wallet funding on Testnet.
-- **Network-Aware UI** - Real-time indicators showing currently active network.
-
-### 📱 **Progressive Web App (PWA)**
-- **Installable Application** - Add to home screen on mobile devices
-- **Offline Capabilities** - Basic functionality without network
-- **Native App Feel** - Full-screen mode with custom status bar styling
-- **Apple iOS Optimization** - Web app capable with black-translucent status bar
+### 💳 **Fiat Gateway**
+- **Buy XLM with INR**: Direct UPI/NetBanking integration via Onramp.money.
+- **Global Off-ramp**: Withdraw to bank accounts via Transak integration.
+- **Live Market Data**: Real-time XLM/INR rates via CoinGecko.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### **Frontend**
-| Technology | Purpose |
-|------------|---------|
-| **React 19** | UI library with concurrent features |
-| **TypeScript 5.8** | Type-safe development |
-| **Vite 6** | Fast build & HMR tool |
-| **Framer Motion 12** | Premium UI animations & transitions |
-| **Lucide React** | Modern icon library |
-| **Tesseract.js** | On-device OCR for identity scanning |
+### **Frontend & UI**
+- **Core**: React 19, TypeScript 5.8, Vite 6
+- **Styling**: Tailwind CSS, Framer Motion (for smooth micro-interactions)
+- **Icons**: Lucide React
+- **PWA**: Vite PWA Plugin for offline-first experience
 
-### **Blockchain**
-| Technology | Purpose |
-|------------|---------|
-| **Stellar SDK 14.x** | Stellar blockchain interaction |
-| **Horizon API** | Transaction submission & queries |
-| **Web3Modal** | Universal wallet connection |
-| **Ethers.js 6** | Ethereum wallet integration |
-
-### **Backend Services**
-| Service | Purpose |
-|---------|---------|
-| **Firebase Firestore** | Real-time NoSQL database |
-| **Firebase Auth** | Anonymous authentication |
-| **Firebase Analytics** | Usage tracking |
-
-### **Third-Party Integrations**
-| Service | Purpose |
-|---------|---------|
-| **Onramp.money** | INR → XLM purchases |
-| **Transak** | XLM → INR withdrawals |
-| **CoinGecko API** | Real-time exchange rates |
-| **DiceBear Avatars** | Dynamic avatar generation |
-| **HTML5 QrCode** | QR code scanning |
-| **CryptoJS** | AES encryption utilities |
+### **Core Infrastructure**
+- **Blockchain**: Stellar SDK, Horizon API
+- **Web3**: Web3Modal, Ethers.js 6
+- **Database**: Firebase Firestore (Real-time updates)
+- **Identity**: Tesseract.js (OCR), WebAuthn API (Biometrics)
 
 ---
 
 ## 🏗️ Architecture
 
-### **Project Structure**
+### **Data Flow**
+1. **Auth**: Web3 Wallet Sign → AES Key Generation → Stellar Vault Unlock.
+2. **Payment**: User Input → Stellar Path Finding → Transaction Signing → Horizon Submission.
+3. **Storage**: Firebase stores encrypted metadata, transaction history, and group states.
 
-```
-Ching Pay-upi/
-├── index.html              # PWA-enabled entry point
-├── index.tsx               # React app bootstrap
-├── index.css               # Global styles with gold gradient
-├── App.tsx                 # Root component with providers
-├── types.ts                # TypeScript interfaces
-├── vite.config.ts          # Vite + PWA configuration
-│
-├── context/
-│   ├── AuthContext.tsx     # Web3 authentication state
-│   └── NetworkContext.tsx  # Stellar network management
-│
-├── pages/
-│   ├── Login.tsx           # Web3 wallet connection
-│   ├── Dashboard.tsx       # Main home screen
-│   ├── SendMoney.tsx       # Payment flow with family support
-│   ├── ReceiveMoney.tsx    # QR code generation
-│   ├── QRScanner.tsx       # Camera-based QR scanning
-│   ├── Transactions.tsx    # Transaction history
-│   ├── TransactionDetail.tsx # Individual transaction view
-│   ├── ChatPage.tsx        # P2P messaging with payments
-│   ├── GroupPage.tsx       # Group expense management
-│   ├── FamilyManager.tsx   # Family wallet administration
-│   ├── Profile.tsx         # User settings & security
-│   ├── AddMoney.tsx        # Fiat on-ramp interface
-│   ├── Withdraw.tsx        # Fiat off-ramp interface
-│   ├── AutoPay.tsx         # Recurring payments
-│   ├── PaymentLink.tsx     # Deep-link payment handler
-│   └── SharedWallet.tsx    # Shared wallet interface
-│
-├── components/
-│   ├── BalanceCard.tsx     # Balance display widget
-│   ├── BottomNav.tsx       # Navigation bar
-│   ├── ContactSelector.tsx # Contact picker
-│   ├── CreateGroupModal.tsx # Group creation UI
-│   ├── DashboardHeader.tsx # App header
-│   ├── PeopleList.tsx      # Contacts & groups list
-│   ├── ProtectedRoute.tsx  # Auth guard wrapper
-│   ├── QuickActions.tsx    # Action buttons grid
-│   ├── ReceiveQRModal.tsx  # QR code modal
-│   ├── SideDrawer.tsx      # Navigation drawer
-│   ├── SuccessScreen.tsx   # Payment success animation
-│   ├── UpiDrawer.tsx       # UPI ID input drawer
-│   └── Group/
-│       ├── SplitExpenseDrawer.tsx  # Create split UI
-│       ├── ManageMembersDrawer.tsx # Group member management
-│       └── ActivityItem.tsx        # Group activity feed item
-│
-├── services/
-│   ├── stellar.ts          # Stellar blockchain operations
-│   ├── firebase.ts         # Firebase initialization
-│   ├── db.ts               # Firestore data operations
-│   ├── encryption.ts       # AES encryption utilities
-│   ├── web3.ts             # Web3Modal configuration
-│   ├── onramp.ts           # Onramp.money integration
-│   └── transak.ts          # Transak integration
-│
-└── routes/
-    └── AppRoutes.tsx       # Route definitions
-```
-
-### **Data Models**
-
-#### UserProfile
-```typescript
-interface UserProfile {
-  uid: string;              // Ethereum address (lowercase)
-  email: string;            // Generated email identifier
-  stellarId: string;        // UPI-style ID (e.g., "alex@stellar")
-  publicKey: string;        // Stellar public key
-  encryptedSecret: string;  // AES-encrypted Stellar secret
-  isFamilyOwner: boolean;   // Can manage family members
-  ownerId?: string;         // Parent account UID (if family member)
-  displayName?: string;     // Custom display name
-  avatarSeed?: string;      // DiceBear avatar seed
-  pin?: string;             // Transaction PIN
-  dailyLimit?: number;      // Personal spending limit
-  spentToday?: number;      // Today's spending amount
-  lastSpentDate?: string;   // Last spend date for reset
-  passkeyEnabled?: boolean; // Biometric auth toggle
-  passkeyCredentialId?: string; // WebAuthn credential ID
-  kycVerified?: boolean;    // Account verification status
-  panHash?: string;         // Salted hash of PAN for identity
-}
-```
-
-#### TransactionRecord
-```typescript
-interface TransactionRecord {
-  id: string;
-  fromId: string;           // Sender's stellarId
-  toId: string;             // Recipient's stellarId
-  fromName: string;         // Sender display name
-  toName: string;           // Recipient display name
-  amount: number;           // Amount in INR
-  currency: string;         // 'INR' or 'XLM'
-  timestamp: Timestamp;     // Firestore timestamp
-  status: 'SUCCESS' | 'FAILED' | 'PENDING';
-  memo?: string;            // Transaction note
-  txHash?: string;          // Stellar transaction hash
-  isFamilySpend: boolean;   // Family wallet transaction
-  spenderId?: string;       // Actual spender's stellarId
-  category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
-}
-```
-
-#### SplitGroup
-```typescript
-interface SplitGroup {
-  id: string;
-  name: string;
-  members: string[];        // Array of stellarIds
-  createdBy: string;        // Creator's stellarId
-  avatarSeed: string;       // Group avatar seed
-  timestamp: Timestamp;
-}
-```
-
-#### SplitExpense
-```typescript
-interface SplitExpense {
-  id: string;
-  groupId: string;
-  description: string;
-  totalAmount: number;
-  paidBy: string;           // Who paid initially
-  splitType: 'equal' | 'percentage';
-  participants: {
-    stellarId: string;
-    amount: number;         // Their share
-    status: 'PENDING' | 'PAID';
-    txHash?: string;
-  }[];
-  timestamp: Timestamp;
-}
-```
-
-### **Authentication Flow**
-
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   User Opens    │────▶│   Web3Modal      │────▶│  Sign Message   │
-│   Application   │     │   Connection     │     │   (MetaMask)    │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                          │
-                                                          ▼
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Dashboard     │◀────│   Store Address  │◀────│  Create/Load    │
-│   Displayed     │     │   & Signature    │     │   Stellar Vault │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
-```
-
-### **Payment Flow**
-
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  Select Contact │────▶│   Enter Amount   │────▶│  Select Source  │
-│  or Scan QR     │     │   & Category     │     │  (Wallet/Family)│
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                          │
-                        ┌──────────────────┐              ▼
-                        │  PIN Validation  │◀────┬────────────────┐
-                        │  (if enabled)    │     │ Confirm Payment│
-                        └────────┬─────────┘     └────────────────┘
-                                 │
-                                 ▼
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ Success Screen  │◀────│ Record to Firebase│◀────│  Stellar TX     │
-│ with Animation  │     │ & Update Limits  │     │  Submission     │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
+### **Directory Structure**
+```text
+/src
+├── components/   # Atomic UI components
+├── context/      # Global state (Auth, Network)
+├── hooks/        # Reusable logic
+├── pages/        # Route-level views
+├── services/     # API & Blockchain logic
+├── utils/        # Helper functions
+└── types.ts      # Global TS interfaces
 ```
 
 ---
 
-## 🚀 Getting Started
+## ⚖️ Legal & Compliance
 
-### Prerequisites
+StellarUpi is designed to operate as a **Virtual Digital Asset Service Provider (VDASP)** under the PMLA guidelines.
 
-- **Node.js 18+** and **npm 9+**
-- **MetaMask** browser extension or mobile app
-- **Modern browser** with WebCrypto API support
+- **FIU-IND Ready**: Architecture supports reporting of suspicious transactions.
+- **TDS Compliance**: Automated 1% TDS calculation logic for sell/swap events.
+- **Taxation Support**: Generates annual tax statements for 30% flat capital gains reporting.
+- **Identity Verification**: Multi-layer KYC (PAN/Aadhaar) with on-device processing.
 
-### Installation
+> For detailed policy, see [public/legal_compliance_policy.md](public/legal_compliance_policy.md)
 
+---
+
+## 🚀 Roadmap
+
+### **Phase 1: Foundation (Completed)**
+- [x] Web3 Authentication & Stellar Vault
+- [x] P2P Payments & QR Scanner
+- [x] Family Wallet System
+- [x] Initial Raze AI Integration
+
+### **Phase 2: Growth (Q1 2026)**
+- [ ] **Accountless Onboarding**: Use Stellar Claimable Balances to send money to people who don't have a wallet yet.
+- [ ] **Multi-Asset Path Payments**: Support for USDC, ARST, and other Stellar anchors with automatic path-finding.
+- [ ] **AI Receipt Scanning**: Full integration of Gemini OCR for group expense automation.
+
+### **Phase 3: Scaling (Q2 2026)**
+- [ ] **Soroban Smart Contracts**: Move shared wallet logic to on-chain smart contracts for trustless escrow.
+- [ ] **Merchant SDK**: Simplified API for local vendors to accept Stellar payments.
+
+---
+
+## 📦 Getting Started
+
+### **1. Prerequisites**
+- Node.js 18.x or 20.x
+- A Web3 Wallet (MetaMask, Rabby, etc.)
+- A WalletConnect Project ID (Free from [WalletConnect Cloud](https://cloud.walletconnect.com))
+
+### **2. Setup**
 ```bash
-# Clone the repository
+# Clone the repo
 git clone https://github.com/Tuhin810/StellarUpi.git
-cd Ching Pay-upi
+cd StellarUpi
 
 # Install dependencies
 npm install
 
-# Start development server
+# Create .env file
+echo "VITE_WALLETCONNECT_PROJECT_ID=your_id_here" > .env
+```
+
+### **3. Run Development**
+```bash
 npm run dev
 ```
-
-### Environment Variables
-
-Create a `.env.local` file:
-
-```env
-VITE_WALLETCONNECT_PROJECT_ID=your_project_id
-```
-
-> **Note:** Get your WalletConnect Project ID from [cloud.walletconnect.com](https://cloud.walletconnect.com)
-
-### Building for Production
-
-```bash
-# Build optimized bundle
-npm run build
-
-# Preview production build
-npm run preview
-```
-
----
-
-## 📚 API Reference
-
-### Stellar Service (`services/stellar.ts`)
-
-| Function | Parameters | Returns | Description |
-|----------|------------|---------|-------------|
-| `createWallet()` | - | `Promise<{publicKey, secret}>` | Creates new Stellar keypair, auto-funds on Testnet |
-| `getBalance(publicKey)` | `publicKey: string` | `Promise<string>` | Returns XLM balance |
-| `sendPayment(...)` | `senderSecret, recipientPublicKey, amount, memo` | `Promise<string>` | Submits payment, returns tx hash |
-| `isAccountFunded(publicKey)` | `publicKey: string` | `Promise<boolean>` | Checks if account exists on network |
-
-### Database Service (`services/db.ts`)
-
-| Function | Description |
-|----------|-------------|
-| `saveUser(profile)` | Creates/updates user profile and ID mapping |
-| `getProfile(uid)` | Fetches user profile by UID |
-| `getProfileByStellarId(stellarId)` | Fetches profile by UPI-style ID |
-| `recordTransaction(tx)` | Stores transaction record |
-| `getTransactions(stellarId)` | Fetches last 20 transactions |
-| `addFamilyMember(...)` | Adds member with spending limit |
-| `getFamilyMembers(ownerUid)` | Lists all family members |
-| `updateFamilySpend(...)` | Updates member's daily spend |
-| `createGroup(groupData)` | Creates new split group |
-| `getGroups(stellarId)` | Lists user's groups |
-| `recordSplitExpense(expense)` | Records group expense |
-| `searchUsers(searchTerm)` | Searches by stellarId, publicKey, or name |
-
-### Security & Identity (`services/passkeyService.ts`, `services/kycService.ts`)
-
-| Function | Description |
-|----------|-------------|
-| `registerPasskey(user)` | Registers a new WebAuthn credential for biometrics |
-| `authenticatePasskey(user)` | Authenticates user via FaceID/TouchID |
-| `verifyPAN(pan)` | Validates and hashes identity documents |
-| `onDeviceOCR(image)` | Extracts text from ID documents using Tesseract.js |
-
-### Notification Service (`services/notification.ts`)
-
-| Function | Description |
-|----------|-------------|
-| `sendInAppNotification(...)` | Broadcasts a custom alert to a user |
-| `setupRealtimeNotifications(...)` | Listens for TXs, chats, and requests in real-time |
-
-### Encryption Service (`services/encryption.ts`)
-
-| Function | Parameters | Returns | Description |
-|----------|------------|---------|-------------|
-| `encryptSecret(secret, password)` | `string, string` | `string` | AES-encrypts Stellar secret |
-| `decryptSecret(encrypted, password)` | `string, string` | `string` | Decrypts Stellar secret |
-| `hashPassword(password)` | `string` | `string` | SHA-256 hash |
-
----
-
-## 🎨 UI/UX Features
-
-### Design System
-
-- **Color Palette:**
-  - Primary Gold: `#E5D5B3`
-  - Background: `#0a0f0a` → `#0d1210` gradient
-  - Card Background: `zinc-900` with `backdrop-blur`
-  - Success: `emerald-500`
-  - Error: `rose-500`
-
-- **Typography:** Inter font family (400-800 weights)
-
-- **Animations:**
-  - `animate-in` / `fade-in` / `zoom-in-95` for modals
-  - `animate-spin` for loaders
-  - `animate-pulse` for status indicators
-  - `active:scale-[0.98]` for button feedback
-
-### Responsive Design
-
-- Maximum width container (`max-w-md`) for mobile-first experience
-- Safe area insets for iPhone notch/Dynamic Island
-- Touch-optimized button sizes (minimum 44px)
-- Smooth scrolling with `-webkit-overflow-scrolling: touch`
-
----
-
-## 🔒 Security Considerations
-
-1. **Private Key Storage** - Stellar secrets are AES-256 encrypted client-side using the user's MetaMask signature as the encryption key. The plaintext secret never touches any server.
-
-2. **Session Security** - Encryption keys are stored in `sessionStorage` and cleared on tab close. Wallet address is persisted in `localStorage` for session restoration.
-
-3. **Transaction Authorization** - Optional 4-digit PIN adds an additional authentication layer before payments.
-
-4. **Family Secret Sharing** - When adding family members, the owner's encrypted secret is re-encrypted using the member's UID, allowing controlled access without exposing the original key.
-
-5. **Content Security Policy** - Strict CSP headers limit script sources and API connections.
-
----
-
-## 📱 PWA Capabilities
-
-| Feature | Support |
-|---------|---------|
-| Add to Home Screen | ✅ iOS, Android, Desktop |
-| Standalone Display | ✅ Full-screen mode |
-| Theme Color | ✅ `#0a0f0a` |
-| Status Bar Style | ✅ Black Translucent (iOS) |
-| Offline Basic UI | ✅ Cached assets |
 
 ---
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
+We welcome contributions! Please see our [CONTRUBUTING.md](CONTRIBUTING.md) (coming soon) for details on our code of conduct and the process for submitting pull requests.
 
 ## 📄 License
 
@@ -508,21 +183,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 🙏 Acknowledgements
-
-- [Stellar Development Foundation](https://stellar.org) for the blockchain infrastructure
-- [Firebase](https://firebase.google.com) for real-time database capabilities
-- [WalletConnect](https://walletconnect.com) for Web3 connectivity
-- [Onramp.money](https://onramp.money) & [Transak](https://transak.com) for fiat gateway services
-
----
-
 <p align="center">
-  <strong>Built with ❤️ for the Stellar Ecosystem</strong>
-</p>
-
-<p align="center">
-  <a href="https://stellar.org">
-    <img src="https://img.shields.io/badge/Powered_by-Stellar-7C3AED?style=flat-square" alt="Powered by Stellar" />
-  </a>
+  <strong>Built with ❤️ for the Stellar Global Hackathon</strong>
+  <br />
+  <em>Empowering the next billion users with Decentralized Finance.</em>
 </p>
