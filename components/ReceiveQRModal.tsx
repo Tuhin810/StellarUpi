@@ -9,12 +9,10 @@ interface ReceiveQRModalProps {
 }
 
 const ReceiveQRModal: React.FC<ReceiveQRModalProps> = ({ stellarId, publicKey, onClose }) => {
-    // Priority: Universal Link for Guest/Camera compatibility
     const universalLink = `${window.location.origin}/#/pay/${stellarId}`;
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(universalLink)}&color=1A1A1A&bgcolor=E5D5B3`;
 
     const handleShare = () => {
-        const universalLink = `${window.location.origin}/#/pay/${stellarId}`;
         if (navigator.share) {
             navigator.share({
                 title: 'Pay me on Ching Pay',
@@ -50,7 +48,8 @@ const ReceiveQRModal: React.FC<ReceiveQRModalProps> = ({ stellarId, publicKey, o
                 </div>
 
                 <p className="text-center text-white/40 text-xs mb-6 px-4">
-                    Show this QR to receive payments directly into your wallet
+                    Scan with camera to open payment page. <br />
+                    <span className="text-purple-400 font-semibold">Freighter users: use the "Pay with Freighter" button on the page</span>
                 </p>
 
                 <button

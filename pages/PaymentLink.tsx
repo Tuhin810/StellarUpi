@@ -13,6 +13,21 @@ import { NotificationService } from '../services/notification';
 import { KYCService } from '../services/kycService';
 import { ZKProofService, PaymentProof } from '../services/zkProofService';
 import { Smartphone, ExternalLink, Mail, ArrowUpRight } from 'lucide-react';
+import {
+    isConnected as freighterIsConnected,
+    getAddress as freighterGetAddress,
+    signTransaction as freighterSignTransaction
+} from '@stellar/freighter-api';
+import {
+    TransactionBuilder,
+    Networks,
+    Horizon,
+    BASE_FEE,
+    Operation,
+    Asset,
+    Memo
+} from '@stellar/stellar-sdk';
+import { getNetworkConfig } from '../context/NetworkContext';
 
 const PaymentLink: React.FC = () => {
     const { stellarId } = useParams<{ stellarId: string }>();
@@ -31,12 +46,27 @@ const PaymentLink: React.FC = () => {
     const [zkProof, setZkProof] = useState<PaymentProof | null>(null);
     const [generatingProof, setGeneratingProof] = useState(false);
     const [linkCopied, setLinkCopied] = useState(false);
+    const [freighterAvailable, setFreighterAvailable] = useState(false);
+    const [freighterSending, setFreighterSending] = useState(false);
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href);
         setLinkCopied(true);
         setTimeout(() => setLinkCopied(false), 2000);
     };
+
+    // Detect Freighter extension
+    useEffect(() => {
+        const checkFreighter = async () => {
+            try {
+                const result = await freighterIsConnected();
+                setFreighterAvailable(result.isConnected === true);
+            } catch {
+                setFreighterAvailable(false);
+            }
+        };
+        checkFreighter();
+    }, []);
 
     useEffect(() => {
         const loadRecipient = async () => {
@@ -72,10 +102,86 @@ const PaymentLink: React.FC = () => {
         window.location.href = uri;
     };
 
-    const handlePayWithStellarWallet = () => {
-        if (!recipient?.publicKey) return;
-        const uri = `web+stellar:pay?destination=${recipient.publicKey}&amount=${amount || ''}&memo=${encodeURIComponent(note || 'Ching Pay')}`;
-        window.location.href = uri;
+    const handlePayWithFreighter = async () => {
+        if (!recipient?.publicKey || !amount) return;
+        setFreighterSending(true);
+        setError(null);
+
+        try {
+            // 1. Get sender's address from Freighter
+            const { address: senderPubKey, error: addrErr } = await freighterGetAddress();
+            if (addrErr || !senderPubKey) {
+                throw new Error('Freighter: Could not get wallet address. Please unlock Freighter and try again.');
+            }
+
+            // 2. Build an unsigned transaction
+            const networkConfig = getNetworkConfig();
+            const server = new Horizon.Server(networkConfig.horizonUrl);
+            const senderAccount = await server.loadAccount(senderPubKey);
+
+            const txBuilder = new TransactionBuilder(senderAccount, {
+                fee: BASE_FEE,
+                networkPassphrase: networkConfig.networkPassphrase,
+            });
+
+            txBuilder.addOperation(
+                Operation.payment({
+                    destination: recipient.publicKey,
+                    asset: Asset.native(),
+                    amount: parseFloat(amount).toFixed(7),
+                })
+            );
+
+            if (note) {
+                txBuilder.addMemo(Memo.text(note.substring(0, 28)));
+            }
+
+            txBuilder.setTimeout(120);
+            const tx = txBuilder.build();
+            const xdr = tx.toXDR();
+
+            // 3. Send to Freighter for signing
+            const { signedTxXdr, error: signErr } = await freighterSignTransaction(xdr, {
+                networkPassphrase: networkConfig.networkPassphrase,
+            });
+
+            if (signErr || !signedTxXdr) {
+                throw new Error('Transaction was rejected or signing failed.');
+            }
+
+            // 4. Submit the signed transaction to Horizon
+            const signedTx = TransactionBuilder.fromXDR(signedTxXdr, networkConfig.networkPassphrase);
+            const result = await server.submitTransaction(signedTx);
+            const txHash = (result as any).hash || (result as any).id || '';
+
+            // 5. Record in our DB
+            await recordTransaction({
+                fromId: senderPubKey.substring(0, 10) + '@stellar',
+                toId: recipient.stellarId,
+                fromName: 'Freighter Wallet',
+                toName: recipient.displayName || recipient.stellarId,
+                amount: parseFloat(amount),
+                currency: 'XLM',
+                status: 'SUCCESS',
+                memo: note || 'Freighter Payment',
+                txHash,
+                isFamilySpend: false
+            });
+
+            NotificationService.sendInAppNotification(
+                recipient.stellarId,
+                'Freighter Payment Received',
+                `Received ${amount} XLM from a Freighter wallet`,
+                'payment'
+            );
+
+            setSuccess(true);
+        } catch (e: any) {
+            console.error('Freighter pay error:', e);
+            setError(e.message || 'Freighter payment failed');
+        } finally {
+            setFreighterSending(false);
+        }
     };
 
     const handlePay = async () => {
@@ -235,21 +341,27 @@ const PaymentLink: React.FC = () => {
                 {/* 1. Freighter / Stellar Wallet (Primary for this app) */}
                 <div className="relative group p-1 bg-gradient-to-br from-purple-500/20 to-transparent rounded-[2.5rem]">
                     <div className="bg-[#0d1210] border border-purple-500/20 rounded-[2.4rem] p-6 flex flex-col items-center text-center h-full">
-                        <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-4">
+                        <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center mb-4 relative">
                             <Wallet size={28} className="text-purple-400" />
+                            {freighterAvailable && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-[#0d1210]" />
+                            )}
                         </div>
                         <h3 className="text-lg font-black mb-2">Freighter</h3>
                         <p className="text-zinc-500 text-[9px] leading-relaxed mb-6 px-2 font-medium uppercase tracking-widest opacity-60 flex-grow">
-                            Launch Stellar Wallet <br />
-                            <span className="text-purple-400 font-black">Direct Protocol</span>
+                            {freighterAvailable ? (
+                                <>Extension Detected<br /><span className="text-emerald-400 font-black">Ready to Pay</span></>
+                            ) : (
+                                <>Install Freighter Extension<br /><span className="text-purple-400 font-black">Stellar Wallet</span></>
+                            )}
                         </p>
 
                         <button
-                            onClick={handlePayWithStellarWallet}
-                            disabled={!recipient?.publicKey}
+                            onClick={freighterAvailable ? handlePayWithFreighter : () => window.open('https://www.freighter.app/', '_blank')}
+                            disabled={freighterAvailable ? (!recipient?.publicKey || !amount || freighterSending) : false}
                             className="w-full py-4 bg-purple-600 text-white font-black rounded-xl text-[9px] uppercase tracking-[0.2em] active:scale-[0.98] transition-all shadow-lg hover:bg-purple-500 disabled:opacity-30"
                         >
-                            Pay with Wallet
+                            {freighterSending ? <Loader2 className="animate-spin mx-auto" size={14} /> : freighterAvailable ? 'Pay with Freighter' : 'Get Freighter'}
                         </button>
                     </div>
                 </div>
