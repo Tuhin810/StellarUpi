@@ -20,8 +20,9 @@ import { calculateChillarAmount } from '../utils/chillar';
 import { sendChillarPayment } from '../services/stellar';
 import { updateStreak, recordGullakDeposit } from '../services/db';
 import { PasskeyService } from '../services/passkeyService';
-import { Fingerprint } from 'lucide-react';
+import { Fingerprint, Loader2 } from 'lucide-react';
 import StreakFire from '../components/StreakFire';
+import { WalletConnectService } from '../services/walletConnectService';
 
 interface Props {
   profile: UserProfile | null;
@@ -84,6 +85,13 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [onStellarContacts, setOnStellarContacts] = useState<Contact[]>([]);
   const [inviteContacts, setInviteContacts] = useState<{ name: string, phone: string }[]>([]);
   const [syncing, setSyncing] = useState(false);
+
+  // Freighter WalletConnect state
+  const [showFreighterModal, setShowFreighterModal] = useState(false);
+  const [wcUri, setWcUri] = useState<string | null>(null);
+  const [wcStatus, setWcStatus] = useState<'idle' | 'pairing' | 'connected' | 'requesting' | 'done' | 'error'>('idle');
+  const [wcSender, setWcSender] = useState('');
+  const [wcError, setWcError] = useState('');
 
   useEffect(() => {
     const loadBalances = async () => {
@@ -336,8 +344,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     try {
       let recipientPubKey = '';
       const isInternalStellar = selectedContact.id.endsWith('@stellar');
+      const isRawPubKey = selectedContact.id.startsWith('G') && selectedContact.id.length === 56;
 
-      if (isInternalStellar) {
+      if (isRawPubKey) {
+        // Raw Stellar public key (e.g. from URL ?to=GXXX...)
+        recipientPubKey = selectedContact.id;
+      } else if (isInternalStellar) {
         const recipient = await getUserById(selectedContact.id);
         if (!recipient) throw new Error("Recipient ID not found");
         recipientPubKey = recipient.publicKey;
@@ -568,6 +580,89 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
       setError("Incorrect Transaction PIN");
       setPin('');
     }
+  };
+
+  // ─── Freighter WalletConnect Send ───
+  const handleFreighterSend = async () => {
+    if (!profile || !selectedContact || !amount) return;
+    setShowFreighterModal(true);
+    setWcStatus('pairing');
+    setWcError('');
+
+    try {
+      // Resolve recipient's public key
+      let recipientPubKey = '';
+      const isInternal = selectedContact.id.endsWith('@stellar');
+      const isRawPubKey = selectedContact.id.startsWith('G') && selectedContact.id.length === 56;
+
+      if (isRawPubKey) {
+        // Raw Stellar public key (e.g. from URL ?to=GXXX...)
+        recipientPubKey = selectedContact.id;
+      } else if (isInternal) {
+        const recipient = await getUserById(selectedContact.id);
+        if (!recipient) throw new Error('Recipient not found');
+        recipientPubKey = recipient.publicKey;
+      } else {
+        throw new Error('Freighter only supports Stellar recipients');
+      }
+
+      // Create WalletConnect pairing
+      const { uri, approval } = await WalletConnectService.createPairing();
+      setWcUri(uri);
+
+      // Wait for Freighter to scan and approve
+      const senderAddress = await WalletConnectService.waitForSession(approval);
+      setWcSender(senderAddress);
+      setWcStatus('requesting');
+
+      // Immediately request payment
+      const txHash = await WalletConnectService.requestPayment({
+        recipientPublicKey: recipientPubKey,
+        amount,
+        memo: memo || `Pay ${selectedContact.name}`
+      });
+
+      // Record transaction
+      await recordTransaction({
+        fromId: senderAddress.substring(0, 10) + '@stellar',
+        toId: selectedContact.id,
+        fromName: 'Freighter Wallet',
+        toName: selectedContact.name,
+        amount: parseFloat(amount),
+        currency: 'XLM',
+        status: 'SUCCESS',
+        memo: memo || 'Freighter Payment',
+        txHash,
+        isFamilySpend: false,
+        category
+      });
+
+      NotificationService.sendInAppNotification(
+        selectedContact.id,
+        'Payment Received',
+        `Received ${amount} XLM from Freighter wallet`,
+        'payment'
+      );
+
+      setWcStatus('done');
+      setTimeout(() => WalletConnectService.disconnect(), 3000);
+    } catch (e: any) {
+      console.error('Freighter send error:', e);
+      setWcError(e.message || 'Freighter payment failed');
+      setWcStatus('error');
+    }
+  };
+
+  const closeFreighterModal = () => {
+    setShowFreighterModal(false);
+    setWcUri(null);
+    setWcStatus('idle');
+    setWcSender('');
+    setWcError('');
+    if (wcStatus === 'done') {
+      setSuccess(true);
+    }
+    WalletConnectService.disconnect();
   };
 
   if (success) {
@@ -962,6 +1057,18 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           </button>
 
           {error && <p className="text-red-500 text-[10px] font-bold text-center mt-4 uppercase tracking-widest">{error}</p>}
+
+          {/* Freighter Pay Button */}
+          {selectedContact && amount && parseFloat(amount) > 0 && (
+            <button
+              onClick={handleFreighterSend}
+              disabled={loading || wcStatus === 'pairing'}
+              className="w-full mt-4 py-4 bg-purple-600/10 border border-purple-500/20 text-purple-400 rounded-2xl font-black text-xs uppercase tracking-[0.15em] flex items-center justify-center gap-3 active:scale-[0.98] transition-all disabled:opacity-30"
+            >
+              <Wallet size={18} />
+              Pay with Freighter
+            </button>
+          )}
         </div>
       </div>
     );
@@ -1169,6 +1276,110 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           </div>
         )}
       </div>
+
+      {/* Freighter WalletConnect Modal */}
+      {showFreighterModal && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={closeFreighterModal}></div>
+          <div className="relative w-full max-w-md bg-zinc-900 rounded-t-[3rem] p-8 border-t border-purple-500/20">
+            <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-white/20 rounded-full" />
+
+            <button
+              onClick={closeFreighterModal}
+              className="absolute top-6 right-6 p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-all"
+            >
+              <span className="text-lg">✕</span>
+            </button>
+
+            <div className="flex items-center gap-3 mb-6 mt-4">
+              <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
+                <Wallet size={20} className="text-purple-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black">Pay via Freighter</h3>
+                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
+                  {selectedContact?.name} · {amount} XLM
+                </p>
+              </div>
+            </div>
+
+            {/* Step 1: Scan QR */}
+            {wcStatus === 'pairing' && wcUri && (
+              <div className="flex flex-col items-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">
+                  Scan with Freighter App
+                </p>
+                <div className="bg-white p-4 rounded-2xl mb-4">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(wcUri)}&color=1A1A1A&bgcolor=FFFFFF`}
+                    alt="WalletConnect QR"
+                    className="w-56 h-56"
+                  />
+                </div>
+                <p className="text-zinc-500 text-xs text-center">
+                  Open Freighter → Scan → Approve connection
+                </p>
+                <div className="mt-4 flex items-center gap-2">
+                  <Loader2 size={14} className="animate-spin text-purple-400" />
+                  <span className="text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+                    Waiting for Freighter...
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {wcStatus === 'pairing' && !wcUri && (
+              <div className="flex flex-col items-center py-8">
+                <Loader2 size={32} className="animate-spin text-purple-400 mb-4" />
+                <p className="text-zinc-500 text-sm">Initializing WalletConnect...</p>
+              </div>
+            )}
+
+            {/* Step 2: Requesting */}
+            {wcStatus === 'requesting' && (
+              <div className="flex flex-col items-center py-8">
+                <Loader2 size={32} className="animate-spin text-purple-400 mb-4" />
+                <p className="text-sm font-bold text-white mb-1">Approve in Freighter</p>
+                <p className="text-zinc-500 text-xs text-center">
+                  Check the Freighter app to approve the {amount} XLM transaction
+                </p>
+              </div>
+            )}
+
+            {/* Step 3: Done */}
+            {wcStatus === 'done' && (
+              <div className="flex flex-col items-center py-8">
+                <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
+                  <Check size={32} className="text-emerald-400" />
+                </div>
+                <h4 className="text-xl font-black text-white mb-2">Payment Sent!</h4>
+                <p className="text-zinc-400 text-sm">
+                  {amount} XLM → {selectedContact?.name}
+                </p>
+                <button
+                  onClick={closeFreighterModal}
+                  className="mt-6 px-8 py-3 bg-white/10 rounded-xl font-bold text-sm"
+                >
+                  Done
+                </button>
+              </div>
+            )}
+
+            {/* Error */}
+            {wcStatus === 'error' && (
+              <div className="flex flex-col items-center py-8">
+                <p className="text-rose-400 font-bold text-sm mb-4">{wcError}</p>
+                <button
+                  onClick={handleFreighterSend}
+                  className="px-6 py-3 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl font-bold text-sm"
+                >
+                  Try Again
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div >
   );
 };

@@ -24,14 +24,16 @@ export interface WCPaymentRequest {
 export class WalletConnectService {
     private static client: SignClient | null = null;
     private static session: any = null;
+    private static initPromise: Promise<SignClient> | null = null;
 
     /**
      * Initialize the WalletConnect SignClient.
      */
     static async init(): Promise<SignClient> {
         if (this.client) return this.client;
+        if (this.initPromise) return this.initPromise;
 
-        this.client = await SignClient.init({
+        this.initPromise = SignClient.init({
             projectId: WALLETCONNECT_PROJECT_ID,
             metadata: {
                 name: 'Ching Pay',
@@ -40,6 +42,8 @@ export class WalletConnectService {
                 icons: [`${window.location.origin}/logo192.png`]
             }
         });
+
+        this.client = await this.initPromise;
 
         // Listen for session events
         this.client.on('session_event', (event) => {
@@ -66,7 +70,7 @@ export class WalletConnectService {
         const chainId = isMainnet ? 'stellar:pubnet' : 'stellar:testnet';
 
         const { uri, approval } = await client.connect({
-            requiredNamespaces: {
+            optionalNamespaces: {
                 stellar: {
                     methods: ['stellar_signAndSubmitXDR', 'stellar_signXDR'],
                     chains: [chainId],
