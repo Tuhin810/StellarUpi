@@ -4,7 +4,7 @@ import { ArrowLeft, ArrowDownToLine, TrendingDown, Zap, AlertCircle, Wallet } fr
 import { useNavigate } from 'react-router-dom';
 import { UserProfile } from '../types';
 import { getBalance } from '../services/stellar';
-import { openSellWidget, getXlmRate } from '../services/transak';
+import { openSellWidget, getXlmRate } from '../services/onramp';
 import { useNetwork } from '../context/NetworkContext';
 
 interface Props {

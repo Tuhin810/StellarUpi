@@ -78,7 +78,7 @@ Our mission is to eliminate the friction of long, hexadecimal wallet addresses a
 
 ### 💳 **Fiat Gateway**
 - **Buy XLM with INR**: Direct UPI/NetBanking integration via Onramp.money.
-- **Global Off-ramp**: Withdraw to bank accounts via Transak integration.
+- **Global Off-ramp**: Withdraw to bank accounts via Onramp.money integration.
 - **Live Market Data**: Real-time XLM/INR rates via CoinGecko.
 
 ---
