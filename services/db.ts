@@ -18,7 +18,7 @@ import {
   arrayUnion
 } from 'firebase/firestore';
 import { db } from './firebase';
-import { UserProfile, FamilyMember, TransactionRecord, SubscriptionPlan, UserSubscription } from '../types';
+import { UserProfile, FamilyMember, TransactionRecord, SubscriptionPlan, UserSubscription, ScheduledPayment } from '../types';
 import { getNetworkConfig } from '../context/NetworkContext';
 
 /** Normalize phone: strip formatting, remove +91/91/0 country prefix → bare 10-digit */
@@ -444,5 +444,52 @@ export const updateStreak = async (uid: string) => {
   });
 
   return { newStreak, level };
+};
+
+// ─── Scheduled Payments ─────────────────────────────────────────
+
+export const createScheduledPayment = async (payment: Partial<ScheduledPayment>) => {
+  const docRef = await addDoc(collection(db, 'scheduledPayments'), {
+    ...payment,
+    status: 'pending',
+    createdAt: serverTimestamp()
+  });
+  return docRef.id;
+};
+
+export const getScheduledPayments = async (userId: string): Promise<ScheduledPayment[]> => {
+  const q = query(
+    collection(db, 'scheduledPayments'),
+    where('userId', '==', userId)
+  );
+  const snap = await getDocs(q);
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() } as ScheduledPayment))
+    .sort((a, b) => {
+      const timeA = a.scheduledDate?.seconds || 0;
+      const timeB = b.scheduledDate?.seconds || 0;
+      return timeA - timeB;
+    });
+};
+
+export const cancelScheduledPayment = async (paymentId: string) => {
+  await updateDoc(doc(db, 'scheduledPayments', paymentId), {
+    status: 'cancelled'
+  });
+};
+
+export const updateScheduledPaymentStatus = async (
+  paymentId: string,
+  status: 'completed' | 'failed',
+  txHash?: string,
+  failReason?: string
+) => {
+  const updateData: any = {
+    status,
+    executedAt: serverTimestamp()
+  };
+  if (txHash) updateData.txHash = txHash;
+  if (failReason) updateData.failReason = failReason;
+  await updateDoc(doc(db, 'scheduledPayments', paymentId), updateData);
 };
 

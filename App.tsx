@@ -11,6 +11,7 @@ import { NotificationService } from './services/notification';
 import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import AIAssistant from './components/AIAssistant';
 import Loader from './components/Loader';
+import { ScheduledPayService } from './services/scheduledPayService';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated, loading, profile } = useAuth();
@@ -45,6 +46,16 @@ const AppContent: React.FC = () => {
       if (cleanupFn) cleanupFn();
     };
   }, [isAuthenticated, profile, showNotification]);
+
+  // Start ScheduledPay worker
+  React.useEffect(() => {
+    if (isAuthenticated && profile) {
+      ScheduledPayService.start(profile);
+    }
+    return () => {
+      ScheduledPayService.stop();
+    };
+  }, [isAuthenticated, profile]);
 
 
   if (loading) {

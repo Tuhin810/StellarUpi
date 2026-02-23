@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { X, User, Settings, LogOut, ChevronRight, Zap, ArrowDownToLine, Repeat, Shield } from 'lucide-react';
+import { X, User, Settings, LogOut, ChevronRight, Zap, ArrowDownToLine, Repeat, Shield, CalendarClock } from 'lucide-react';
 import StreakFire from './StreakFire';
 import { useNavigate } from 'react-router-dom';
 import { useNetwork } from '../context/NetworkContext';
@@ -25,6 +25,7 @@ const SideDrawer: React.FC<Props> = ({ isOpen, onClose, profileName, stellarId, 
         { icon: <User size={20} />, label: 'My Profile', path: '/profile' },
         { icon: <ArrowDownToLine size={20} />, label: 'Withdraw to Bank', path: '/withdraw' },
         { icon: <Repeat size={20} />, label: 'AutoPay', path: '/autopay' },
+        { icon: <CalendarClock size={20} />, label: 'Schedule Pay', path: '/schedule-pay' },
         { icon: <Shield size={20} />, label: 'Security', path: '/security' },
         { icon: <Settings size={20} />, label: 'Settings', path: '/settings' },
     ];

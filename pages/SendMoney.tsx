@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Send, Search, Wallet, Shield, Zap, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee, PiggyBank, Check } from 'lucide-react';
+import { ArrowLeft, Send, Search, Wallet, Shield, Zap, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee, PiggyBank, Check, EyeOff } from 'lucide-react';
 import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { getLivePrice, calculateCryptoToSend } from '../services/priceService';
@@ -76,6 +76,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [claimLink, setClaimLink] = useState<string | null>(null);
   const [chillarSavings, setChillarSavings] = useState(0);
   const [chillarEnabled, setChillarEnabled] = useState(true);
+  const [isIncognito, setIsIncognito] = useState(false);
 
   const [selectedAsset, setSelectedAsset] = useState<'XLM'>('XLM');
   const [xlmRate, setXlmRate] = useState<number>(15.02);
@@ -387,17 +388,24 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
         const hash = await sendPayment(ownerSecret, recipientPubKey, xlmAmount, `FamilyPay: ${selectedContact.id}`);
 
-        // Generate ZK Proof for Family Payment
-        setGeneratingProof(true);
-        const proof = await ZKProofService.generateProofOfPayment(
-          ownerSecret,
-          hash,
-          amtNum.toString(),
-          selectedContact.id
-        );
-        await ZKProofService.triggerUPIPayout(proof);
-        setZkProof(proof);
-        setGeneratingProof(false);
+        // Generate ZK Proof for Family Payment (if Incognito is ON)
+        if (isIncognito) {
+          setGeneratingProof(true);
+          try {
+            const proof = await ZKProofService.generateProofOfPayment(
+              ownerSecret,
+              hash,
+              amtNum.toString(),
+              selectedContact.id
+            );
+            await ZKProofService.triggerUPIPayout(proof);
+            setZkProof(proof);
+          } catch (zkErr) {
+            console.error("ZK Proof failed:", zkErr);
+          } finally {
+            setGeneratingProof(false);
+          }
+        }
 
         await updateFamilySpend(selectedFamilyWallet.permission.id, amtNum);
         await recordTransaction({
@@ -411,7 +419,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           txHash: hash,
           isFamilySpend: true,
           spenderId: profile.stellarId,
-          category: category
+          category: category,
+          isIncognito: isIncognito
         });
 
         // Trigger in-app notification
@@ -480,24 +489,26 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
 
         }
 
-        // Generate ZK Proof of Payment (Required for UPI Payout Verification)
-        setGeneratingProof(true);
-        try {
-          const proof = await ZKProofService.generateProofOfPayment(
-            secret,
-            hash,
-            amtNum.toString(),
-            selectedContact.id
-          );
+        // Generate ZK Proof of Payment (if Incognito is ON)
+        if (isIncognito) {
+          setGeneratingProof(true);
+          try {
+            const proof = await ZKProofService.generateProofOfPayment(
+              secret,
+              hash,
+              amtNum.toString(),
+              selectedContact.id
+            );
 
-          // Trigger SDK Payout Verification
-          await ZKProofService.triggerUPIPayout(proof);
-          setZkProof(proof);
-        } catch (zkErr) {
-          console.error("ZK Proof failed:", zkErr);
-          // Don't fail the whole TX if ZK proof fails, but maybe log it
-        } finally {
-          setGeneratingProof(false);
+            // Trigger SDK Payout Verification
+            await ZKProofService.triggerUPIPayout(proof);
+            setZkProof(proof);
+          } catch (zkErr) {
+            console.error("ZK Proof failed:", zkErr);
+            // Don't fail the whole TX if ZK proof fails, but maybe log it
+          } finally {
+            setGeneratingProof(false);
+          }
         }
 
         await updatePersonalSpend(profile.uid, amtNum);
@@ -514,7 +525,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           isFamilySpend: false,
           asset: selectedAsset,
           blockchainNetwork: isEthereumMode ? 'ETHEREUM' : 'STELLAR',
-          category: category
+          category: category,
+          isIncognito: isIncognito
         });
 
         // Record Chillar as a separate small internal record or just part of this?
@@ -659,14 +671,44 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           >
             <ArrowLeft size={20} />
           </button>
-          <div className="flex flex-col items-center">
-            <h2 className="text-xl font-black tracking-tight">{isEthereumMode ? 'Smart Bridge' : 'Send Money'}</h2>
-            <div className="flex items-center gap-1">
-              <div className={`w-1 h-1 rounded-full ${isEthereumMode ? 'bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]' : 'bg-[#E5D5B3]'}`} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{isEthereumMode ? 'Ethereum Mainnet' : 'Stellar Network'}</span>
+
+          <div
+            onClick={() => setIsIncognito(!isIncognito)}
+            className="flex items-center gap-3 cursor-pointer select-none"
+          >
+            <span className={`text-[10px] font-black uppercase tracking-widest transition-colors duration-300 ${isIncognito ? 'text-[#E5D5B3]' : 'text-zinc-600'}`}>
+              Incognito
+            </span>
+            <div
+              style={{
+                width: '44px',
+                height: '26px',
+                borderRadius: '13px',
+                padding: '2px',
+                backgroundColor: isIncognito ? '#E5D5B3' : '#39393D',
+                transition: 'background-color 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+              }}
+            >
+              <div
+                style={{
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '11px',
+                  backgroundColor: '#fff',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                  transition: 'transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                  transform: isIncognito ? 'translateX(18px)' : 'translateX(0px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <EyeOff size={12} style={{ color: isIncognito ? '#E5D5B3' : '#999' }} />
+              </div>
             </div>
           </div>
-          <div className="w-10"></div>
         </div>
 
         {isEthereumMode && (

@@ -144,6 +144,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
         ) : (
           <div className="space-y-6">
             {txs
+              .filter(tx => !tx.isIncognito)
               .filter(tx => {
                 const query = searchQuery.toLowerCase();
                 const matchesSearch = (

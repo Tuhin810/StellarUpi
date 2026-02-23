@@ -64,6 +64,7 @@ export interface TransactionRecord {
   category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
   blockchainNetwork?: 'STELLAR' | 'ETHEREUM';
   network?: 'testnet' | 'mainnet';
+  isIncognito?: boolean;
 }
 
 export interface ChatMessage {
@@ -131,4 +132,21 @@ export interface UserSubscription {
   nextPaymentDate: any;
   status: 'active' | 'paused' | 'cancelled';
   createdAt?: any;
+}
+
+export interface ScheduledPayment {
+  id: string;
+  userId: string;
+  userStellarId: string;
+  recipientStellarId: string;
+  recipientName: string;
+  amount: number;
+  memo?: string;
+  category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
+  scheduledDate: any; // Firestore Timestamp or Date
+  status: 'pending' | 'completed' | 'failed' | 'cancelled';
+  txHash?: string;
+  failReason?: string;
+  createdAt?: any;
+  executedAt?: any;
 }

@@ -60,7 +60,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientA
                     <div className="flex items-center justify-center gap-1 mb-8">
                         <span className="text-3xl font-black mt-1 opacity-80">₹</span>
                         <h3 className="text-6xl font-black tracking-tighter">
-                            {parseInt(amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            {parseInt(amount).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
                         </h3>
                     </div>
 
