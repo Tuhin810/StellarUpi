@@ -17,6 +17,7 @@ const AddMoney: React.FC<Props> = ({ profile }) => {
     const [balance, setBalance] = useState<string>('0.00');
     const [xlmRate, setXlmRate] = useState<number>(8.42);
     const [loading, setLoading] = useState(true);
+    const [buyAmount, setBuyAmount] = useState<string>('500');
 
     useEffect(() => {
         const loadData = async () => {
@@ -43,147 +44,174 @@ const AddMoney: React.FC<Props> = ({ profile }) => {
         if (!profile) return;
         openBuyWidget({
             walletAddress: profile.publicKey,
+            amount: parseFloat(buyAmount)
         });
     };
 
     if (!profile) return null;
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white">
+        <div className="min-h-screen bg-[#020202] text-white flex flex-col relative overflow-hidden">
+            {/* Background Aesthetics */}
+            <div className="absolute top-[-10%] left-[-10%] w-[400px] h-[400px] bg-[#E5D5B3]/5 blur-[100px] rounded-full pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[300px] h-[300px] bg-[#C5B38F]/5 blur-[80px] rounded-full pointer-events-none" />
+
             {/* Header */}
-            <div className="pt-5 px-6 flex items-center justify-between mb-6">
+            <div className="pt-8 px-6 flex items-center justify-between relative z-10">
                 <button
                     onClick={() => navigate('/')}
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-white/60 hover:bg-white/10 transition-all"
+                    className="w-11 h-11 flex items-center justify-center bg-zinc-900 border border-white/10 rounded-2xl active:scale-95 transition-all text-zinc-300"
                 >
                     <ArrowLeft size={20} />
                 </button>
-                <h1 className="text-lg font-semibold">Add Money</h1>
-                <div className="w-12"></div>
+                <h1 className="text-lg font-bold tracking-tight">Add Money</h1>
+                <div className="w-11"></div>
             </div>
 
-            {/* Network Badge */}
-            <div className="px-6 mb-8">
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest ${isMainnet
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                    }`}>
-                    <Zap size={12} />
-                    {networkName}
+            <div className="flex-1 px-6 pt-10 pb-32 overflow-y-auto no-scrollbar relative z-10">
+
+                {/* Network Badge */}
+                <div className="mb-8 flex justify-center">
+                    <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${isMainnet
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        }`}>
+                        <Zap size={10} className={isMainnet ? 'fill-emerald-400' : 'fill-amber-400'} />
+                        {networkName}
+                    </div>
                 </div>
-            </div>
 
-            {/* Main Balance Card - Premium Design */}
-            <div className="px-6 mb-8">
-                <div className="relative overflow-hidden">
-                    {/* Glow Effect */}
-                    <div className="absolute -top-20 -right-20 w-40 h-40 bg-[#E5D5B3]/10 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl" />
+                {/* Main Balance Card - Premium Design */}
+                <div className="mb-10">
+                    <div className="relative bg-gradient-to-br from-zinc-900 via-zinc-900 to-black border border-white/10 rounded-[2.5rem] p-8 shadow-2xl overflow-hidden">
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-[#E5D5B3]/10 rounded-full blur-3xl" />
 
-                    <div className="relative bg-gradient-to-br from-zinc-900/80 to-zinc-900/40 backdrop-blur-xl border border-white/10 rounded-[2rem] p-8">
-                        {/* Wallet Icon */}
-                        <div className="w-14 h-14 gold-gradient rounded-2xl flex items-center justify-center text-black mb-6 shadow-lg shadow-[#E5D5B3]/20">
-                            <Wallet size={24} />
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="w-12 h-12 gold-gradient rounded-2xl flex items-center justify-center text-black shadow-lg shadow-[#E5D5B3]/20">
+                                <Wallet size={20} />
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Live Rate</p>
+                                <div className="flex items-center gap-1.5 justify-end">
+                                    <TrendingUp size={12} className="text-emerald-400" />
+                                    <span className="text-sm font-black text-zinc-300">₹{xlmRate.toFixed(2)}</span>
+                                </div>
+                            </div>
                         </div>
 
-                        <p className="text-zinc-400 text-xs font-bold uppercase tracking-widest mb-2">Your Balance</p>
+                        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2">Total Holdings</p>
 
-                        <div className="flex items-baseline gap-3 mb-2">
-                            <span className="text-5xl font-black tracking-tight">{loading ? '...' : parseFloat(balance).toFixed(2)}</span>
-                            <span className="text-zinc-400 font-bold text-xl">XLM</span>
+                        <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-4xl font-black tracking-tighter text-white">
+                                {loading ? '...' : parseFloat(balance).toFixed(2)}
+                            </span>
+                            <span className="text-zinc-500 font-black text-lg">XLM</span>
                         </div>
 
-                        <p className="text-[#E5D5B3] text-lg font-semibold">
+                        <p className="text-[#E5D5B3] font-black text-sm tracking-widest uppercase opacity-80">
                             ≈ ₹{loading ? '...' : xlmToInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
                         </p>
-
-                        {/* Rate Badge */}
-                        <div className="mt-6 flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-2 w-fit">
-                            <TrendingUp size={16} className="text-emerald-400" />
-                            <span className="text-emerald-400 text-sm font-bold">1 XLM = ₹{xlmRate.toFixed(2)}</span>
-                        </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Testnet Warning */}
-            {!isMainnet && (
-                <div className="px-6 mb-8">
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-3">
-                        <AlertCircle size={20} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                        <div>
-                            <p className="text-amber-400 font-bold text-sm mb-1">Testnet Mode</p>
-                            <p className="text-zinc-400 text-xs">
-                                You're on Testnet. Switch to Mainnet in settings to buy real XLM.
+                {/* Amount Selection */}
+                <div className="mb-10">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 mb-6 flex items-center gap-3">
+                        Enter Amount to Buy
+                        <div className="h-px flex-1 bg-white/5" />
+                    </h3>
+
+                    <div className="relative group mb-6">
+                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-2xl font-black text-zinc-700 group-focus-within:text-[#E5D5B3] transition-colors">₹</span>
+                        <input
+                            type="number"
+                            value={buyAmount}
+                            onChange={(e) => setBuyAmount(e.target.value)}
+                            className="w-full bg-zinc-900/40 border border-white/5 rounded-[2rem] py-8 pl-14 pr-8 text-4xl font-black text-white focus:outline-none focus:border-[#E5D5B3]/30 transition-all placeholder:text-zinc-900 tabular-nums"
+                            placeholder="0"
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-3">
+                        {['500', '1000', '2000', '5000'].map((amt) => (
+                            <button
+                                key={amt}
+                                onClick={() => setBuyAmount(amt)}
+                                className={`py-4 rounded-2xl font-black text-xs transition-all active:scale-95 border ${buyAmount === amt
+                                    ? 'gold-gradient text-black border-transparent'
+                                    : 'bg-zinc-900/60 text-zinc-500 border-white/5 hover:border-white/10'
+                                    }`}
+                            >
+                                ₹{amt}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Buy Button */}
+                <div className="mb-10">
+                    <button
+                        onClick={handleBuyXLM}
+                        disabled={!isMainnet}
+                        className={`w-full py-6 rounded-[2rem] font-black text-sm uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${isMainnet
+                            ? 'gold-gradient text-black shadow-2xl shadow-[#E5D5B3]/20'
+                            : 'bg-zinc-900/40 text-zinc-600 cursor-not-allowed border border-white/5'
+                            }`}
+                    >
+                        <Plus size={18} />
+                        Initiate Purchase
+                    </button>
+
+                    {!isMainnet && (
+                        <div className="mt-6 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start gap-3">
+                            <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                            <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest leading-relaxed">
+                                Sandbox Mode Active. Please switch to Mainnet in profile settings to perform live transactions.
                             </p>
                         </div>
+                    )}
+                </div>
+
+                {/* Payment Methods */}
+                <div className="mb-12">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-6">Supported Payment Methods</h3>
+                    <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2">
+                            <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center">
+                                <Zap size={18} className="text-purple-400 fill-purple-400" />
+                            </div>
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">UPI</span>
+                        </div>
+                        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2">
+                            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                                <CreditCard size={18} className="text-blue-400" />
+                            </div>
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Card</span>
+                        </div>
+                        <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                                <Building2 size={18} className="text-emerald-400" />
+                            </div>
+                            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Bank</span>
+                        </div>
                     </div>
                 </div>
-            )}
 
-            {/* Buy Button */}
-            <div className="px-6 mb-10">
-                <button
-                    onClick={handleBuyXLM}
-                    disabled={!isMainnet}
-                    className={`w-full py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all active:scale-[0.98] ${isMainnet
-                        ? 'gold-gradient text-black shadow-xl shadow-[#E5D5B3]/20'
-                        : 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                        }`}
-                >
-                    <Plus size={22} />
-                    Buy XLM with INR
-                </button>
-
-                {!isMainnet && (
-                    <p className="text-center text-zinc-600 text-xs mt-4">
-                        Switch to Mainnet to enable purchases
-                    </p>
-                )}
-            </div>
-
-            {/* Payment Methods */}
-            <div className="px-6 mb-8">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Supported Payment Methods</h3>
-                <div className="flex gap-3">
-                    <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2">
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-                            <Zap size={18} className="text-purple-400" />
-                        </div>
-                        <span className="text-xs font-bold text-zinc-300">UPI</span>
-                    </div>
-                    <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2">
-                        <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center">
-                            <CreditCard size={18} className="text-blue-400" />
-                        </div>
-                        <span className="text-xs font-bold text-zinc-300">Card</span>
-                    </div>
-                    <div className="flex-1 bg-white/5 border border-white/5 rounded-2xl p-4 flex flex-col items-center gap-2">
-                        <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center">
-                            <Building2 size={18} className="text-emerald-400" />
-                        </div>
-                        <span className="text-xs font-bold text-zinc-300">Bank</span>
-                    </div>
-                </div>
-            </div>
-
-            {/* How it works - Compact */}
-            <div className="px-6 pb-12">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">How it works</h3>
-                <div className="bg-white/5 border border-white/5 rounded-2xl p-5">
-                    <div className="space-y-3">
+                {/* How it works */}
+                <div className="mb-12">
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-6">Process Protocol</h3>
+                    <div className="space-y-4">
                         {[
-                            { step: '1', text: 'Click "Buy XLM with INR"' },
-                            { step: '2', text: 'Complete KYC (one-time)' },
-                            { step: '3', text: 'Pay via UPI/Card/Bank' },
-                            { step: '4', text: 'XLM sent to your wallet' },
-                        ].map((item, index) => (
-                            <div key={item.step} className="flex items-center gap-4">
-                                <div className="w-7 h-7 rounded-full gold-gradient flex items-center justify-center text-black font-black text-xs">
+                            { step: '01', text: 'Select Amount & Initialize' },
+                            { step: '02', text: 'Verify Identity (KYC)' },
+                            { step: '03', text: 'Fiat Remittance (UPI/IMPS)' },
+                            { step: '04', text: 'On-Chain Fulfillment' },
+                        ].map((item) => (
+                            <div key={item.step} className="flex items-center gap-4 bg-zinc-900/20 p-4 rounded-2xl border border-white/[0.02]">
+                                <div className="w-9 h-9 rounded-full gold-gradient flex items-center justify-center text-black font-black text-[10px]">
                                     {item.step}
                                 </div>
-                                <p className="text-zinc-300 text-sm font-medium flex-1">{item.text}</p>
-                                {index < 3 && <div className="text-zinc-700">→</div>}
+                                <p className="text-zinc-400 text-xs font-black uppercase tracking-widest flex-1">{item.text}</p>
                             </div>
                         ))}
                     </div>

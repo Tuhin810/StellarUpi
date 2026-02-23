@@ -1,22 +1,22 @@
-
 import { OnrampWebSDK } from '@onramp.money/onramp-web-sdk';
 
-// Onramp.money App ID - Get yours from https://onramp.money/main/partner
-// For testing, use '1' as the appId (sandbox mode)
-const ONRAMP_APP_ID = 1; // Replace with your production appId after registration
+// Onramp.money Configuration
+// For testing, use '1'. For production, replace with your actual App ID
+const ONRAMP_APP_ID = 1;
 
-interface OnrampConfig {
+interface PurchaseConfig {
   walletAddress: string;
   email?: string;
+  amount?: number;
 }
 
 /**
- * Open Onramp.money widget to buy XLM with INR (SDK overlay version)
+ * Open Onramp.money widget directly in the app (Overlay SDK)
  */
-export const openBuyWidget = (config: OnrampConfig) => {
-  const { walletAddress } = config;
+export const openBuyWidget = (config: PurchaseConfig) => {
+  const { walletAddress, amount } = config;
 
-  console.log('Opening Onramp widget with wallet:', walletAddress);
+  console.log('Opening Onramp SDK overlay with wallet:', walletAddress, 'amount:', amount);
 
   const onramp = new OnrampWebSDK({
     appId: ONRAMP_APP_ID,
@@ -25,6 +25,7 @@ export const openBuyWidget = (config: OnrampConfig) => {
     coinCode: 'XLM',
     fiatType: 1, // INR
     flowType: 1, // Buy
+    fiatAmount: amount,
   } as any);
 
   onramp.show();
@@ -32,10 +33,10 @@ export const openBuyWidget = (config: OnrampConfig) => {
 };
 
 /**
- * Open Onramp.money widget to sell XLM for INR
+ * Open Sale Widget (Off-ramp)
  */
-export const openSellWidget = (config: OnrampConfig) => {
-  const { walletAddress } = config;
+export const openSellWidget = (config: PurchaseConfig) => {
+  const { walletAddress, amount } = config;
 
   const onramp = new OnrampWebSDK({
     appId: ONRAMP_APP_ID,
@@ -44,6 +45,7 @@ export const openSellWidget = (config: OnrampConfig) => {
     coinCode: 'XLM',
     fiatType: 1, // INR
     flowType: 2, // Sell
+    fiatAmount: amount,
   } as any);
 
   onramp.show();
@@ -51,7 +53,7 @@ export const openSellWidget = (config: OnrampConfig) => {
 };
 
 /**
- * Get estimated XLM amount for given INR (using CoinGecko API)
+ * Get estimated XLM amount for given INR
  */
 export const getXlmRate = async (): Promise<number> => {
   try {
