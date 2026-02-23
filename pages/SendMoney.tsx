@@ -4,7 +4,7 @@ import { UserProfile, FamilyMember, TransactionRecord } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, Search, Wallet, Shield, Zap, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee, PiggyBank, Check, EyeOff } from 'lucide-react';
 import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
-import { sendPayment, getBalance } from '../services/stellar';
+import { sendPayment, getBalance, isAccountFunded } from '../services/stellar';
 import { getLivePrice, calculateCryptoToSend } from '../services/priceService';
 import { decryptSecret } from '../services/encryption';
 import { KYCService } from '../services/kycService';
@@ -75,7 +75,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [isViralLinkMode, setIsViralLinkMode] = useState(false);
   const [claimLink, setClaimLink] = useState<string | null>(null);
   const [chillarSavings, setChillarSavings] = useState(0);
-  const [chillarEnabled, setChillarEnabled] = useState(true);
+  const [chillarEnabled, setChillarEnabled] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
 
   const [selectedAsset, setSelectedAsset] = useState<'XLM'>('XLM');
@@ -455,15 +455,26 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         }
 
         let hash = '';
+        let recordedChillar = 0;
 
         if (chillarEnabled) {
           // Calculate Chillar (Round-up)
           const chillarAmount = calculateChillarAmount(amtNum);
           setChillarSavings(chillarAmount);
+          recordedChillar = chillarAmount;
 
           // Convert amounts to XLM
           const xlmAmountMain = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
           const xlmAmountChillar = await calculateCryptoToSend(chillarAmount, 'stellar', 1.02);
+
+          // Check if recipient is new and amount is too low for activation (1 XLM)
+          // We already check this in sendChillarPayment but catching it here gives a smoother UI before the TX is built
+          if (parseFloat(xlmAmountMain.toString()) < 1.0) {
+            const recipientExists = await isAccountFunded(recipientPubKey).catch(() => true);
+            if (!recipientExists) {
+              throw new Error(`Recipient is a new user and requires at least ₹20 worth of XLM to activate their account. Please increase the amount or send to a funded wallet.`);
+            }
+          }
 
           // Gullak Public Key fallback (if not set, use recipient for now or throw)
           const gullakPk = profile.gullakPublicKey || profile.publicKey; // Fallback to self-save
@@ -526,7 +537,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           asset: selectedAsset,
           blockchainNetwork: isEthereumMode ? 'ETHEREUM' : 'STELLAR',
           category: category,
-          isIncognito: isIncognito
+          isIncognito: isIncognito,
+          chillarAmount: recordedChillar
         });
 
         // Record Chillar as a separate small internal record or just part of this?
@@ -929,7 +941,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   <div className="text-right">
                     <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Total Deduction</p>
                     <p className="text-sm font-black text-black">
-                      ₹{Math.ceil(parseFloat(amount) / 10) * 10}
+                      ₹{(parseFloat(amount) + calculateChillarAmount(parseFloat(amount))).toFixed(2)}
                     </p>
                   </div>
                 </div>

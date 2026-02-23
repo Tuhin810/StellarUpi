@@ -24,6 +24,7 @@ export interface UserProfile {
   streakHistory?: string[]; // Array of ISO date strings (YYYY-MM-DD)
   streakLevel: 'orange' | 'blue' | 'purple';
   gullakPublicKey?: string; // Dedicated Stellar vault for savings
+  gullakEncryptedSecret?: string; // Encrypted secret for the gullak vault
   totalSavingsINR?: number;
   lastYieldDate?: string; // ISO date string
   totalYieldEarnedINR?: number;
@@ -34,6 +35,7 @@ export interface UserProfile {
   kycVerifiedAt?: string;
   fullName?: string;
   ethAddress?: string;
+  gullakActivated?: boolean;
 }
 
 export interface FamilyMember {
@@ -61,10 +63,12 @@ export interface TransactionRecord {
   isFamilySpend: boolean;
   spenderId?: string;
   asset?: 'XLM';
-  category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other';
+  category?: 'Shopping' | 'Food' | 'Travel' | 'Bills' | 'Entertainment' | 'Other' | 'Savings' | 'Withdrawal';
   blockchainNetwork?: 'STELLAR' | 'ETHEREUM';
   network?: 'testnet' | 'mainnet';
   isIncognito?: boolean;
+  chillarAmount?: number;
+  isGullakWithdrawal?: boolean;
 }
 
 export interface ChatMessage {

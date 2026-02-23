@@ -38,7 +38,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
     }, [profile]);
 
     const xlmToInr = parseFloat(balance) * xlmRate;
-    const hasBalance = parseFloat(balance) > 1; // Minimum 1 XLM to withdraw
+    const hasBalance = (parseFloat(balance) * xlmRate) >= 10; // Minimum ₹10 to withdraw
 
     const handleSellXLM = () => {
         if (!profile || !hasBalance) return;
@@ -124,7 +124,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                         <div>
                             <p className="text-zinc-400 font-bold text-sm mb-1">Insufficient Balance</p>
                             <p className="text-zinc-500 text-xs">
-                                Minimum 1 XLM required to withdraw.
+                                Minimum ₹10 required to withdraw.
                             </p>
                         </div>
                     </div>
@@ -142,7 +142,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                         }`}
                 >
                     <ArrowDownToLine size={22} />
-                    Withdraw to Bank
+                    {hasBalance ? 'Withdraw to Bank' : `Min. ₹10 Required`}
                 </button>
 
                 {!isMainnet && (
@@ -171,7 +171,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                     ))}
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 

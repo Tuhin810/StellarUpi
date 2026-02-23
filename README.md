@@ -41,34 +41,40 @@ Our mission is to eliminate the friction of long, hexadecimal wallet addresses a
 
 ## ✨ Features
 
-### 🔐 **Advanced Web3 Onboarding**
-- **Wallet-agnostic Login**: Seamlessly connect using **MetaMask**, **WalletConnect**, or **Coinbase Wallet** via Web3Modal.
+### 🔐 **Advanced Web3 & Wallet Ecosystem**
+- **Wallet-agnostic Login**: Connect using **MetaMask**, **WalletConnect**, or **Coinbase Wallet** via Web3Modal.
+- **Freighter Integration**: Native support for **Freighter Wallet** including **SEP-7** standard for seamless QR-based "Send" transactions.
 - **Auto-Generated UPI IDs**: Your Ethereum address automatically maps to a user-friendly Stellar ID (e.g., `0xab12...cd@stellar`).
-- **Signature-based Encryption**: Your Stellar private keys are encrypted client-side using your Web3 wallet's signature. No plaintext keys ever touch a server.
+- **Signature-based Encryption**: Your Stellar private keys are encrypted client-side using your Web3 wallet's signature.
 
 ### 💸 **Seamless Payments**
 - **UPI-Style Transfers**: Send XLM and other Stellar assets using simple `name@stellar` handles.
-- **QR Code Ecosystem**: Full support for scanning and generating payment QR codes.
-- **Path Payments (USDC/XLM)**: Automatic path-finding for the best exchange rates when sending different assets.
-- **Deep-Link Integration**: Shareable payment links that open directly in the app with pre-filled details.
+- **Sonic Transfer (Nearby Sync)**: Send and receive payments using **Sound-based Pairing** (GGWave). No internet pairing or manual entry needed for nearby devices.
+- **Universal QR Ecosystem**: Scan any Stellar-compatible QR code or generate SEP-7 compliant codes for instant payments.
+- **Accountless Onboarding**: Send money to non-users via **Claimable Balances**. They receive a "Viral Link" to claim funds once they join.
+- **Path Payments**: Automatic path-finding for the best exchange rates (e.g., Send USDC, Recipient receives XLM).
 
-### 👨‍👩‍👧‍👦 **Family & Shared Economy**
-- **Family Vaults**: Parents can set up a master vault and add family members with granular controls.
-- **Daily Spending Limits**: Set and track real-time spending caps for children or dependents.
+### 🏦 **Automated Finance & Savings**
+- **Gullak (Piggy Bank)**: Goal-based automated savings. Small "chillar" (round-ups) from your daily payments are automatically moved to a secure vault.
+- **Yield-Bearing Streaks**: Earn passive yield on your Gullak balance based on your daily usage streak. Tiers range from Starter to Pro Saver (MAX APR).
+- **Scheduled & AutoPay**: Set up recurring payments for rent, subscriptions, or family allowances.
+- **Family Vaults**: Master vaults for parents with granular spending limits and real-time tracking for dependents.
+
+### 👨‍👩‍👧‍👦 **Social & Shared Economy**
 - **Group Bill Splitting**: Create groups, chat in real-time, and split expenses equally or with custom amounts.
+- **Shared Wallets**: Multi-signature pools for shared expenses (e.g., roommates, travel teams).
 - **Integrated Group Chat**: Discuss transactions and settle debts without leaving the app.
 
 ### 🤖 **Raze AI Assistant**
 - **Neural Financial Intelligence**: Powered by **Gemini 1.5 Flash**, Raze provides instant insights into your spending habits.
 - **Voice-to-Action**: Send money or check balances using natural voice commands.
 - **Automated Identity Resolution**: Raze resolves names to Stellar addresses instantly from chat context.
-- **AI Receipt Scanner (Beta)**: Coming soon - OCR parsing of physical receipts into split expenses.
 
 ### 🛡️ **Premium Security & Privacy**
 - **Biometric Auth (WebAuthn)**: Authorize transactions using **FaceID**, **TouchID**, or Windows Hello.
 - **Hardware-Level Protection**: FIDO2 standards ensure your transactions are tamper-proof.
+- **In-App Notifications**: Real-time custom notification system for payment alerts, group invites, and savings goals.
 - **On-Device KYC**: Secure identity verification using Tesseract.js for private, locally processed OCR.
-- **Real-Time Fraud Detection**: AI-driven monitoring for suspicious transaction patterns.
 
 ### 💳 **Fiat Gateway**
 - **Buy XLM with INR**: Direct UPI/NetBanking integration via Onramp.money.
@@ -81,13 +87,14 @@ Our mission is to eliminate the friction of long, hexadecimal wallet addresses a
 
 ### **Frontend & UI**
 - **Core**: React 19, TypeScript 5.8, Vite 6
-- **Styling**: Tailwind CSS, Framer Motion (for smooth micro-interactions)
+- **Styling**: Vanilla CSS (Premium Aesthetics), Framer Motion (Micro-interactions)
 - **Icons**: Lucide React
 - **PWA**: Vite PWA Plugin for offline-first experience
 
 ### **Core Infrastructure**
-- **Blockchain**: Stellar SDK, Horizon API
-- **Web3**: Web3Modal, Ethers.js 6
+- **Blockchain**: Stellar SDK, Horizon API, Soroban (coming soon)
+- **Communications**: GGWave (Sonic Data Transfer)
+- **Web3**: Web3Modal, Ethers.js 6, Freighter SDK
 - **Database**: Firebase Firestore (Real-time updates)
 - **Identity**: Tesseract.js (OCR), WebAuthn API (Biometrics)
 
@@ -103,11 +110,11 @@ Our mission is to eliminate the friction of long, hexadecimal wallet addresses a
 ### **Directory Structure**
 ```text
 /src
-├── components/   # Atomic UI components
-├── context/      # Global state (Auth, Network)
-├── hooks/        # Reusable logic
-├── pages/        # Route-level views
-├── services/     # API & Blockchain logic
+├── components/   # Atomic UI components (Sonic, QR, AI)
+├── context/      # Global state (Auth, Network, Notifications)
+├── hooks/        # Reusable logic (useSonic, useStellar)
+├── pages/        # Route-level views (Gullak, Send, SharedWallet)
+├── services/     # API & Blockchain logic (Claimable, Scheduled)
 ├── utils/        # Helper functions
 └── types.ts      # Global TS interfaces
 ```
@@ -135,14 +142,17 @@ StellarUpi is designed to operate as a **Virtual Digital Asset Service Provider 
 - [x] Family Wallet System
 - [x] Initial Raze AI Integration
 
-### **Phase 2: Growth (Q1 2026)**
-- [ ] **Accountless Onboarding**: Use Stellar Claimable Balances to send money to people who don't have a wallet yet.
-- [ ] **Multi-Asset Path Payments**: Support for USDC, ARST, and other Stellar anchors with automatic path-finding.
-- [ ] **AI Receipt Scanning**: Full integration of Gemini OCR for group expense automation.
+### **Phase 2: Growth (Q1 2026 - Current)**
+- [x] **Sonic Transfer**: Sound-based payment pairing.
+- [x] **Gullak Savings**: Automated round-ups and yield-bearing streaks.
+- [x] **Accountless Onboarding**: Viral payment links via Claimable Balances.
+- [x] **Freighter SEP-7**: Full support for hardware-linked mobile payments.
+- [x] **Scheduled Payments**: Recurring transfers and subscriptions.
 
 ### **Phase 3: Scaling (Q2 2026)**
 - [ ] **Soroban Smart Contracts**: Move shared wallet logic to on-chain smart contracts for trustless escrow.
 - [ ] **Merchant SDK**: Simplified API for local vendors to accept Stellar payments.
+- [ ] **AI Receipt Scanning**: Full integration of Gemini OCR for group expense automation.
 
 ---
 
