@@ -151,6 +151,7 @@ export const sendPayment = async (
     const result = await server.submitTransaction(transaction);
     return result.hash;
   } catch (error: any) {
+    console.error("Horizon Submission Error:", error.response?.data || error);
     const resultCodes = error.response?.data?.extras?.result_codes;
     if (resultCodes) {
       if (resultCodes.operations?.includes('op_underfunded')) {
@@ -159,7 +160,16 @@ export const sendPayment = async (
       if (resultCodes.operations?.includes('op_low_reserve')) {
         throw new Error('Transaction would drop balance below the required network reserve (1 XLM).');
       }
+      if (resultCodes.transaction === 'tx_bad_auth') {
+        throw new Error('Transaction authentication failed. Your secret key may be invalid or out of sync.');
+      }
     }
+
+    // If it's a 400 but no result codes, it's likely a malformed XDR or network mismatch
+    if (error.response?.status === 400) {
+      throw new Error(`Bad Request (400): ${error.response?.data?.title || 'Malformed Transaction'}. Check if you are sending to a valid address or if the amount is too small.`);
+    }
+
     throw error;
   }
 };

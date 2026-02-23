@@ -51,6 +51,21 @@ export class LiquidationService {
     ): Promise<{ txHash: string; payoutId: string }> {
         console.log(`[Liquidation] Initiating direct payout of ₹${quote.inrAmount} to ${upiId}`);
 
+        // ENSURE BRIDGE IS ACTIVATED (For Sandbox/Testnet)
+        // If the bridge doesn't exist, the first transaction might fail if amount < 1 XLM.
+        // We proactively check/fund it here for the demo.
+        try {
+            const response = await fetch(`https://horizon-testnet.stellar.org/accounts/${SANDBOX_BRIDGE_ADDRESS}`);
+            if (response.status === 404) {
+                console.log("[Liquidation] Bridge not found on Testnet. Activating via Friendbot...");
+                await fetch(`https://friendbot.stellar.org?addr=${SANDBOX_BRIDGE_ADDRESS}`);
+                // Give friendbot a second to settle
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+        } catch (e) {
+            console.warn("[Liquidation] Bridge check failed (might be on Mainnet or offline)", e);
+        }
+
         // 1. Send XLM to the Bridge
         const txHash = await sendPayment(
             senderSecret,
