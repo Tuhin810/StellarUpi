@@ -562,6 +562,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     return (
       <SuccessScreen
         recipientName={selectedContact?.name || ''}
+        recipientAvatar={selectedContact?.avatarSeed || selectedContact?.id}
         amount={amount}
         zkProof={zkProof}
         claimLink={claimLink}
