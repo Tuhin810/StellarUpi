@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { UserProfile, TransactionRecord } from '../types';
-import { getTransactions, getProfileByStellarId } from '../services/db';
+import { getTransactions, getProfileByStellarId, getProfileByPublicKey } from '../services/db';
 import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Shield, Search, Calendar, ShoppingBag, Utensils, Plane, Receipt, Play } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Download } from 'lucide-react';
@@ -30,7 +30,14 @@ const Transactions: React.FC<Props> = ({ profile }) => {
 
         const nameMap: Record<string, string> = {};
         await Promise.all(uniqueIds.map(async (id) => {
-          const p = await getProfileByStellarId(id);
+          // 1. Try resolving by Stellar ID
+          let p = await getProfileByStellarId(id);
+
+          // 2. If not found and it looks like a public key, try resolving by public key
+          if (!p && id.startsWith('G') && id.length === 56) {
+            p = await getProfileByPublicKey(id);
+          }
+
           if (p?.displayName) nameMap[id] = p.displayName;
         }));
 
@@ -75,10 +82,8 @@ const Transactions: React.FC<Props> = ({ profile }) => {
       {/* Header */}
       <div className="pt-5 px-3 flex items-center justify-between mb-10">
         <div className="flex items-center gap-6">
-          <button onClick={() => navigate("/")} className="p-2 text-zinc-400">
-            <ArrowLeft size={24} />
-          </button>
-          <h2 className="text-3xl font-black tracking-tighter">History</h2>
+
+          {/* <h2 className="text-3xl font-black tracking-tighter">History</h2> */}
         </div>
         <div className="flex gap-2">
           <button
@@ -142,7 +147,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
             <p className="text-zinc-500 text-sm font-medium">Your activity will appear here.</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {txs
               .filter(tx => !tx.isIncognito)
               .filter(tx => {
@@ -159,46 +164,49 @@ const Transactions: React.FC<Props> = ({ profile }) => {
               })
               .map((tx) => {
                 const isSent = tx.fromId === profile?.stellarId;
+                const otherId = isSent ? tx.toId : tx.fromId;
+                const displayName = names[otherId] || (otherId.length > 15 ? `${otherId.substring(0, 6)}...${otherId.slice(-4)}` : otherId.split('@')[0]);
+                const isStellarId = otherId.includes('@');
+                const isRawKey = !isStellarId && otherId.startsWith('G');
+
                 return (
                   <div
                     key={tx.id}
                     onClick={() => navigate(`/transaction/${tx.id}`)}
-                    className="flex items-center justify-between group animate-in fade-in slide-in-from-bottom-2 duration-300 cursor-pointer active:scale-[0.98] transition-all"
+                    className="flex items-center justify-between group animate-in fade-in slide-in-from-bottom-2 duration-300 cursor-pointer active:scale-[0.98] transition-all py-1"
                   >
-                    <div className="flex items-center gap-5">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isSent ? 'bg-zinc-900 border border-white/5 text-zinc-500' : 'bg-[#E5D5B3]/10 border border-[#E5D5B3]/20 text-[#E5D5B3]'}`}>
-                        {tx.category === 'Shopping' && <ShoppingBag size={20} />}
-                        {tx.category === 'Food' && <Utensils size={20} />}
-                        {tx.category === 'Travel' && <Plane size={20} />}
-                        {tx.category === 'Bills' && <Receipt size={20} />}
-                        {tx.category === 'Entertainment' && <Play size={20} />}
-                        {(tx.category === 'Other' || !tx.category) && (isSent ? <ArrowUpRight size={20} /> : <ArrowDownLeft size={20} />)}
+                    <div className="flex items-center gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSent ? 'bg-zinc-900 border border-white/5 text-zinc-500' : 'bg-[#E5D5B3]/10 border border-[#E5D5B3]/20 text-[#E5D5B3]'}`}>
+                        {tx.category === 'Shopping' && <ShoppingBag size={18} />}
+                        {tx.category === 'Food' && <Utensils size={18} />}
+                        {tx.category === 'Travel' && <Plane size={18} />}
+                        {tx.category === 'Bills' && <Receipt size={18} />}
+                        {tx.category === 'Entertainment' && <Play size={18} />}
+                        {(tx.category === 'Other' || !tx.category) && (isSent ? <ArrowUpRight size={18} /> : <ArrowDownLeft size={18} />)}
                       </div>
                       <div>
-                        <p className="font-bold text-base leading-none mb-1">
-                          {isSent
-                            ? `To: ${names[tx.toId] || tx.toId.split('@')[0]}`
-                            : `From: ${names[tx.fromId] || tx.fromId.split('@')[0]}`}
+                        <p className={`font-bold ${isRawKey && !names[otherId] ? 'text-xs' : 'text-sm'} leading-none mb-1`}>
+                          {isSent ? `To: ${displayName}` : `From: ${displayName}`}
                         </p>
                         <div className="flex items-center gap-2">
-                          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
                             {tx.timestamp?.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                           </p>
                           {tx.category && (
                             <>
                               <div className="w-1 h-1 bg-zinc-800 rounded-full" />
-                              <p className="text-[10px] font-bold text-[#E5D5B3]/60 uppercase tracking-widest">{tx.category}</p>
+                              <p className="text-[9px] font-bold text-[#E5D5B3]/60 uppercase tracking-widest">{tx.category}</p>
                             </>
                           )}
                         </div>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className={`font-black text-lg tracking-tight ${isSent ? 'text-white' : 'text-[#E5D5B3]'}`}>
+                      <p className={`font-black text-base tracking-tight ${isSent ? 'text-white' : 'text-[#E5D5B3]'}`}>
                         {isSent ? '-' : '+'}₹{tx.amount.toLocaleString()}
                       </p>
                       <div className="flex items-center gap-1 justify-end mt-0.5">
-                        <span className={`text-[9px] font-black uppercase tracking-widest ${tx.status === 'SUCCESS' ? 'text-emerald-500/60' : 'text-rose-500'}`}>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${tx.status === 'SUCCESS' ? 'text-emerald-500/60' : 'text-rose-500'}`}>
                           {tx.status}
                         </span>
                         {tx.isFamilySpend && <Shield size={8} className="text-zinc-500 ml-1" />}

@@ -23,7 +23,7 @@ const UniversalQR: React.FC<UniversalQRProps> = ({ stellarId, publicKey, amount,
     };
 
     const qrData = getUniversalLink();
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrData)}&color=1A1A1A&bgcolor=E5D5B3&ecc=H`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(qrData)}&color=1A1A1A&bgcolor=fff&ecc=H`;
 
     return (
         <div className={`relative flex flex-col items-center ${className}`}>
@@ -36,7 +36,7 @@ const UniversalQR: React.FC<UniversalQRProps> = ({ stellarId, publicKey, amount,
                 />
             </div>
 
-            <div className="mt-4 flex items-center gap-2 px-3 py-1 bg-black/5 rounded-full border border-black/5">
+            <div className="my-4 flex items-center gap-2 px-3 py-1 bg-black/5 rounded-full border border-black/5">
                 <QrCode size={10} className="text-black/40" />
                 <span className="text-[9px] font-black uppercase tracking-widest text-black/40">
                     Scan to Pay · Any Wallet

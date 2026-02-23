@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { UserProfile, FamilyMember, TransactionRecord } from '../types';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Send, Search, Wallet, Shield, Zap, ChevronRight, Users, Smartphone, Share2, BadgeIndianRupee, PiggyBank, Check, EyeOff } from 'lucide-react';
-import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
+import { getUsersByPhones, getUserById, recordTransaction, getTransactions, updateFamilySpend, getProfile, getProfileByStellarId, getProfileByPublicKey, updatePersonalSpend, updateSplitPayment, updateRequestStatus } from '../services/db';
 import { sendPayment, getBalance } from '../services/stellar';
 import { getLivePrice, calculateCryptoToSend } from '../services/priceService';
 import { decryptSecret } from '../services/encryption';
@@ -174,6 +174,20 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             id: toParam,
             name: pnParam || toParam.split('@')[0],
             avatarSeed: toParam
+          });
+          return;
+        }
+
+        // Check if it's a raw Stellar public key (G... 56 chars)
+        const isRawPubKey = toParam.startsWith('G') && toParam.length === 56;
+
+        if (isRawPubKey) {
+          // Try to resolve the name from the public key
+          const profileByKey = await getProfileByPublicKey(toParam);
+          setSelectedContact({
+            id: toParam,
+            name: profileByKey?.displayName || `${toParam.substring(0, 6)}...${toParam.slice(-4)}`,
+            avatarSeed: profileByKey?.avatarSeed || toParam
           });
           return;
         }

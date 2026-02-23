@@ -68,6 +68,40 @@ export const getProfileByStellarId = async (stellarId: string): Promise<UserProf
   return getProfile(idInfo.uid);
 };
 
+export const getProfileByPublicKey = async (publicKey: string): Promise<UserProfile | null> => {
+  // Strategy 1: Search the 'ids' collection (stellarId -> {uid, publicKey})
+  try {
+    const idsQuery = query(
+      collection(db, 'ids'),
+      where('publicKey', '==', publicKey)
+    );
+    const idsSnap = await getDocs(idsQuery);
+    if (!idsSnap.empty) {
+      const idDoc = idsSnap.docs[0];
+      const { uid } = idDoc.data() as { uid: string; publicKey: string };
+      // Load full profile using the uid
+      const profile = await getProfile(uid);
+      if (profile) return profile;
+    }
+  } catch (e) {
+    console.warn('getProfileByPublicKey ids lookup failed:', e);
+  }
+
+  // Strategy 2: Direct query on upiAccounts
+  try {
+    const q = query(
+      collection(db, 'upiAccounts'),
+      where('publicKey', '==', publicKey)
+    );
+    const snap = await getDocs(q);
+    if (!snap.empty) return snap.docs[0].data() as UserProfile;
+  } catch (e) {
+    console.warn('getProfileByPublicKey upiAccounts lookup failed:', e);
+  }
+
+  return null;
+};
+
 export const recordTransaction = async (tx: Partial<TransactionRecord>) => {
   const network = localStorage.getItem('stellar_network') === 'mainnet' ? 'mainnet' : 'testnet';
   await addDoc(collection(db, 'transactions'), {

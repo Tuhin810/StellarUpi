@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { UserProfile, TransactionRecord } from '../types';
-import { getTransactionById, getProfileByStellarId } from '../services/db';
+import { getTransactionById, getProfileByStellarId, getProfileByPublicKey } from '../services/db';
 import { ArrowLeft, Share2, Shield, CheckCircle2, XCircle, Clock, Copy, ExternalLink, Download, Link2, Verified, ShoppingBag, Utensils, Plane, Receipt, Play, Tag } from 'lucide-react';
 import { useNetwork } from '../context/NetworkContext';
 import { getAvatarUrl } from '../services/avatars';
@@ -30,7 +30,15 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                 if (res) {
                     setTx(res);
                     const otherId = res.fromId === profile?.stellarId ? res.toId : res.fromId;
-                    const op = await getProfileByStellarId(otherId);
+
+                    // 1. Try resolving by Stellar ID
+                    let op = await getProfileByStellarId(otherId);
+
+                    // 2. Fallback to public key lookup if it looks like one
+                    if (!op && otherId.startsWith('G') && otherId.length === 56) {
+                        op = await getProfileByPublicKey(otherId);
+                    }
+
                     setOtherProfile(op);
                 }
                 setLoading(false);
@@ -125,7 +133,9 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                             <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-white/5 p-1 overflow-hidden shadow-inner">
                                 <img src={getAvatarUrl(isSent ? profile.avatarSeed : (otherProfile?.avatarSeed || tx.fromId))} className="w-full h-full" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 truncate w-20 text-center">{isSent ? 'You' : (otherProfile?.displayName || tx.fromId.split('@')[0])}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 truncate w-20 text-center">
+                                {isSent ? 'You' : (otherProfile?.displayName || (tx.fromId.length > 15 ? `${tx.fromId.substring(0, 6)}...${tx.fromId.slice(-4)}` : tx.fromId.split('@')[0]))}
+                            </span>
                         </div>
                         <div className="flex flex-col items-center gap-2 px-4 opacity-20">
                             <div className="h-[2px] w-12 bg-zinc-800 relative">
@@ -136,7 +146,9 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                             <div className="w-14 h-14 rounded-2xl bg-zinc-800 border border-white/5 p-1 overflow-hidden shadow-inner">
                                 <img src={getAvatarUrl(isSent ? (otherProfile?.avatarSeed || tx.toId) : profile.avatarSeed)} className="w-full h-full" />
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 truncate w-20 text-center">{isSent ? (otherProfile?.displayName || tx.toId.split('@')[0]) : 'You'}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 truncate w-20 text-center">
+                                {isSent ? (otherProfile?.displayName || (tx.toId.length > 15 ? `${tx.toId.substring(0, 6)}...${tx.toId.slice(-4)}` : tx.toId.split('@')[0])) : 'You'}
+                            </span>
                         </div>
                     </div>
 

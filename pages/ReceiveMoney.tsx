@@ -8,18 +8,19 @@ import {
     Share2,
     QrCode,
     Link2,
-    IndianRupee,
     X,
     Radio,
     Wallet,
     Loader2,
-    CheckCircle2
+    CheckCircle2,
+    Shield
 } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 import UniversalQR from '../components/UniversalQR';
 import { WalletConnectService } from '../services/walletConnectService';
 import { recordTransaction } from '../services/db';
 import { NotificationService } from '../services/notification';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Props {
     profile: UserProfile | null;
@@ -50,7 +51,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     };
 
     const getPaymentLink = () => {
-        // Updated to use the smart-link gateway format
         const base = `${window.location.origin}/pay`;
         let link = `${base}/${profile.stellarId}`;
 
@@ -95,7 +95,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
         }
     };
 
-    // ─── Freighter WalletConnect Flow ───
     const handleStartFreighterFlow = async () => {
         setShowFreighterModal(true);
         setWcStatus('pairing');
@@ -106,7 +105,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
             const { uri, approval } = await WalletConnectService.createPairing();
             setWcUri(uri);
 
-            // Wait for Freighter to scan and approve
             const senderAddress = await WalletConnectService.waitForSession(approval);
             setWcSender(senderAddress);
             setWcStatus('connected');
@@ -129,7 +127,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                 memo: `Pay ${profile.displayName || profile.stellarId.split('@')[0]}`
             });
 
-            // Record
             await recordTransaction({
                 fromId: wcSender.substring(0, 10) + '@stellar',
                 toId: profile.stellarId,
@@ -151,7 +148,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
 
             setWcStatus('done');
 
-            // Cleanup after a delay
             setTimeout(() => {
                 WalletConnectService.disconnect();
             }, 3000);
@@ -175,116 +171,119 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     const avatarUrl = getAvatarUrl(profile.avatarSeed || profile.stellarId);
 
     return (
-        <div className="min-h-screen bg-[#1A1A1A] text-white relative overflow-hidden flex flex-col pb-32">
-            {/* Background Glow */}
-            <div className="absolute top-[-10%] left-[-10%] w-[120%] h-[50%] bg-[#E5D5B3]/5 rounded-full blur-[120px]"></div>
+        <div className="min-h-screen bg-[#050505] text-white relative overflow-hidden flex flex-col pb-44">
+            {/* Background Aesthetics */}
+            <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-emerald-500/10 via-transparent to-transparent pointer-events-none" />
 
             {/* Header */}
-            <div className="pt-5 px-3 flex items-center justify-between relative z-10 mb-8">
+            <div className="pt-6 px-6 flex items-center justify-between relative z-10 mb-2">
                 <button
                     onClick={() => navigate("/")}
-                    className="p-3 bg-zinc-900/80 backdrop-blur-md rounded-2xl text-zinc-400 hover:text-white transition-all border border-white/5"
+                    className="w-10 h-10 flex items-center justify-center bg-zinc-900/50 backdrop-blur-xl rounded-xl text-zinc-400 border border-white/5 active:scale-90"
                 >
-                    <ArrowLeft size={20} />
+                    <ArrowLeft size={18} />
                 </button>
-                <h2 className="text-xl font-black tracking-tight">Receive Money</h2>
+                <div className="text-center">
+                    <h2 className="text-base font-black tracking-tight text-white/90">Receive Money</h2>
+                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-500 mt-0.5">Stellar UPI Network</p>
+                </div>
                 <div className="w-10"></div>
             </div>
 
-            <div className="flex-1 px-2 flex flex-col items-center justify-center relative z-10 pb-20">
-                {/* Main QR Card */}
-                <div className="w-full max-w-sm bg-[#E5D5B3] rounded-[3rem] p-8 shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col items-center">
-                    <div className="w-full flex items-center gap-4 mb-8">
-                        <div className="w-12 h-12 rounded-2xl bg-black/5 p-1 border border-black/10 overflow-hidden">
-                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="text-black font-black text-sm truncate uppercase tracking-tight">
-                                {profile.displayName || profile.stellarId.split('@')[0]}
-                            </p>
-                            <p className="text-black/40 text-[10px] font-black uppercase tracking-widest truncate">
-                                {profile.stellarId}
-                            </p>
-                        </div>
-                        <div className="w-10 h-10 bg-black/10 rounded-xl flex items-center justify-center text-black/60">
-                            <QrCode size={20} />
-                        </div>
-                    </div>
+            <div className="flex-1 flex flex-col items-center px-6 pt-4 relative z-10 overflow-y-auto no-scrollbar">
 
-                    <div className="mb-8">
-                        <UniversalQR
-                            stellarId={profile.stellarId}
-                            publicKey={profile.publicKey}
-                            amount={linkAmount}
-                            note={linkNote}
-                            size={300}
-                        />
-                    </div>
 
-                    <p className="text-center font-bold text-black/60 text-[11px] px-4 leading-relaxed uppercase tracking-widest mb-2">
-                        Scan with camera to open payment page
-                    </p>
-                    <p className="text-center font-black text-black text-lg mb-8 tracking-tighter">
-                        {profile.stellarId}
-                    </p>
+                {/* 2. CENTRAL QR with SCANNING FRAME */}
+                <div className="relative group">
+                    {/* Corner Markers */}
+                    {/* <div className="absolute -top-4 -left-4 w-10 h-10 border-t-2 border-l-2 border-[#E5D5B3] rounded-tl-2xl opacity-40"></div>
+                    <div className="absolute -top-4 -right-4 w-10 h-10 border-t-2 border-r-2 border-[#E5D5B3] rounded-tr-2xl opacity-40"></div>
+                    <div className="absolute -bottom-4 -left-4 w-10 h-10 border-b-2 border-l-2 border-[#E5D5B3] rounded-bl-2xl opacity-40"></div>
+                    <div className="absolute -bottom-4 -right-4 w-10 h-10 border-b-2 border-r-2 border-[#E5D5B3] rounded-br-2xl opacity-40"></div> */}
 
-                    <div className="w-full flex gap-3">
-                        <button
-                            onClick={handleCopy}
-                            className="flex-1 py-4 bg-black text-[#E5D5B3] rounded-2xl font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-2 active:scale-95 transition-all shadow-xl"
-                        >
-                            {copied ? <Check size={14} /> : <Copy size={14} />}
-                            {copied ? 'Copied' : 'Copy ID'}
-                        </button>
-                        <button
-                            onClick={handleShare}
-                            className="p-4 bg-white/20 text-black rounded-2xl font-black active:scale-95 transition-all shadow-xl backdrop-blur-sm"
-                        >
-                            <Share2 size={18} />
-                        </button>
+                    <div className="relative   shadow-[0_0_100px_rgba(0,0,0,0.5)] overflow-hidden">
+
+
+                        <div className="relative bg-white/40 rounded-[2rem] p-">
+                            <UniversalQR
+                                stellarId={profile.stellarId}
+                                publicKey={profile.publicKey}
+                                amount={linkAmount}
+                                note={linkNote}
+                                size={270}
+                            />
+                        </div>
                     </div>
                 </div>
 
-                {/* Payment Link Button */}
-                <button
-                    onClick={() => setShowLinkModal(true)}
-                    className="mt-8 flex items-center gap-3 px-6 py-4 bg-white/5 border border-white/10 rounded-2xl text-white font-bold hover:bg-white/10 transition-all w-full max-w-sm justify-center"
-                >
-                    <Link2 size={18} className="text-[#E5D5B3]" />
-                    Create Payment Link
-                </button>
+                {/* 3. USER ID INFO */}
+                <div className="mt-12 text-center">
+                    <p className="text-zinc-500 font-bold text-[10px] uppercase tracking-[0.3em] mb-3">Stellar UPI ID</p>
+                    <div className="flex items-center gap-3 justify-center">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></div>
+                        <h3 className="text-2xl font-black text-white tracking-tighter">{profile.stellarId}</h3>
+                    </div>
+                </div>
 
-                <button
-                    onClick={() => navigate("/sonic?mode=send")}
-                    className="mt-4 flex items-center gap-3 px-6 py-4 bg-green-500/10 border border-green-500/20 rounded-2xl text-green-500 font-bold hover:bg-green-500/20 transition-all w-full max-w-sm justify-center"
-                >
-                    <Radio size={18} className="animate-pulse" />
-                    Sonic Pulse (Offline)
-                </button>
+                {/* 4. FLOATING ACTION BAR */}
+                <div className="mt-14 w-full max-w-[280px] bg-zinc-900/60 backdrop-blur-2xl border border-white/5 rounded-[2rem] p-2 flex items-center justify-between shadow-2xl">
+                    <button
+                        onClick={handleCopy}
+                        className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 text-zinc-400 hover:text-[#E5D5B3] hover:bg-white/10 transition-all active:scale-90"
+                        title="Copy ID"
+                    >
+                        {copied ? <Check size={20} className="text-emerald-500" /> : <Copy size={20} />}
+                    </button>
+                    <button
+                        onClick={() => setShowLinkModal(true)}
+                        className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 text-zinc-400 hover:text-[#E5D5B3] hover:bg-white/10 transition-all active:scale-90"
+                        title="Payment Link"
+                    >
+                        <Link2 size={20} />
+                    </button>
+                    <button
+                        onClick={handleShare}
+                        className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 text-zinc-400 hover:text-[#E5D5B3] hover:bg-white/10 transition-all active:scale-90"
+                        title="Share"
+                    >
+                        <Share2 size={20} />
+                    </button>
+                    <button
+                        className="w-14 h-14 flex items-center justify-center rounded-2xl bg-white/5 text-zinc-400 hover:text-[#E5D5B3] hover:bg-white/10 transition-all active:scale-90"
+                        title="QR Settings"
+                    >
+                        <QrCode size={20} />
+                    </button>
+                </div>
 
-                {/* Freighter WalletConnect Button */}
-                <button
-                    onClick={handleStartFreighterFlow}
-                    className="mt-4 flex items-center gap-3 px-6 py-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-purple-400 font-bold hover:bg-purple-500/20 transition-all w-full max-w-sm justify-center"
-                >
-                    <Wallet size={18} />
-                    Receive via Freighter Scan
-                </button>
+                {/* Extra Features */}
+                <div className="mt-12 grid grid-cols-2 gap-4 w-full max-w-sm">
+                    <button
+                        onClick={() => navigate("/sonic?mode=send")}
+                        className="flex flex-col items-center justify-center gap-2 p-5 bg-emerald-500/5 border border-emerald-500/10 rounded-3xl group active:scale-95 transition-all"
+                    >
+                        <Radio className="text-emerald-500 group-hover:scale-110 transition-transform" size={24} />
+                        <span className="text-[9px] text-white/80 font-black uppercase tracking-[0.1em]">Pulse Send</span>
+                    </button>
+                    <button
+                        onClick={handleStartFreighterFlow}
+                        className="flex flex-col items-center justify-center gap-2 p-5 bg-purple-500/5 border border-purple-500/10 rounded-3xl group active:scale-95 transition-all"
+                    >
+                        <Wallet className="text-purple-400 group-hover:scale-110 transition-transform" size={24} />
+                        <span className="text-[9px] text-white/80 font-black uppercase tracking-[0.1em]">Freighter</span>
+                    </button>
+                </div>
 
-                <p className="mt-12 text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] text-center max-w-[200px] leading-loose">
-                    Secure Instant Payment <br /> via Stellar Vault
-                </p>
+
             </div>
 
             {/* Payment Link Modal */}
             {showLinkModal && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center">
+                <div className="fixed inset-0 z-[100] flex items-end justify-center px-4">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowLinkModal(false)}></div>
                     <div className="relative w-full max-w-md bg-zinc-900 rounded-t-[3rem] p-8 border-t border-white/10 animate-in slide-in-from-bottom duration-300">
-                        {/* Handle */}
                         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-white/20 rounded-full" />
 
-                        {/* Close Button */}
                         <button
                             onClick={() => setShowLinkModal(false)}
                             className="absolute top-6 right-6 p-2 bg-white/5 rounded-xl text-zinc-400 hover:text-white transition-all"
@@ -295,7 +294,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                         <h3 className="text-xl font-black mb-2 mt-4">Payment Link</h3>
                         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-8">Generate a shareable payment link</p>
 
-                        {/* Amount Input */}
                         <div className="mb-4">
                             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Amount (Optional)</label>
                             <div className="relative mb-2">
@@ -316,7 +314,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             )}
                         </div>
 
-                        {/* Note Input */}
                         <div className="mb-6">
                             <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2 block">Note (Optional)</label>
                             <input
@@ -328,7 +325,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             />
                         </div>
 
-                        {/* Preview Link */}
                         <div className="bg-black/20 border border-white/5 rounded-2xl p-4 mb-6">
                             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-2">Your Payment Link</p>
                             <p className="text-[#E5D5B3] text-sm font-mono break-all">
@@ -336,7 +332,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </p>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex gap-3">
                             <button
                                 onClick={handleCopyLink}
@@ -347,7 +342,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </button>
                             <button
                                 onClick={handleShareLink}
-                                className="flex-1 py-4 gold-gradient text-black rounded-2xl font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                className="flex-1 py-4 bg-[#E5D5B3] text-black rounded-2xl font-black text-sm flex items-center justify-center gap-2 active:scale-95 transition-all"
                             >
                                 <Share2 size={16} />
                                 Share
@@ -359,7 +354,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
 
             {/* Freighter WalletConnect Modal */}
             {showFreighterModal && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center">
+                <div className="fixed inset-0 z-[100] flex items-end justify-center px-4">
                     <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={closeFreighterModal}></div>
                     <div className="relative w-full max-w-md bg-zinc-900 rounded-t-[3rem] p-8 border-t border-purple-500/20 animate-in slide-in-from-bottom duration-300">
                         <div className="absolute top-3 left-1/2 -translate-x-1/2 w-10 h-1 bg-white/20 rounded-full" />
@@ -381,7 +376,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </div>
                         </div>
 
-                        {/* Step 1: Show QR for Freighter to scan */}
                         {wcStatus === 'pairing' && wcUri && (
                             <div className="flex flex-col items-center">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-4">Scan with Freighter App</p>
@@ -407,7 +401,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </div>
                         )}
 
-                        {/* Step 2: Connected — Enter Amount */}
                         {wcStatus === 'connected' && (
                             <div className="space-y-6">
                                 <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3">
@@ -441,7 +434,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </div>
                         )}
 
-                        {/* Step 3: Requesting Payment */}
                         {wcStatus === 'requesting' && (
                             <div className="flex flex-col items-center py-8">
                                 <Loader2 size={32} className="animate-spin text-purple-400 mb-4" />
@@ -450,7 +442,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </div>
                         )}
 
-                        {/* Step 4: Done */}
                         {wcStatus === 'done' && (
                             <div className="flex flex-col items-center py-8">
                                 <div className="w-16 h-16 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
@@ -467,7 +458,6 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </div>
                         )}
 
-                        {/* Error */}
                         {wcStatus === 'error' && (
                             <div className="flex flex-col items-center py-8">
                                 <p className="text-rose-400 font-bold text-sm mb-4">{wcError}</p>
