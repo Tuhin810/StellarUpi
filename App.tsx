@@ -72,7 +72,7 @@ const AppContent: React.FC = () => {
       {isAuthenticated && !isStreakPage && (
         <>
           <BottomNav />
-          {/* <AIAssistant /> */}
+         <AIAssistant /> 
         </>
       )}
       <PWAInstallPrompt />
