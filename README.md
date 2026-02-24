@@ -31,161 +31,101 @@ We eliminate the friction of 12-word seed phrases, gas fee calculations, and lon
 ## ✨ Core Features
 
 ### 🔐 Frictionless Web2-to-Web3 Onboarding
-- **Phone Number Login**: No seed phrases. Users authenticate via SMS OTP (MSG91 integration) to instantly provision a non-custodial wallet.
-- **Auto-Generated Stellar IDs**: Users automatically receive a human-readable identifier (e.g., `user@stellar`).
-- **PAN Verification / KYC**: Secure identity verification bridging the trust gap between fiat and crypto systems.
+*   📱 **Phone Number Login**: Eliminate seed phrases completely. Users authenticate via SMS OTP (powered by MSG91) to instantly provision a secure, non-custodial wallet.
+*   🆔 **Auto-Generated Stellar Handles**: Automatically assigns human-readable identifiers (e.g., `username@stellar`) to replace complex public keys.
+*   🛡️ **Embedded KYC & PAN Verification**: Secure, government-backed identity verification bridging the gap between fiat regulations and crypto ecosystems.
+*   🔑 **Biometric Authentication (WebAuthn)**: Hardware-level security utilizing FaceID, TouchID, or Windows Hello to sign transactions locally without exposing private keys.
 
 ### 💸 Universal & Private Payments
-- **Zero-Knowledge (ZK) Incognito Mode**: Toggle "Incognito Mode" to leverage ZK proofs for payments. Settle instantly on the public Stellar network while keeping financial details strictly private.
-- **Universal QR Scanner**: Scan *any* standard payment QR code (EVM or Stellar) to seamlessly pay directly from your native balance via cross-chain interoperability.
-- **Direct Fiat Onramp**: Buy XLM natively using INR via an integrated Onramp SDK overlay. No need to visit external exchanges.
-- **Scheduled Payments**: Set-and-forget recurring payments powered by programmable logic.
+*   🕵️ **Zero-Knowledge (ZK) "Incognito Mode"**: Toggle privacy on demand. Uses `snarkjs` to generate ZK proofs locally, hiding sender, receiver, and transaction amounts while settling publicly on Stellar.
+*   📸 **Universal QR Scanner**: Scan *any* standard payment QR code (EVM or Stellar). The app automatically parses the payload and handles cross-chain routing on the backend.
+*   🦊 **Pay with Freighter & Web3 Wallets**: Full interoperability. Users can seamlessly connect Freighter or EVM wallets to process direct transactions instantly.
+*   💵 **Purchase XLM (Direct Fiat Onramp)**: Buy XLM natively using local fiat (INR) via an integrated Onramp SDK overlay. Users never leave the app to top up their balance.
+*   🏦 **Withdraw to Bank (Offramp)**: Effortlessly withdraw crypto balances directly to traditional bank accounts securely using integrated offramp gateways.
+*   📅 **Scheduled Payments**: Set-and-forget transaction logic utilizing Soroban Smart Contracts to pay rent, subscriptions, or salaries automatically.
+*   💱 **Automated Path Payments**: Built-in Stellar path-finding logic automatically swaps assets (e.g., USDC to XLM) to get the best exchange rate behind the scenes during a transfer.
 
 ### 👨‍👩‍👧‍👦 Social Finance & Shared Economy
-- **Integrated Social Chat**: Chat directly with friends, send money, or trigger a **Payment Request** seamlessly within the messaging interface.
-- **Group Payments & Split Bills**: Create groups, divide expenses equally or customize splits, and settle debts instantly in crypto.
-- **Family Vaults**: Shared economy features allowing parents to set up master vaults, add dependents, and assign configurable spending limits.
+*   💬 **Real-time Chat P2P**: Discuss transactions, share media, and interact socially in real-time without leaving the payment app. Firebase powers instant message sync.
+*   📥 **In-Chat Payment Requests**: Easily drop a "Request Money" card perfectly integrated into a conversation thread. One tap to pay and settle on-chain instantly.
+*   🍕 **Group Ledgers & Split Bills**: Create groups for dinners, trips, or shared rent. Divide expenses equally or customize amounts, and track who owes what seamlessly.
+*   🏺 **Gullak (Savings Vault)**: A dedicated vault mimicking traditional "Gullak" (piggy banks) to encourage micro-savings safely secured on the blockchain.
+*   🧑‍🧑‍🧒 **Family Vaults**: Empower financial literacy. Parents can create a master family vault, add dependents, and set granular daily, weekly, or monthly spending limits.
 
 ### 🤖 Raze AI Assistant
-- **Neural Financial Intelligence**: Powered by **Gemini API**, Raze provides instant insights into your spending habits.
-- **Voice-to-Action**: Send money or check balances using natural voice commands.
+*   🧠 **Neural Financial Intelligence**: Powered by Google's Gemini API, Raze provides proactive, instant insights into your spending habits and transaction history.
+*   🎙️ **Voice-to-Action Processing**: Use natural language to interact. Simply say "Send 50 XLM to Alice" or "What is my balance?" and Raze executes the command.
+*   🧾 **AI Receipt Scanner (OCR)**: Utilize integrated Tesseract.js to scan physical receipts, itemize purchases, and automatically split the bill amongst group members.
 
 ---
 
-## 🏗️ System Architecture & Data Flows
+## 🏗️ Deep Tech Analysis & Architecture
 
-### 1. High-Level System Architecture
+### 1. The "Ching Vault" — Non-Custodial Architecture
+Ching employs a unique security model to maintain high usability without compromising on-chain sovereignty.
+- **Key Generation**: Upon phone verification, an ECDSA/Ed25519 keypair is generated client-side.
+- **Signature-Based Encryption**: The Stellar private key is encrypted using a key derived from the user's phone number + PIN.
+- **Cloud Synchronization**: Encrypted keys are stored in Firebase Firestore. Ching never has access to the plaintext secrets.
+- **Recovery**: If a user switches devices, they re-authenticate via OTP and provide their PIN to decrypt and re-instantiate their local wallet.
 
-```mermaid
-graph TD
-    subgraph Client Application [Ching Frontend - React/Vite]
-        UI[User Interface]
-        AuthCtx[Auth & State Context]
-        ZK[ZK Core / snarkjs]
-        QR[Universal QR Scanner]
-        AI[Raze AI Assistant / Gemini]
-    end
+### 2. Zero-Knowledge "Incognito" Core
+The privacy layer leverages **zk-SNARKs** (Zero-Knowledge Succinct Non-Interactive Arguments of Knowledge).
+- **Circuit Logic**: Computes a hash of the transaction details (sender, receiver, amount) and generates a cryptographic proof.
+- **Proof Generation**: Performed locally using `snarkjs`.
+- **Public Signals**: Includes only the proof and specific obfuscated public markers.
+- **Verification**: The proof is submitted to the Stellar network (or verified via a Soroban contract), confirming the transaction's validity and authorization without revealing the internal state.
 
-    subgraph Backend Services
-        FB_Auth[Firebase Auth & OTP]
-        FB_DB[Firestore DB]
-        MSG91[MSG91 SMS Gateway]
-    end
+### 3. Background Automation & Scheduled Payments
+The `ScheduledPayService` acts as a distributed "Crontab" for the Stellar network.
+- **Worker Pattern**: In-app background worker polls Firestore for payments whose `scheduledDate` has passed.
+- **Atomic Locking**: Uses an in-memory `processingIds` lock + immediate Firestore status updates to `completed` before execution to prevent double-spending or race conditions.
+- **Fault Tolerance**: If a transaction fails (e.g., op_underfunded), the system records the exact `failReason` for user recovery.
 
-    subgraph Blockchain Infrastructure
-        Stellar[Stellar Horizon API]
-        Soroban[Soroban Smart Contracts]
-        Onramp[Onramp.money SDK]
-    end
+### 4. Raze AI: Neural Function Calling
+Integration with **Gemini 1.5 Flash** enables a sophisticated conversational layer.
+- **System Instruction**: Enforces "Identity Resolution Protocols," preventing the AI from generic responses and forcing it to look up IDs via `search_user`.
+- **Multimodal**: Supports audio-to-text transcription via `audio/webm` inline data.
+- **Recursive Tooling**: The AI can chains multiple function calls (e.g., `search_user` -> `get_financial_summary`) to answer complex queries.
 
-    UI <--> AuthCtx
-    AuthCtx <--> FB_Auth
-    FB_Auth <--> MSG91
-    AuthCtx <--> FB_DB
-    
-    UI <--> QR
-    UI <--> ZK
-    ZK -.->|Generates Proof| Stellar
-    
-    UI <--> Stellar
-    UI <--> Soroban
-    UI <--> Onramp
-    
-    UI <--> AI
-```
+### 5. Gullak & Protocol Yield Engine
+The high-yield savings vault (Gullak) is driven by a Streak-based yield engine.
+- **Chillar Deposits**: Atomic Stellar transactions that send main payments to merchants and round-ups to the Gullak vault in a single ledger entry.
+- **Yield Logic**: APR is calculated daily based on the user's `streakLevel`:
+  - **Orange**: 3.6% APR (~0.0001 daily)
+  - **Blue**: 11% APR (~0.0003 daily)
+  - **Purple**: 18% APR (~0.0005 daily)
+- **Compounding**: Calculated on-the-fly and applied to the Firestore balance mapping.
 
-### 2. Frictionless Onboarding Flow (Web2 to Web3)
+---
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant App as Ching App
-    participant SMS as MSG91 / Firebase
-    participant DB as Firestore DB
-    participant Stellar as Stellar Network
+## � Project Structure
 
-    User->>App: Enters Phone Number
-    App->>SMS: Request OTP
-    SMS-->>User: Delivers SMS OTP
-    User->>App: Inputs OTP
-    App->>SMS: Validate OTP
-    SMS-->>App: Authentication Success
-    App->>App: Generate ECDSA Keypair (Background)
-    App->>DB: Encrypt & Store Keys safely
-    App->>Stellar: Provision Account & Fund (Sponsorship)
-    Stellar-->>App: Account Ready
-    App-->>User: Dashboard Unlocked (No Seed Phrase!)
-```
-
-### 3. ZK "Incognito" Payment Flow
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant UI as App Interface
-    participant ZK as ZK Prover (Client)
-    participant Core as Stellar Network
-
-    User->>UI: Toggle 'Incognito Mode' & Tap Send
-    UI->>ZK: Initialize zk-SNARK circuit with payment inputs
-    Note over ZK: Generates cryptographic proof locally<br/>hiding sender, receiver, and amount.
-    ZK-->>UI: Return ZK Proof & Public Signals
-    UI->>Core: Submit Transaction Payload + ZK Proof
-    Note over Core: Validates Proof without<br/>revealing underlying logic
-    Core-->>UI: Transaction Confirmed (Private)
-    UI-->>User: Success Notification
+```text
+├── App.tsx             # Root application logic & background workers
+├── context/            # Global state (Auth, Network, Notifications)
+├── services/           # CORE LOGIC
+│   ├── stellar.ts      # Blockchain operations (P2P, Chillar, Path Payments)
+│   ├── zkProofService.ts # ZK-SNARK proof generation & verification
+│   ├── aiService.ts    # Gemini AI integration & tool definitions
+│   ├── db.ts           # Firestore data management & yield logic
+│   ├── scheduledPayService.ts # Background payment worker
+│   ├── kycService.ts   # PAN verification & encryption key derivation
+│   └── panScannerService.ts # In-browser Tesseract OCR scanner
+├── pages/              # Route components (Dashboard, Gullak, Chat, etc.)
+├── components/         # Reusable atomic UI components
+└── types.ts            # Global TypeScript interface definitions
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## 🛠️ Tech Stack & Advanced Dependencies
 
-- **Frontend Core**: React 19, TypeScript 5.8, Vite 6
-- **State & Data**: Firebase Auth & Firestore, React Router
-- **Cryptography & Privacy**: `snarkjs`, `circomlibjs`, Ethers.js
-- **Blockchain**: Stellar SDK (`@stellar/stellar-sdk`), Freighter API (`@stellar/freighter-api`)
-- **UI/UX & Animation**: Tailwind CSS, Framer Motion, Lucide React, LottieFiles
-- **Integrations**: Onramp (Fiat), MSG91 (SMS OTP), Tesseract.js (OCR), Gemini API (AI)
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js (v18.x or v20.x)
-- Firebase Project Setup
-- (Optional) MSG91 API Keys for SMS OTP, Onramp keys for Fiat.
-
-### Installation
-
-```bash
-# Clone the repository
-git clone https://github.com/Tuhin810/StellarUpi.git
-cd StellarUpi
-
-# Install dependencies
-npm install
-
-# Setup environment variables
-cp .env.example .env
-# Fill in your Firebase, Stellar, and Onramp keys
-```
-
-### Development
-
-```bash
-# Start the local development server
-npm run dev
-```
-
----
-
-## ⚖️ Legal, Security & Compliance
-
-- **FIDO2 / WebAuthn**: Supports hardware-standard biometric transaction signing.
-- **KYC & PAN Integration**: Designed to be compliant for regional Virtual Digital Asset Service Provider (VDASP) operations.
-- **Non-Custodial**: Private keys are encrypted locally and never exposed to the server in plaintext.
+*   **UI/UX**: React 19, TypeScript 5.8, Vite 6, Tailwind CSS, Framer Motion
+*   **Blockchain**: `@stellar/stellar-sdk`, `@stellar/freighter-api`
+*   **Privacy**: `snarkjs`, `crypto-js`, `circomlibjs`
+*   **AI/OCR**: `@google/generative-ai`, `tesseract.js`
+*   **Backend/Realtime**: `firebase/firestore`, `firebase/auth`
+*   **Integration**: Onramp SDK, MSG91 (OTP)
 
 ---
 
