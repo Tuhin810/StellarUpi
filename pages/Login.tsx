@@ -185,12 +185,14 @@ const Login: React.FC = () => {
 
       if (!auth.currentUser) await signInAnonymously(auth);
 
-      // Generate Stellar wallet
+      // Generate Stellar wallets
       const { publicKey, secret } = await createWallet();
+      const { publicKey: gullakPk, secret: gullakSecret } = await createWallet();
 
       // Derive encryption key from phone + default PIN
       const encryptionKey = KYCService.deriveEncryptionKey(phone, '0000');
       const encryptedSecret = encryptSecret(secret, encryptionKey);
+      const encryptedGullakSecret = encryptSecret(gullakSecret, encryptionKey);
 
       // Generate Stellar ID from phone
       const stellarId = generateStellarId(phone);
@@ -206,6 +208,8 @@ const Login: React.FC = () => {
         stellarId,
         publicKey,
         encryptedSecret,
+        gullakPublicKey: gullakPk,
+        gullakEncryptedSecret: encryptedGullakSecret,
         isFamilyOwner: true,
         displayName: nameInput.split(' ')[0], // First name
         fullName: nameInput,

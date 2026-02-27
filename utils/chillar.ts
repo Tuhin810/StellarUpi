@@ -9,16 +9,17 @@
  */
 export const calculateChillarAmount = (amount: number): number => {
     if (amount <= 0) return 0;
+
+    // Standard round up to nearest 10
     const nextTen = Math.ceil(amount / 10) * 10;
-    // If the amount is already a multiple of 10, we could either save 0 or round up to the next 10 (e.g. 150 -> 160).
-    // Given the "Gamified" nature, rounding up to the NEXT 10 even if it's already a multiple 
-    // ensures a saving happens on every transaction to maintain the streak.
-    // However, usually "nearest 10" implies if it's 140, it stays 140 if we use Math.round, 
-    // but the example 142 -> 150 shows it's always CEIL.
-    // If 140 -> 140, then chillar is 0.
     const chillar = nextTen - amount;
-    return chillar === 0 ? 10 : chillar; // Force at least 10 INR saving if it's already a multiple? 
-    // User said "rounded up to the nearest ₹10". Let's use standard logic first.
+
+    // If it's already a multiple of 10 (chillar is 0), 
+    // we save exactly ₹1 (instead of ₹10) to maintain the streak 
+    // without doubling the cost of a ₹10 payment.
+    if (chillar === 0) return 1;
+
+    return Number(chillar.toFixed(2));
 };
 
 export const getChillarDetails = (amount: number) => {

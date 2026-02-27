@@ -89,9 +89,19 @@ const Security: React.FC<Props> = ({ profile }) => {
             // Encrypt with new key
             const newEncryptedSecret = encryptSecret(rawSecret, newVaultKey);
 
+            // ALSO re-encrypt Gullak secret if it exists
+            let newGullakSecret = profile.gullakEncryptedSecret;
+            if (profile.gullakEncryptedSecret) {
+                const rawGullak = decryptSecret(profile.gullakEncryptedSecret, oldVaultKey);
+                if (rawGullak && rawGullak.startsWith('S')) {
+                    newGullakSecret = encryptSecret(rawGullak, newVaultKey);
+                }
+            }
+
             await updateUserDetails(profile.uid, {
                 pin: pinEntry,
-                encryptedSecret: newEncryptedSecret
+                encryptedSecret: newEncryptedSecret,
+                gullakEncryptedSecret: newGullakSecret
             });
 
             setShowPinModal(false);

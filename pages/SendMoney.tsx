@@ -76,8 +76,11 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
   const [isViralLinkMode, setIsViralLinkMode] = useState(false);
   const [claimLink, setClaimLink] = useState<string | null>(null);
   const [chillarSavings, setChillarSavings] = useState(0);
-  const [chillarEnabled, setChillarEnabled] = useState(true);
+  const [chillarEnabled, setChillarEnabled] = useState(false);
   const [isIncognito, setIsIncognito] = useState(false);
+  const [payoutId, setPayoutId] = useState<string | undefined>();
+  const [txHash, setTxHash] = useState<string | undefined>();
+  const [statusMessage, setStatusMessage] = useState<string>('');
 
   const [selectedAsset, setSelectedAsset] = useState<'XLM'>('XLM');
   const [xlmRate, setXlmRate] = useState<number>(15.02);
@@ -368,9 +371,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         if (!recipient) throw new Error("Recipient ID not found");
         recipientPubKey = recipient.publicKey;
       } else {
-        // External UPI Merchant - Send funds to the Bridge Address
-        // This is where the XLM -> INR swap happens
-        recipientPubKey = 'GBRIDGE2DP6K2Y7O5V4P4X5P4Q4X5P4Q4X5P4Q4X5P4Q4X5P4Q4BRIDGE'; // Placeholder Bridge
+        // External UPI Merchant - Use the Liquidation Bridge
+        recipientPubKey = SANDBOX_BRIDGE_ADDRESS;
       }
 
       if (paymentMethod === 'family' && selectedFamilyWallet) {
@@ -409,10 +411,27 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           throw new Error("Family authorization failed. The owner may need to re-authorize your access (try removing and re-adding the member) or your session is out of sync.");
         }
 
-        // Apply 5% buffer for merchant/family stability
-        const conversionBuffer = 1.02;
-        const xlmAmount = ((amtNum / xlmRate) * conversionBuffer).toFixed(7);
-        const hash = await sendPayment(ownerSecret, recipientPubKey, xlmAmount, `FamilyPay: ${selectedContact.id}`);
+        // Apply buffer for merchant/family stability
+        let hash = '';
+        let pId = '';
+
+        if (!isInternalStellar) {
+          setStatusMessage('Getting Liquidation Quote...');
+          const quote = await LiquidationService.getQuote(amtNum);
+
+          setStatusMessage('Sending XLM to Bridge...');
+          const result = await LiquidationService.executeDirectLiquidation(ownerSecret, selectedContact.id, quote);
+          hash = result.txHash;
+
+          setStatusMessage('Triggering UPI Payout...');
+          pId = result.payoutId;
+          setPayoutId(pId);
+        } else {
+          setStatusMessage('Sending Payment...');
+          const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
+          hash = await sendPayment(ownerSecret, recipientPubKey, xlmAmount.toString(), `FamilyPay: ${selectedContact.id}`);
+        }
+        setTxHash(hash);
 
         // Generate ZK Proof for Family Payment (if Incognito is ON)
         if (isIncognito) {
@@ -481,18 +500,41 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         }
 
         let hash = '';
+        let pId = '';
+        let recordedChillar = 0;
 
-        if (chillarEnabled) {
+        if (!isInternalStellar) {
+          // DIRECT UPI LIQUIDATION (No Chillar support for external UPI for now to keep it simple)
+          setStatusMessage('Getting Liquidation Quote...');
+          const quote = await LiquidationService.getQuote(amtNum);
+
+          setStatusMessage('Sending XLM to Bridge...');
+          const result = await LiquidationService.executeDirectLiquidation(secret, selectedContact.id, quote);
+          hash = result.txHash;
+
+          setStatusMessage('Triggering UPI Payout...');
+          pId = result.payoutId;
+          setPayoutId(pId);
+        } else if (chillarEnabled) {
+          setStatusMessage('Atomic Transfer Initiated...');
           // Calculate Chillar (Round-up)
           const chillarAmount = calculateChillarAmount(amtNum);
           setChillarSavings(chillarAmount);
+          recordedChillar = chillarAmount;
 
           // Convert amounts to XLM
           const xlmAmountMain = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
           const xlmAmountChillar = await calculateCryptoToSend(chillarAmount, 'stellar', 1.02);
 
-          // Gullak Public Key fallback (if not set, use recipient for now or throw)
-          const gullakPk = profile.gullakPublicKey || profile.publicKey; // Fallback to self-save
+          // Check if recipient is new and amount is too low for activation (1 XLM)
+          if (parseFloat(xlmAmountMain.toString()) < 1.0) {
+            const recipientExists = await isAccountFunded(recipientPubKey).catch(() => true);
+            if (!recipientExists) {
+              throw new Error(`Recipient is a new user and requires at least ₹20 worth of XLM to activate their account. Please increase the amount or send to a funded wallet.`);
+            }
+          }
+
+          const gullakPk = profile.gullakPublicKey || profile.publicKey;
 
           hash = await sendChillarPayment(
             secret,
@@ -503,17 +545,15 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
             memo || `UPI Pay + Chillar: ${selectedContact.id}`
           );
 
-          // Update Streak
           await updateStreak(profile.uid);
-
-          // Record Gullak Savings in Firebase
           await recordGullakDeposit(profile.uid, chillarAmount);
         } else {
           setChillarSavings(0);
           const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
           hash = await sendPayment(secret, recipientPubKey, xlmAmount.toString(), memo || `UPI Pay: ${selectedContact.id}`);
-
         }
+
+        setTxHash(hash);
 
         // Generate ZK Proof of Payment (if Incognito is ON)
         if (isIncognito) {
@@ -552,7 +592,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           asset: selectedAsset,
           blockchainNetwork: isEthereumMode ? 'ETHEREUM' : 'STELLAR',
           category: category,
-          isIncognito: isIncognito
+          isIncognito: isIncognito,
+          chillarAmount: recordedChillar
         });
 
         // Record Chillar as a separate small internal record or just part of this?
@@ -685,9 +726,12 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         recipientName={selectedContact?.name || ''}
         recipientAvatar={selectedContact?.avatarSeed || selectedContact?.id}
         amount={amount}
+        txHash={txHash}
         zkProof={zkProof}
         claimLink={claimLink}
         chillarAmount={chillarSavings}
+        payoutId={payoutId}
+        upiId={selectedContact?.id}
       />
     );
   }
@@ -879,6 +923,36 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
               </div>
             </div>
 
+            {/* Direct Liquidation Info - Only for UPI */}
+            {selectedContact && !selectedContact.id.endsWith('@stellar') && amount && (
+              <div className="w-full max-w-[280px] mb-6 p-4 bg-[#E5D5B3]/5 border border-[#E5D5B3]/10 rounded-2xl animate-in font-sans">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Zap size={12} className="text-[#E5D5B3]" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-[#E5D5B3]">Express Liquidation</span>
+                  </div>
+                  <div className="px-1.5 py-0.5 bg-[#E5D5B3]/10 rounded border border-[#E5D5B3]/20">
+                    <span className="text-[7px] font-black text-[#E5D5B3] uppercase tracking-tighter">Sandbox</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-[9px] font-bold text-zinc-500 uppercase tracking-tight">
+                    <span>Bridge Fee (1.5%)</span>
+                    <span className="text-zinc-300">₹{(parseFloat(amount) * 0.015).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-bold text-zinc-500 uppercase tracking-tight">
+                    <span>Est. XLM Cost</span>
+                    <span className="text-[#E5D5B3] font-black">~{((parseFloat(amount) * 1.015) / xlmRate).toFixed(4)} XLM</span>
+                  </div>
+                  <div className="pt-2 mt-2 border-t border-white/5 flex items-center gap-2">
+                    <div className="w-1 h-1 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest opacity-80">Direct Payout Channel Open</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Note Input */}
             {/* <div className="w-full max-w-[240px] relative group">
               <div className="absolute left-4 top-1/2 -translate-y-1/2 transition-all group-focus-within:scale-110">
@@ -1038,7 +1112,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   <div className="text-right">
                     <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Total Deduction</p>
                     <p className="text-sm font-black text-black">
-                      ₹{Math.ceil(parseFloat(amount) / 10) * 10}
+                      ₹{(parseFloat(amount) + calculateChillarAmount(parseFloat(amount))).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -1059,7 +1133,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                   <div className="w-6 h-6 border-4 border-black/20 border-t-black rounded-full animate-spin" />
                 )}
                 <span className="text-sm uppercase tracking-widest">
-                  {generatingProof ? 'Generating ZK Proof...' : authenticating ? 'Biometric Auth...' : 'Confirming...'}
+                  {statusMessage || (generatingProof ? 'Generating ZK Proof...' : authenticating ? 'Biometric Auth...' : 'Confirming...')}
                 </span>
               </div>
             ) : (

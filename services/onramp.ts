@@ -7,7 +7,7 @@ const ONRAMP_APP_ID = 1;
 interface PurchaseConfig {
   walletAddress: string;
   email?: string;
-  amount?: number;
+  partnerOrderId?: string;
 }
 
 /**
@@ -25,7 +25,7 @@ export const openBuyWidget = (config: PurchaseConfig) => {
     coinCode: 'XLM',
     fiatType: 1, // INR
     flowType: 1, // Buy
-    fiatAmount: amount,
+    merchantOrderId: config.partnerOrderId, // Onramp uses merchantOrderId
   } as any);
 
   onramp.show();
@@ -45,7 +45,7 @@ export const openSellWidget = (config: PurchaseConfig) => {
     coinCode: 'XLM',
     fiatType: 1, // INR
     flowType: 2, // Sell
-    fiatAmount: amount,
+    merchantOrderId: config.partnerOrderId, // Onramp uses merchantOrderId
   } as any);
 
   onramp.show();

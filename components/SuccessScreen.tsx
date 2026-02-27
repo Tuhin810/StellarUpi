@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Share2, Download, Shield, Sparkles, Gift, Check, Zap } from 'lucide-react';
 import { getAvatarUrl } from '../services/avatars';
 import { PaymentProof } from '../services/zkProofService';
+import { useNetwork } from '../context/NetworkContext';
 
 interface SuccessScreenProps {
     recipientName: string;
@@ -12,10 +13,13 @@ interface SuccessScreenProps {
     zkProof?: PaymentProof | null;
     claimLink?: string | null;
     chillarAmount?: number;
+    payoutId?: string;
+    upiId?: string;
 }
 
-const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientAvatar, amount, txHash, zkProof, claimLink, chillarAmount }) => {
+const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientAvatar, amount, txHash, zkProof, claimLink, chillarAmount, payoutId, upiId }) => {
     const navigate = useNavigate();
+    const { isMainnet } = useNetwork();
     const successSoundRef = useRef<HTMLAudioElement | null>(null);
     const [showZkDetails, setShowZkDetails] = React.useState(false);
 
@@ -66,7 +70,19 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientA
 
                     <div className="space-y-1 opacity-70">
                         <p className="text-[11px] font-black uppercase tracking-widest">{today}</p>
-                        <p className="text-[11px] font-black uppercase tracking-widest">Txn ID: {txHash?.slice(0, 16) || '330292308501002'}</p>
+                        {txHash ? (
+                            <a
+                                href={`https://stellar.expert/explorer/${isMainnet ? 'public' : 'testnet'}/tx/${txHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[11px] font-black uppercase tracking-widest underline decoration-white/30 underline-offset-2 flex items-center justify-center gap-1.5"
+                            >
+                                View on Blockchain
+                                <ArrowRight size={10} className="-rotate-45" />
+                            </a>
+                        ) : (
+                            <p className="text-[11px] font-black uppercase tracking-widest">Txn ID: 330292308501002</p>
+                        )}
                     </div>
                 </div>
 
@@ -108,7 +124,30 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientA
                         <h2 className="text-2xl font-black tracking-tight mb-1 text-white">
                             {recipientName}
                         </h2>
-                        <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Verified Stellar Recipient</p>
+                        {upiId ? (
+                            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest break-all px-4">{upiId}</p>
+                        ) : (
+                            <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest">Verified Stellar Recipient</p>
+                        )}
+
+                        {payoutId && (
+                            <div className="mt-4 px-4 py-2 bg-zinc-900/50 border border-white/5 rounded-xl">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">UPI Reference (RRN)</p>
+                                <p className="text-xs font-black text-[#E5D5B3] font-mono tracking-wider">{payoutId}</p>
+                            </div>
+                        )}
+
+                        {upiId && (
+                            <div className="mt-6 flex items-center gap-3 px-4 py-3 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl w-full">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-500">
+                                    <Zap size={16} />
+                                </div>
+                                <div className="text-left">
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Liquidation Bridge Verified</p>
+                                    <p className="text-[9px] font-bold text-zinc-500 leading-none mt-0.5">XLM Swapped & Payout Sent via Sandbox IMPS</p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
 

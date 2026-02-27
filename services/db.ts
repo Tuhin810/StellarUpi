@@ -480,6 +480,21 @@ export const updateStreak = async (uid: string) => {
   return { newStreak, level };
 };
 
+/**
+ * Records a withdrawal from Gullak to Main Wallet.
+ * Resets savings and yield in Firestore.
+ */
+export const recordGullakWithdrawal = async (uid: string, amountINR: number) => {
+  const userRef = doc(db, 'upiAccounts', uid);
+  await updateDoc(userRef, {
+    totalSavingsINR: 0,
+    totalYieldEarnedINR: 0,
+    // We don't necessarily reset the streak, as they might keep saving tomorrow.
+    // But if you want a complete reset:
+    // currentStreak: 0 
+  });
+};
+
 // ─── Scheduled Payments ─────────────────────────────────────────
 
 export const createScheduledPayment = async (payment: Partial<ScheduledPayment>) => {

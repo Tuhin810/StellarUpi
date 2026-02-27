@@ -151,6 +151,7 @@ export const sendPayment = async (
     const result = await server.submitTransaction(transaction);
     return result.hash;
   } catch (error: any) {
+    console.error("Horizon Submission Error:", error.response?.data || error);
     const resultCodes = error.response?.data?.extras?.result_codes;
     if (resultCodes) {
       if (resultCodes.operations?.includes('op_underfunded')) {
@@ -159,10 +160,50 @@ export const sendPayment = async (
       if (resultCodes.operations?.includes('op_low_reserve')) {
         throw new Error('Transaction would drop balance below the required network reserve (1 XLM).');
       }
+      if (resultCodes.transaction === 'tx_bad_auth') {
+        throw new Error('Transaction authentication failed. Your secret key may be invalid or out of sync.');
+      }
     }
+
+    // If it's a 400 but no result codes, it's likely a malformed XDR or network mismatch
+    if (error.response?.status === 400) {
+      throw new Error(`Bad Request (400): ${error.response?.data?.title || 'Malformed Transaction'}. Check if you are sending to a valid address or if the amount is too small.`);
+    }
+
     throw error;
   }
 };
+
+/** Closes the account by merging its balance into the destination */
+export const mergeAccount = async (secret: string, destinationPublicKey: string): Promise<string> => {
+  const sourceKeypair = Keypair.fromSecret(secret);
+  const server = getServer();
+
+  let sourceAccount;
+  try {
+    sourceAccount = await server.loadAccount(sourceKeypair.publicKey());
+  } catch (e: any) {
+    if (e?.response?.status === 404) {
+      throw new Error("Gullak vault not found on network.");
+    }
+    throw e;
+  }
+
+  const transaction = new TransactionBuilder(sourceAccount, {
+    fee: BASE_FEE,
+    networkPassphrase: getNetworkPassphrase(),
+  })
+    .addOperation(Operation.accountMerge({
+      destination: destinationPublicKey
+    }))
+    .setTimeout(30)
+    .build();
+
+  transaction.sign(sourceKeypair);
+  const result = await server.submitTransaction(transaction);
+  return result.hash;
+};
+
 /**
  * Atomic Transaction with "Chillar" Savings
  * Sends a main payment to the recipient and a round-up amount to the user's Gullak vault.
@@ -221,6 +262,13 @@ export const sendChillarPayment = async (
   }
 
   // 2. Operation: Payment or Create Account for Gullak (Savings)
+  // SMART LOGIC: On Stellar Mainnet, createAccount requires at least 1 XLM.
+  // If the Gullak vault is brand new and the chillar is small (e.g. ₹5 = 0.3 XLM), 
+  // createAccount will fail. In this case, we redirect the saving to the user's MAIN wallet
+  // (the one they are sending from) so the transaction succeeds and saving is tracked.
+
+  const isTooSmallForNewAccount = parseFloat(chillarAmountXlm) < 1.0;
+
   if (gullakExists) {
     transactionBuilder.addOperation(
       Operation.payment({
@@ -229,11 +277,21 @@ export const sendChillarPayment = async (
         amount: chillarAmountXlm,
       })
     );
-  } else {
+  } else if (!isTooSmallForNewAccount) {
     transactionBuilder.addOperation(
       Operation.createAccount({
         destination: gullakPublicKey,
         startingBalance: chillarAmountXlm,
+      })
+    );
+  } else {
+    // Redirect to self (Main Wallet) since Gullak isn't active and amount is too small to create it
+    console.log(`[Chillar] Amount ${chillarAmountXlm} too small to create Gullak vault. Redirecting to main wallet.`);
+    transactionBuilder.addOperation(
+      Operation.payment({
+        destination: sourcePublicKey,
+        asset: Asset.native(),
+        amount: chillarAmountXlm,
       })
     );
   }
@@ -249,7 +307,17 @@ export const sendChillarPayment = async (
     const result = await server.submitTransaction(transaction);
     return result.hash;
   } catch (error: any) {
-    console.error("Chillar Transacton Error:", error.response?.data?.extras?.result_codes);
+    const resultCodes = error.response?.data?.extras?.result_codes;
+    console.error("Chillar Transaction Error:", resultCodes);
+
+    if (resultCodes) {
+      if (resultCodes.operations?.includes('op_low_reserve') || resultCodes.operations?.includes('op_underfunded')) {
+        throw new Error('Transaction failed: Insufficient funds or amount is below the 1 XLM Stellar activation reserve. Please ensure you have at least ₹20 worth of XLM to start.');
+      }
+      if (resultCodes.operations?.includes('op_no_destination')) {
+        throw new Error('One of the recipient wallets does not exist. The first payment to a new wallet must be at least ₹20 worth of XLM to activate it.');
+      }
+    }
     throw error;
   }
 };
