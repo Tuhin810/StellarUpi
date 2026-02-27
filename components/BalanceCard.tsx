@@ -3,6 +3,8 @@ import { getDetailedBalance } from '../services/stellar';
 import { getLivePrice } from '../services/priceService';
 import { RefreshCcw, Info } from 'lucide-react';
 import { useNetwork } from '../context/NetworkContext';
+import { useAuth } from '../context/AuthContext';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
 
 interface Props {
   publicKey: string;
@@ -15,13 +17,15 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
   const [refreshing, setRefreshing] = useState(false);
   const [rate, setRate] = useState(15.02);
   const { networkName } = useNetwork();
+  const { profile } = useAuth();
+  const currency = profile?.preferredCurrency || 'INR';
 
   const fetchBalance = async () => {
     setRefreshing(true);
     try {
       const [details, xRate] = await Promise.all([
         getDetailedBalance(publicKey),
-        getLivePrice('stellar')
+        getLivePrice('stellar', currency)
       ]);
       setBalance(details);
       setRate(xRate);
@@ -34,12 +38,11 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
 
   useEffect(() => {
     fetchBalance();
-  }, [publicKey]);
+  }, [publicKey, currency]);
 
-  const rawInr = parseFloat(balance.spendable) * rate;
-  const inrBalance = rawInr.toLocaleString('en-IN', {
-    maximumFractionDigits: 0,
-  });
+  const rawFiat = parseFloat(balance.spendable) * rate;
+  const fiatBalance = formatFiat(rawFiat, currency);
+  const symbol = getCurrencySymbol(currency);
 
   return (
 
@@ -72,7 +75,7 @@ const BalanceCard: React.FC<Props> = ({ publicKey, stellarId }) => {
           <div className="mb-3 -mt-5">
             <p className="text-black/60 text-xs mb-1 font-bold">Spendable Balance</p>
             <div className="flex items-baseline gap-2">
-              <h2 className="text-3xl font-black tracking-tight text-black/80">₹{loading ? '...' : inrBalance}</h2>
+              <h2 className="text-3xl font-black tracking-tight text-black/80">{symbol}{loading ? '...' : fiatBalance}</h2>
               <div className="flex items-center gap-1 text-[10px] text-black/40 font-bold bg-black/5 px-2 py-0.5 rounded-full">
                 <Info size={10} />
                 <span>Reserve: {balance.reserve} XLM</span>

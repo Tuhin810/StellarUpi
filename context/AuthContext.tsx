@@ -22,10 +22,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const setupProfileListener = (uid: string) => {
         const normalized = normalizePhone(uid);
-        return onSnapshot(doc(db, 'upiAccounts', normalized), (snap) => {
+        return onSnapshot(doc(db, 'upiAccounts', normalized), async (snap) => {
             if (snap.exists()) {
-                setProfile(snap.data() as UserProfile);
+                const data = snap.data() as UserProfile;
+                setProfile(data);
                 setLoading(false);
+
+                // Automatic initial detection if missing
+                if (!data.preferredCurrency || !data.countryCode) {
+                    try {
+                        const { detectLocation } = await import('../services/locationService');
+                        const { updateUserDetails } = await import('../services/db');
+                        const loc = await detectLocation();
+
+                        // Only update if still missing to avoid overwriting manual changes 
+                        // that might have happened in another tab/session
+                        await updateUserDetails(normalized, {
+                            preferredCurrency: loc.currency,
+                            countryCode: loc.countryCode
+                        });
+                    } catch (err) {
+                        console.error("Failed to auto-detect location:", err);
+                    }
+                }
             } else {
                 // Fallback: try 91-prefixed doc (backward compat)
                 onSnapshot(doc(db, 'upiAccounts', '91' + normalized), (snap91) => {

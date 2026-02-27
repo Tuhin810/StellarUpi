@@ -16,6 +16,7 @@ import { sendPayment, isAccountFunded, mergeAccount } from '../services/stellar'
 import { recordGullakWithdrawal, recordTransaction, updateUserDetails } from '../services/db';
 import { PasskeyService } from '../services/passkeyService';
 import { Fingerprint, Send, ShieldCheck, AlertCircle, Loader2 } from 'lucide-react';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
 
 interface Props {
     profile: UserProfile | null;
@@ -61,7 +62,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                         const [balData, mainBalData, rate, isFunded] = await Promise.all([
                             getBalance(profile.gullakPublicKey).catch(() => '0.00'),
                             getBalance(profile.publicKey).catch(() => '0.00'),
-                            getLivePrice('stellar'),
+                            getLivePrice('stellar', profile.preferredCurrency || 'INR'),
                             isAccountFunded(profile.gullakPublicKey)
                         ]);
                         const totalBal = typeof balData === 'string' ? balData : (balData as any).total || '0.00';
@@ -165,9 +166,11 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
     const executeWithdrawal = async (entryPin?: string) => {
         if (!profile) return;
 
-        const inrValue = parseFloat(balance) * xlmRate;
-        if (inrValue < 10) {
-            setError("Minimum ₹10 worth of savings required to withdraw");
+        const currency = profile.preferredCurrency || 'INR';
+        const symbol = getCurrencySymbol(currency);
+        const fiatValue = parseFloat(balance) * xlmRate;
+        if (fiatValue < 10) {
+            setError(`Minimum ${symbol}10 worth of savings required to withdraw`);
             return;
         }
 
@@ -214,7 +217,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                 fromName: 'My Gullak',
                 toName: profile.displayName || profile.stellarId.split('@')[0],
                 amount: totalSavings,
-                currency: 'INR',
+                currency: profile.preferredCurrency || 'INR',
                 status: 'SUCCESS',
                 txHash: txHash || 'INTERNAL_RELEASE',
                 isGullakWithdrawal: true,
@@ -320,6 +323,8 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
 
     const cfg = streakConfig[streakLevel];
     const progressToNext = cfg.next > 0 ? Math.min(100, (streak / cfg.next) * 100) : 100;
+    const currency = profile.preferredCurrency || 'INR';
+    const symbol = getCurrencySymbol(currency);
 
     return (
         <div className="min-h-screen bg-[#050505] text-white pb-32 relative overflow-hidden">
@@ -333,7 +338,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                         className="fixed top-0 left-1/2 z-[100] bg-emerald-500 text-black px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest shadow-2xl flex items-center gap-2"
                     >
                         <Sparkles size={16} />
-                        Daily Yield: +₹{justYielded.toFixed(4)}
+                        Daily Yield: +{symbol}{justYielded.toFixed(4)}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -391,9 +396,9 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                         <div className="flex flex-col items-center">
                             <span className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-600 mb-1">Total Saved</span>
                             <div className="flex items-baseline gap-1">
-                                <span className="text-[#E5D5B3]/40 text-2xl font-black">₹</span>
+                                <span className="text-[#E5D5B3]/40 text-2xl font-black">{symbol}</span>
                                 <span className="text-4xl font-black tracking-tight">
-                                    {loading ? '...' : totalSavings.toLocaleString('en-IN')}
+                                    {loading ? '...' : formatFiat(totalSavings, currency)}
                                 </span>
                             </div>
                         </div>
@@ -408,13 +413,13 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                     >
                         <TrendingUp size={12} className="text-emerald-400" />
                         <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">
-                            +₹{totalYield.toFixed(2)} yield earned
+                            +{symbol}{formatFiat(totalYield, currency)} yield earned
                         </span>
                     </motion.div>
 
                     {/* XLM Balance */}
                     <p className="text-[10px] text-zinc-600 font-bold">
-                        {parseFloat(balance).toFixed(4)} XLM • ₹{(parseFloat(balance) * xlmRate).toFixed(2)} value
+                        {parseFloat(balance).toFixed(4)} XLM • {symbol}{formatFiat(parseFloat(balance) * xlmRate, currency)} value
                     </p>
                 </div>
             </motion.div>
@@ -584,8 +589,8 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                         </div>
                         <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center text-center">
                             <TrendingUp size={16} className="text-emerald-400 mb-2 opacity-60" />
-                            <span className="text-lg font-black text-emerald-400">+{totalYield.toFixed(1)}</span>
-                            <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-wider mt-0.5">Yield ₹</span>
+                            <span className="text-lg font-black text-emerald-400">+{formatFiat(totalYield, currency)}</span>
+                            <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-wider mt-0.5">Yield {symbol}</span>
                         </div>
                         <div className="bg-zinc-900/30 border border-white/5 rounded-2xl p-4 flex flex-col items-center text-center">
                             <Shield size={16} className="text-blue-400 mb-2 opacity-60" />
@@ -604,7 +609,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                         <div className="space-y-4">
                             {[
                                 { step: '01', title: 'Pay Normally', desc: 'Make any UPI payment through Ching Pay', icon: ArrowUpRight },
-                                { step: '02', title: 'Auto Round-up', desc: 'Amount rounds up to nearest ₹10 automatically', icon: Sparkles },
+                                { step: '02', title: 'Auto Round-up', desc: `Amount rounds up to nearest ${symbol}10 automatically`, icon: Sparkles },
                                 { step: '03', title: 'Earn Yield', desc: `${cfg.apr} APR based on your ${streak}-day streak`, icon: TrendingUp },
                             ].map((item, i) => (
                                 <div key={i} className="flex items-start gap-4">
@@ -666,13 +671,13 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                                                 {isWithdrawal ? 'Savings Withdrawn' : 'Chillar Saved'}
                                             </p>
                                             <p className="text-[10px] text-zinc-600 font-medium truncate">
-                                                {tx.timestamp ? new Date(tx.timestamp.seconds * 1000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Just now'}
+                                                {tx.timestamp ? new Date(tx.timestamp.seconds * 1000).toLocaleDateString(currency === 'INR' ? 'en-IN' : 'en-US', { day: 'numeric', month: 'short' }) : 'Just now'}
                                                 {" • "} {isWithdrawal ? `From ${tx.fromName || 'My Gullak'}` : `via ${tx.toName || 'Payment'}`}
                                             </p>
                                         </div>
                                         <div className="text-right shrink-0">
                                             <p className={`text-xs font-black ${isWithdrawal ? 'text-orange-400' : 'text-emerald-400'}`}>
-                                                {isWithdrawal ? '-₹' : '+₹'}{(isWithdrawal ? tx.amount : tx.chillarAmount)?.toFixed(2)}
+                                                {isWithdrawal ? `-${symbol}` : `+${symbol}`}{formatFiat(isWithdrawal ? tx.amount : (tx.chillarAmount || 0), currency)}
                                             </p>
                                             <p className="text-[9px] text-zinc-600 font-bold uppercase tracking-widest">{isWithdrawal ? 'Payout' : 'Round-up'}</p>
                                         </div>
@@ -703,7 +708,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                     style={{ background: 'linear-gradient(90deg, #D4874D 0%, #E5C36B 50%, #F0D98A 100%)' }}
                 >
                     <img src="/gullak.png" className="w-6 h-6 object-contain" alt="Gullak" />
-                    {(parseFloat(balance) * xlmRate) < 10 ? `Min. ₹10 Required (Needed: ₹${(10 - totalSavings).toFixed(2)})` : 'Withdraw Savings'}
+                    {(parseFloat(balance) * xlmRate) < 10 ? `Min. ${symbol}10 Required (Needed: ${symbol}${formatFiat(10 - totalSavings, currency)})` : 'Withdraw Savings'}
                 </button>
             </div>
 
@@ -723,7 +728,7 @@ const GullakPage: React.FC<Props> = ({ profile }) => {
                             <h3 className="text-2xl font-black mb-2 tracking-tight">Access Gullak</h3>
                             <p className="text-zinc-500 text-sm font-medium mb-12 uppercase tracking-widest text-center">
                                 Enter your Transaction PIN to release<br />
-                                <span className="text-white">₹{totalSavings.toFixed(2)}</span> to your main vault
+                                <span className="text-white">{symbol}{formatFiat(totalSavings, currency)}</span> to your main vault
                             </p>
 
                             <div className="flex gap-4 mb-12">

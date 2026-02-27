@@ -7,6 +7,8 @@ import { getBalance } from '../services/stellar';
 import { openSellWidget, getXlmRate } from '../services/onramp';
 import { useNetwork } from '../context/NetworkContext';
 
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
+
 interface Props {
     profile: UserProfile | null;
 }
@@ -15,8 +17,10 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
     const navigate = useNavigate();
     const { isMainnet, networkName } = useNetwork();
     const [balance, setBalance] = useState<string>('0.00');
-    const [xlmRate, setXlmRate] = useState<number>(8.42);
+    const [xlmRate, setXlmRate] = useState<number>(15.02);
     const [loading, setLoading] = useState(true);
+    const currency = profile?.preferredCurrency || 'INR';
+    const symbol = getCurrencySymbol(currency);
 
     useEffect(() => {
         const loadData = async () => {
@@ -24,7 +28,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                 try {
                     const [bal, rate] = await Promise.all([
                         getBalance(profile.publicKey),
-                        getXlmRate()
+                        getXlmRate(currency)
                     ]);
                     setBalance(bal);
                     setXlmRate(rate);
@@ -35,10 +39,10 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
             setLoading(false);
         };
         loadData();
-    }, [profile]);
+    }, [profile, currency]);
 
-    const xlmToInr = parseFloat(balance) * xlmRate;
-    const hasBalance = (parseFloat(balance) * xlmRate) >= 10; // Minimum ₹10 to withdraw
+    const fiatBalance = parseFloat(balance) * xlmRate;
+    const hasBalance = fiatBalance >= 10; // Minimum 10 units of local fiat to withdraw (simplified)
 
     const handleSellXLM = () => {
         if (!profile || !hasBalance) return;
@@ -84,7 +88,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                         <span className="text-zinc-500 font-bold">XLM</span>
                     </div>
                     <p className="text-emerald-400 text-sm font-medium">
-                        ≈ ₹{loading ? '...' : xlmToInr.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        ≈ {symbol}{loading ? '...' : formatFiat(fiatBalance, currency)}
                     </p>
                 </div>
             </div>
@@ -97,7 +101,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                     </div>
                     <div>
                         <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Current Rate</p>
-                        <p className="text-white font-bold">1 XLM = ₹{xlmRate.toFixed(2)}</p>
+                        <p className="text-white font-bold">1 XLM = {symbol}{xlmRate.toFixed(2)}</p>
                     </div>
                 </div>
             </div>
@@ -124,7 +128,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                         <div>
                             <p className="text-zinc-400 font-bold text-sm mb-1">Insufficient Balance</p>
                             <p className="text-zinc-500 text-xs">
-                                Minimum ₹10 required to withdraw.
+                                Minimum {symbol}10 required to withdraw.
                             </p>
                         </div>
                     </div>
@@ -142,7 +146,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                         }`}
                 >
                     <ArrowDownToLine size={22} />
-                    {hasBalance ? 'Withdraw to Bank' : `Min. ₹10 Required`}
+                    {hasBalance ? 'Withdraw to Bank' : `Min. ${symbol}10 Required`}
                 </button>
 
                 {!isMainnet && (
@@ -160,7 +164,7 @@ const Withdraw: React.FC<Props> = ({ profile }) => {
                         { step: '1', text: 'Click "Withdraw to Bank"' },
                         { step: '2', text: 'Enter the amount of XLM to sell' },
                         { step: '3', text: 'Add your bank account details' },
-                        { step: '4', text: 'INR is sent to your bank (1-2 days)' },
+                        { step: '4', text: `Local fiat is sent to your bank` },
                     ].map((item) => (
                         <div key={item.step} className="flex items-center gap-4">
                             <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-emerald-400 font-black text-sm">

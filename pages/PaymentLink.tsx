@@ -13,6 +13,8 @@ import { NotificationService } from '../services/notification';
 import { KYCService } from '../services/kycService';
 import { ZKProofService, PaymentProof } from '../services/zkProofService';
 import { Smartphone, ExternalLink, Mail, ArrowUpRight } from 'lucide-react';
+import { getLivePrice } from '../services/priceService';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
 import {
     isConnected as freighterIsConnected,
     getAddress as freighterGetAddress,
@@ -48,6 +50,15 @@ const PaymentLink: React.FC = () => {
     const [linkCopied, setLinkCopied] = useState(false);
     const [freighterAvailable, setFreighterAvailable] = useState(false);
     const [freighterSending, setFreighterSending] = useState(false);
+    const [xlmRate, setXlmRate] = useState<number>(15.02);
+    const currency = recipient?.preferredCurrency || 'INR';
+    const symbol = getCurrencySymbol(currency);
+
+    useEffect(() => {
+        if (recipient) {
+            getLivePrice('stellar', currency).then(setXlmRate);
+        }
+    }, [recipient, currency]);
 
     const handleCopyLink = () => {
         navigator.clipboard.writeText(window.location.href);
@@ -161,7 +172,7 @@ const PaymentLink: React.FC = () => {
                 fromName: 'Freighter Wallet',
                 toName: recipient.displayName || recipient.stellarId,
                 amount: parseFloat(amount),
-                currency: 'XLM',
+                currency: currency,
                 status: 'SUCCESS',
                 memo: note || 'Freighter Payment',
                 txHash,
@@ -231,7 +242,7 @@ const PaymentLink: React.FC = () => {
                 fromName: senderProfile.displayName || senderProfile.stellarId,
                 toName: recipient.displayName || recipient.stellarId,
                 amount: parseFloat(amount),
-                currency: 'XLM',
+                currency: currency,
                 status: 'SUCCESS',
                 memo: note || 'Payment Link',
                 txHash,
@@ -429,7 +440,7 @@ const PaymentLink: React.FC = () => {
                 </div>
                 {amount && (
                     <p className="text-emerald-500/60 font-black text-xs uppercase tracking-widest relative z-10">
-                        ≈ ₹{(parseFloat(amount) * 8.42).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ≈ {symbol}{formatFiat(parseFloat(amount) * xlmRate, currency)}
                     </p>
                 )}
             </div>

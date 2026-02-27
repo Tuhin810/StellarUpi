@@ -16,6 +16,8 @@ import {
     getProfileByStellarId
 } from '../services/db';
 import { getAvatarUrl } from '../services/avatars';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
+import { getLivePrice } from '../services/priceService';
 
 interface Props {
     profile: UserProfile;
@@ -45,6 +47,13 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
     const [creating, setCreating] = useState(false);
     const [successMsg, setSuccessMsg] = useState('');
     const [error, setError] = useState('');
+    const currency = profile.preferredCurrency || 'INR';
+    const symbol = getCurrencySymbol(currency);
+    const [xlmRate, setXlmRate] = useState<number>(15.02);
+
+    useEffect(() => {
+        getLivePrice('stellar', currency).then(setXlmRate);
+    }, [currency]);
 
     // Contacts
     const [recentContacts, setRecentContacts] = useState<Contact[]>([]);
@@ -129,7 +138,9 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
                 scheduledDate: Timestamp.fromDate(scheduledDateTime),
             });
 
-            setSuccessMsg(`₹${parseInt(amount).toLocaleString()} scheduled for ${selectedContact.name}`);
+            const currency = profile.preferredCurrency || 'INR';
+            const symbol = getCurrencySymbol(currency);
+            setSuccessMsg(`${symbol}${formatFiat(parseFloat(amount), currency)} scheduled for ${selectedContact.name}`);
             setAmount('');
             setMemo('');
             setScheduleDate('');
@@ -187,10 +198,11 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
         } else {
             date = new Date(timestamp);
         }
-        return date.toLocaleDateString('en-IN', {
-            day: 'numeric',
-            month: 'short',
+        const locale = currency === 'INR' ? 'en-IN' : 'en-US';
+        return date.toLocaleDateString(locale, {
             year: 'numeric',
+            month: 'short',
+            day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
         });
@@ -385,7 +397,7 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
 
                                 <div className="bg-zinc-900/60 backdrop-blur-md border border-white/5 rounded-2xl p-6">
                                     <div className="flex items-center justify-center gap-1 mb-6">
-                                        <span className={`font-black text-3xl transition-colors ${amount ? 'text-[#E5D5B3]' : 'text-zinc-700'}`}>₹</span>
+                                        <span className={`font-black text-3xl transition-colors ${amount ? 'text-[#E5D5B3]' : 'text-zinc-700'}`}>{symbol}</span>
                                         <input
                                             type="text"
                                             inputMode="numeric"
@@ -481,7 +493,7 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
                                         <div>
                                             <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Auto-pay on</p>
                                             <p className="text-sm font-bold text-white">
-                                                {new Date(`${scheduleDate}T${scheduleTime}`).toLocaleDateString('en-IN', {
+                                                {new Date(`${scheduleDate}T${scheduleTime}`).toLocaleDateString(currency === 'INR' ? 'en-IN' : 'en-US', {
                                                     weekday: 'long',
                                                     day: 'numeric',
                                                     month: 'long',
@@ -507,7 +519,7 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
                                 ) : (
                                     <>
                                         <CalendarClock size={20} />
-                                        <span>Schedule ₹{amount ? parseInt(amount).toLocaleString('en-IN') : '0'}</span>
+                                        <span>Schedule {symbol}{amount ? formatFiat(parseFloat(amount), currency) : '0'}</span>
                                     </>
                                 )}
                             </button>
@@ -545,7 +557,7 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-1">
                                                 <h4 className="font-black text-white tracking-tight capitalize">{payment.recipientName}</h4>
-                                                <p className="text-lg font-black text-[#E5D5B3] tracking-tighter">₹{payment.amount.toLocaleString()}</p>
+                                                <p className="text-lg font-black text-[#E5D5B3] tracking-tighter">{symbol}{formatFiat(payment.amount, currency)}</p>
                                             </div>
                                             <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-3">{payment.recipientStellarId}</p>
 
@@ -596,7 +608,7 @@ const SchedulePay: React.FC<Props> = ({ profile }) => {
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between">
                                                 <p className="font-bold text-white text-sm capitalize truncate">{payment.recipientName}</p>
-                                                <p className="font-black text-sm text-zinc-400">₹{payment.amount.toLocaleString()}</p>
+                                                <p className="font-black text-sm text-zinc-400">{symbol}{formatFiat(payment.amount, currency)}</p>
                                             </div>
                                             <div className="flex items-center justify-between mt-1">
                                                 <span className="text-[9px] font-bold text-zinc-600">{formatScheduleDate(payment.scheduledDate)}</span>

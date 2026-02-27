@@ -4,6 +4,7 @@ import { CheckCircle2, Calendar, ShieldCheck, ArrowRight, Share2, Download, Shie
 import { getAvatarUrl } from '../services/avatars';
 import { PaymentProof } from '../services/zkProofService';
 import { useNetwork } from '../context/NetworkContext';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
 
 interface SuccessScreenProps {
     recipientName: string;
@@ -15,11 +16,13 @@ interface SuccessScreenProps {
     chillarAmount?: number;
     payoutId?: string;
     upiId?: string;
+    currency?: string;
 }
 
-const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientAvatar, amount, txHash, zkProof, claimLink, chillarAmount, payoutId, upiId }) => {
+const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientAvatar, amount, txHash, zkProof, claimLink, chillarAmount, payoutId, upiId, currency = 'INR' }) => {
     const navigate = useNavigate();
     const { isMainnet } = useNetwork();
+    const symbol = getCurrencySymbol(currency);
     const successSoundRef = useRef<HTMLAudioElement | null>(null);
     const [showZkDetails, setShowZkDetails] = React.useState(false);
 
@@ -31,7 +34,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientA
         }
     }, []);
 
-    const today = new Date().toLocaleDateString('en-IN', {
+    const today = new Date().toLocaleDateString(currency === 'INR' ? 'en-IN' : 'en-US', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -62,9 +65,9 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientA
 
 
                     <div className="flex items-center justify-center gap-1 mb-8">
-                        <span className="text-3xl font-black mt-1 opacity-80">₹</span>
+                        <span className="text-3xl font-black mt-1 opacity-80">{symbol}</span>
                         <h3 className="text-6xl font-black tracking-tighter">
-                            {parseInt(amount).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                            {formatFiat(parseFloat(amount), currency)}
                         </h3>
                     </div>
 
@@ -166,7 +169,7 @@ const SuccessScreen: React.FC<SuccessScreenProps> = ({ recipientName, recipientA
                                 if (navigator.share) {
                                     navigator.share({
                                         title: 'Claim your funds on Ching Pay',
-                                        text: `Hi ${recipientName}, I've sent you ₹${amount}! Claim it here:`,
+                                        text: `Hi ${recipientName}, I've sent you ${symbol}${amount}! Claim it here:`,
                                         url: claimLink
                                     });
                                 }

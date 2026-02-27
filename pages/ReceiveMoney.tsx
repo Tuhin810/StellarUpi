@@ -21,6 +21,8 @@ import { WalletConnectService } from '../services/walletConnectService';
 import { recordTransaction } from '../services/db';
 import { NotificationService } from '../services/notification';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getLivePrice } from '../services/priceService';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
 
 interface Props {
     profile: UserProfile | null;
@@ -41,6 +43,15 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
     const [wcAmount, setWcAmount] = useState('');
     const [wcError, setWcError] = useState('');
     const [showFreighterModal, setShowFreighterModal] = useState(false);
+    const [xlmRate, setXlmRate] = useState<number>(15.02);
+    const currency = profile?.preferredCurrency || 'INR';
+    const symbol = getCurrencySymbol(currency);
+
+    React.useEffect(() => {
+        if (profile) {
+            getLivePrice('stellar', currency).then(setXlmRate);
+        }
+    }, [profile, currency]);
 
     if (!profile) return null;
 
@@ -310,7 +321,7 @@ const ReceiveMoney: React.FC<Props> = ({ profile }) => {
                             </div>
                             {linkAmount && (
                                 <p className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest ml-1">
-                                    ≈ ₹{(parseFloat(linkAmount) * 8.42).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                                    ≈ {symbol}{formatFiat(parseFloat(linkAmount) * xlmRate, currency)}
                                 </p>
                             )}
                         </div>

@@ -6,6 +6,7 @@ import { getTransactionById, getProfileByStellarId, getProfileByPublicKey } from
 import { ArrowLeft, Share2, Shield, CheckCircle2, XCircle, Clock, Copy, ExternalLink, Download, Link2, Verified, ShoppingBag, Utensils, Plane, Receipt, Play, Tag } from 'lucide-react';
 import { useNetwork } from '../context/NetworkContext';
 import { getAvatarUrl } from '../services/avatars';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
 
 interface Props {
     profile: UserProfile | null;
@@ -73,14 +74,19 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
     };
 
     const handleShare = () => {
+        const currency = tx.currency || profile?.preferredCurrency || 'INR';
+        const symbol = getCurrencySymbol(currency);
         if (navigator.share && tx.txHash) {
             navigator.share({
                 title: 'Ching Pay Transaction Receipt',
-                text: `Payment of ₹${tx.amount} - ${tx.status}`,
+                text: `Payment of ${symbol}${formatFiat(tx.amount, currency)} - ${tx.status}`,
                 url: `${explorerBaseUrl}/tx/${tx.txHash}`,
             });
         }
     };
+
+    const currency = tx.currency || profile?.preferredCurrency || 'INR';
+    const symbol = getCurrencySymbol(currency);
 
     return (
         <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white flex flex-col">
@@ -103,10 +109,10 @@ const TransactionDetail: React.FC<Props> = ({ profile }) => {
                     </div>
                     <p className={`text-sm font-black uppercase tracking-[0.2em] mb-2 ${statusColor}`}>Payment {tx.status}</p>
                     <h1 className="text-6xl font-black tracking-tighter  flex items-center gap-2">
-                        <span className="text-zinc-600 text-3xl opacity-30">₹</span>{tx.amount.toLocaleString()}
+                        <span className="text-zinc-600 text-3xl opacity-30">{symbol}</span>{formatFiat(tx.amount, currency)}
                     </h1>
                     <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-widest mt-4">
-                        {tx.timestamp?.toDate().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        {tx.timestamp?.toDate().toLocaleDateString(currency === 'INR' ? 'en-IN' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                 </div>
 

@@ -45,6 +45,7 @@ const Profile: React.FC<Props> = ({ profile }) => {
     const [showPhoneModal, setShowPhoneModal] = useState(false);
     const [dailyLimitEntry, setDailyLimitEntry] = useState(profile?.dailyLimit || 0);
     const [phoneEntry, setPhoneEntry] = useState(profile?.phoneNumber || '');
+    const [showCurrencyModal, setShowCurrencyModal] = useState(false);
 
     useEffect(() => {
         if (profile) {
@@ -161,8 +162,14 @@ const Profile: React.FC<Props> = ({ profile }) => {
                     <MenuItem
                         icon={ShieldCheck}
                         label="Spending Limit"
-                        value={`₹${remaining} remaining today`}
+                        value={`${profile.preferredCurrency === 'INR' || !profile.preferredCurrency ? '₹' : profile.preferredCurrency + ' '}${remaining} remaining today`}
                         onClick={() => setShowLimitModal(true)}
+                    />
+                    <MenuItem
+                        icon={Settings}
+                        label="Currency Preference"
+                        value={profile.preferredCurrency || 'Detecting...'}
+                        onClick={() => setShowCurrencyModal(true)}
                     />
                 </MenuSection>
 
@@ -270,6 +277,54 @@ const Profile: React.FC<Props> = ({ profile }) => {
                         >
                             {saving ? 'Saving...' : 'Save Number'}
                         </button>
+                    </div>
+                </div>
+            )}
+            {showCurrencyModal && (
+                <div className="fixed inset-0 z-[100] flex items-end">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowCurrencyModal(false)} />
+                    <div className="relative w-full bg-white rounded-t-[2.5rem] p-8 pb-12 animate-in slide-in-from-bottom duration-300">
+                        <div className="w-12 h-1.5 bg-zinc-100 rounded-full mx-auto mb-8" />
+                        <h3 className="text-2xl font-black text-zinc-900 mb-2">Local Fiat</h3>
+                        <p className="text-zinc-400 text-sm mb-8">Select your preferred local currency for the whole app.</p>
+
+                        <div className="grid grid-cols-2 gap-3 mb-8 max-h-[60vh] overflow-y-auto pr-2">
+                            {[
+                                { code: 'INR', label: 'Indian Rupee (₹)' },
+                                { code: 'USD', label: 'US Dollar ($)' },
+                                { code: 'EUR', label: 'Euro (€)' },
+                                { code: 'GBP', label: 'British Pound (£)' },
+                                { code: 'AED', label: 'UAE Dirham' },
+                                { code: 'SGD', label: 'Singapore Dollar' },
+                                { code: 'CAD', label: 'Canadian Dollar' },
+                                { code: 'AUD', label: 'Australian Dollar' },
+                            ].map((cur) => (
+                                <button
+                                    key={cur.code}
+                                    onClick={async () => {
+                                        setSaving(true);
+                                        try {
+                                            await updateUserDetails(profile.uid, { preferredCurrency: cur.code });
+                                            setShowCurrencyModal(false);
+                                        } catch (err) {
+                                            console.error(err);
+                                        } finally {
+                                            setSaving(false);
+                                        }
+                                    }}
+                                    className={`p-4 rounded-2xl border-2 transition-all text-left ${profile.preferredCurrency === cur.code
+                                            ? 'border-[#E5D5B3] bg-[#E5D5B3]/5'
+                                            : 'border-zinc-100 bg-zinc-50'
+                                        }`}
+                                >
+                                    <p className={`font-black text-[10px] uppercase tracking-wider ${profile.preferredCurrency === cur.code ? 'text-[#D4AF37]' : 'text-zinc-400'
+                                        }`}>
+                                        {cur.code}
+                                    </p>
+                                    <p className="text-zinc-900 font-bold text-sm mt-1">{cur.label}</p>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

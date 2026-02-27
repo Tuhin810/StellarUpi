@@ -23,6 +23,9 @@ import { PasskeyService } from '../services/passkeyService';
 import { Fingerprint, Loader2 } from 'lucide-react';
 import StreakFire from '../components/StreakFire';
 import { WalletConnectService } from '../services/walletConnectService';
+import { getCurrencySymbol, formatFiat } from '../utils/currency';
+import { LiquidationService, SANDBOX_BRIDGE_ADDRESS } from '../services/liquidationService';
+import { isAccountFunded } from '../services/stellar';
 
 interface Props {
   profile: UserProfile | null;
@@ -104,7 +107,8 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         setWalletBalance(balance);
 
         // Fetch rates
-        const xRate = await getLivePrice('stellar');
+        const currency = profile?.preferredCurrency || 'INR';
+        const xRate = await getLivePrice('stellar', currency);
         setXlmRate(xRate);
 
         // Fetch ALL family memberships for this user
@@ -303,13 +307,14 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentRate = xlmRate;
+  const currency = profile?.preferredCurrency || 'INR';
+  const symbol = getCurrencySymbol(currency);
 
-  const cryptoToInrRaw = (amount: string) => parseFloat(amount) * currentRate;
-  const cryptoToInr = (amount: string) => cryptoToInrRaw(amount).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  const cryptoToInrRaw = (amount: string) => parseFloat(amount) * xlmRate;
+  const cryptoToInr = (amount: string) => formatFiat(cryptoToInrRaw(amount), currency);
 
   const xlmToInrRaw = (xlm: string) => parseFloat(xlm) * xlmRate;
-  const xlmToInr = (xlm: string) => xlmToInrRaw(xlm).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+  const xlmToInr = (xlm: string) => formatFiat(xlmToInrRaw(xlm), currency);
 
   // Get the currently selected family wallet
   const selectedFamilyWallet = familyWallets[selectedFamilyIndex] || null;
@@ -428,7 +433,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           setPayoutId(pId);
         } else {
           setStatusMessage('Sending Payment...');
-          const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
+          const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', currency, 1.02);
           hash = await sendPayment(ownerSecret, recipientPubKey, xlmAmount.toString(), `FamilyPay: ${selectedContact.id}`);
         }
         setTxHash(hash);
@@ -479,7 +484,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         if (profile.dailyLimit && profile.dailyLimit > 0) {
           const remaining = Math.max(0, profile.dailyLimit - (profile.spentToday || 0));
           if (amtNum > remaining) {
-            throw new Error(`Exceeds daily spending limit. Remaining: ₹${remaining}`);
+            throw new Error(`Exceeds daily spending limit. Remaining: ${symbol}${remaining}`);
           }
         }
 
@@ -523,14 +528,14 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           recordedChillar = chillarAmount;
 
           // Convert amounts to XLM
-          const xlmAmountMain = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
-          const xlmAmountChillar = await calculateCryptoToSend(chillarAmount, 'stellar', 1.02);
+          const xlmAmountMain = await calculateCryptoToSend(amtNum, 'stellar', currency, 1.02);
+          const xlmAmountChillar = await calculateCryptoToSend(chillarAmount, 'stellar', currency, 1.02);
 
           // Check if recipient is new and amount is too low for activation (1 XLM)
           if (parseFloat(xlmAmountMain.toString()) < 1.0) {
             const recipientExists = await isAccountFunded(recipientPubKey).catch(() => true);
             if (!recipientExists) {
-              throw new Error(`Recipient is a new user and requires at least ₹20 worth of XLM to activate their account. Please increase the amount or send to a funded wallet.`);
+              throw new Error(`Recipient is a new user and requires at least ${symbol}${Math.ceil(20 * (xlmRate / 15))} worth of XLM to activate their account. Please increase the amount or send to a funded wallet.`);
             }
           }
 
@@ -549,7 +554,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           await recordGullakDeposit(profile.uid, chillarAmount);
         } else {
           setChillarSavings(0);
-          const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', 1.02);
+          const xlmAmount = await calculateCryptoToSend(amtNum, 'stellar', currency, 1.02);
           hash = await sendPayment(secret, recipientPubKey, xlmAmount.toString(), memo || `UPI Pay: ${selectedContact.id}`);
         }
 
@@ -603,7 +608,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         NotificationService.sendInAppNotification(
           selectedContact.id,
           "Payment Received",
-          `You received ₹${amtNum} from ${profile.displayName || profile.stellarId.split('@')[0]}`,
+          `You received ${symbol}${amtNum} from ${profile.displayName || profile.stellarId.split('@')[0]}`,
           'payment'
         );
       }
@@ -732,6 +737,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
         chillarAmount={chillarSavings}
         payoutId={payoutId}
         upiId={selectedContact?.id}
+        currency={profile.preferredCurrency || 'INR'}
       />
     );
   }
@@ -1025,7 +1031,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                 <div className="text-left">
                   <p className="font-black text-black text-sm tracking-tight">Main Vault</p>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                    Available: ₹{loadingBalances ? '...' : xlmToInr(walletBalance)}
+                    Available: {symbol}{loadingBalances ? '...' : xlmToInr(walletBalance)}
                   </p>
                 </div>
               </div>
@@ -1060,7 +1066,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                       {familyWallet.ownerProfile.displayName || familyWallet.ownerProfile.stellarId.split('@')[0]}'s Family
                     </p>
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                      Remaining: ₹{getFamilyRemainingLimit(familyWallet).toLocaleString()}
+                      Remaining: {symbol}{getFamilyRemainingLimit(familyWallet).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -1103,16 +1109,16 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-zinc-200/50">
                   <div>
                     <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-none mb-1">
-                      Pay Recipient: ₹{parseFloat(amount).toLocaleString()}
+                      Pay Recipient: {symbol}{parseFloat(amount).toLocaleString()}
                     </p>
                     <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest leading-none">
-                      Save to Gullak: ₹{calculateChillarAmount(parseFloat(amount))}
+                      Save to Gullak: {symbol}{calculateChillarAmount(parseFloat(amount))}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-1">Total Deduction</p>
                     <p className="text-sm font-black text-black">
-                      ₹{(parseFloat(amount) + calculateChillarAmount(parseFloat(amount))).toFixed(2)}
+                      {symbol}{(parseFloat(amount) + calculateChillarAmount(parseFloat(amount))).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -1162,9 +1168,10 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
     );
   }
 
+
   return (
     <div className="min-h-screen  bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white">
-      <div className="pt-5 px-5 flex items-center justify-between mb-">
+      <div className="pt-5 px-5 flex items-center justify-between mb-5">
         <div>
           <button
             onClick={() => navigate("/")}
@@ -1314,7 +1321,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
                       }}
                       className="px-3 py-2 bg-[#E5D5B3]/5 border border-[#E5D5B3]/20 rounded-xl text-[#E5D5B3] text-[10px] font-black uppercase tracking-widest hover:bg-[#E5D5B3]/10 transition-all"
                     >
-                      Send ₹
+                      Send {symbol}
                     </button>
                   </div>
                 </div>
@@ -1468,7 +1475,7 @@ const SendMoney: React.FC<Props> = ({ profile }) => {
           </div>
         </div>
       )}
-    </div >
+    </div>
   );
 };
 

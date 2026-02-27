@@ -2,9 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { UserProfile, TransactionRecord } from '../types';
 import { getTransactions, getProfileByStellarId, getProfileByPublicKey } from '../services/db';
-import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Shield, Search, Calendar, ShoppingBag, Utensils, Plane, Receipt, Play } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ArrowDownLeft, Shield, Search, Calendar, ShoppingBag, Utensils, Plane, Receipt, Play, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { Download } from 'lucide-react';
+import { getCurrencySymbol } from '../utils/currency';
 
 interface Props {
   profile: UserProfile | null;
@@ -18,6 +18,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
   const [showSearch, setShowSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<TransactionRecord['category'] | 'All'>('All');
+  const userCurrency = profile?.preferredCurrency || 'INR';
 
   useEffect(() => {
     if (profile) {
@@ -56,7 +57,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
       tx.fromId,
       tx.toId,
       tx.amount,
-      tx.currency,
+      tx.currency || userCurrency,
       tx.category || 'Other',
       tx.status,
       tx.id
@@ -81,11 +82,13 @@ const Transactions: React.FC<Props> = ({ profile }) => {
     <div className="min-h-screen bg-gradient-to-b from-[#0a0f0a] via-[#0d1210] to-[#0a0f0a] text-white pb-32">
       {/* Header */}
       <div className="pt-5 px-3 flex items-center justify-between mb-10">
-        <div className="flex items-center gap-6">
-
-          {/* <h2 className="text-3xl font-black tracking-tighter">History</h2> */}
-        </div>
-        <div className="flex gap-2">
+        <button
+          onClick={() => navigate('/')}
+          className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 text-white/60 hover:bg-white/10 transition-all ml-3"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex gap-2 mr-3">
           <button
             onClick={exportToCSV}
             className="p-2 text-zinc-400 hover:text-[#E5D5B3] transition-colors"
@@ -168,6 +171,8 @@ const Transactions: React.FC<Props> = ({ profile }) => {
                 const displayName = names[otherId] || (otherId.length > 15 ? `${otherId.substring(0, 6)}...${otherId.slice(-4)}` : otherId.split('@')[0]);
                 const isStellarId = otherId.includes('@');
                 const isRawKey = !isStellarId && otherId.startsWith('G');
+                const txCurrency = tx.currency || userCurrency;
+                const symbol = getCurrencySymbol(txCurrency);
 
                 return (
                   <div
@@ -190,7 +195,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
                         </p>
                         <div className="flex items-center gap-2">
                           <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
-                            {tx.timestamp?.toDate().toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            {tx.timestamp?.toDate().toLocaleDateString(txCurrency === 'INR' ? 'en-IN' : 'en-US', { day: 'numeric', month: 'short' })}
                           </p>
                           {tx.category && (
                             <>
@@ -203,7 +208,7 @@ const Transactions: React.FC<Props> = ({ profile }) => {
                     </div>
                     <div className="text-right">
                       <p className={`font-black text-base tracking-tight ${isSent ? 'text-white' : 'text-[#E5D5B3]'}`}>
-                        {isSent ? '-' : '+'}₹{tx.amount.toLocaleString()}
+                        {isSent ? '-' : '+'}{symbol}{tx.amount.toLocaleString(txCurrency === 'INR' ? 'en-IN' : 'en-US')}
                       </p>
                       <div className="flex items-center gap-1 justify-end mt-0.5">
                         <span className={`text-[8px] font-black uppercase tracking-widest ${tx.status === 'SUCCESS' ? 'text-emerald-500/60' : 'text-rose-500'}`}>

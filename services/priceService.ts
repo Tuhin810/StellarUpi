@@ -11,47 +11,57 @@ export type CryptoPriceInfo = {
 };
 
 /**
- * Fetches the live price of a specific cryptocurrency in INR
+ * Fetches the live price of a specific cryptocurrency in a target currency
  * @param id The CoinGecko ID (e.g., 'stellar')
- * @returns The price in INR
+ * @param currency The target fiat currency (default: 'inr')
+ * @returns The price in the target currency
  */
-export const getLivePrice = async (id: string): Promise<number> => {
+export const getLivePrice = async (id: string, currency: string = 'inr'): Promise<number> => {
   try {
-    const response = await fetch(`${COINGECKO_API_BASE}?ids=${id}&vs_currencies=inr`);
+    const cur = currency.toLowerCase();
+    const response = await fetch(`${COINGECKO_API_BASE}?ids=${id}&vs_currencies=${cur}`);
     const data = await response.json();
 
-    // CoinGecko returns data in format { [id]: { inr: [price] } }
-    if (data[id] && data[id].inr) {
-      return data[id].inr;
+    // CoinGecko returns data in format { [id]: { [currency]: [price] } }
+    if (data[id] && data[id][cur]) {
+      return data[id][cur];
     }
 
     // Fallbacks if API returns empty but no error
-    if (id === 'stellar') return 15.02;
+    if (id === 'stellar') {
+      if (cur === 'inr') return 15.02;
+      if (cur === 'usd') return 0.18;
+    }
 
     return 0;
   } catch (error) {
-    console.error(`Error fetching price for ${id}:`, error);
+    console.error(`Error fetching price for ${id} in ${currency}:`, error);
     // Hardcoded fallbacks based on recent market rates
-    if (id === 'stellar') return 15.02;
+    if (id === 'stellar') {
+      if (currency.toLowerCase() === 'inr') return 15.02;
+      return 0.18; // Default to some USD value if not INR
+    }
     return 0;
   }
 };
 
 /**
- * Calculates how much crypto to send for a given INR amount, including a safety buffer
- * @param inrAmount The target INR amount
+ * Calculates how much crypto to send for a given fiat amount, including a safety buffer
+ * @param fiatAmount The target fiat amount
  * @param cryptoId The CoinGecko ID
- * @param buffer Multiplier for volatility (default 1.05 for 5%)
+ * @param currency The target fiat currency (default: 'inr')
+ * @param buffer Multiplier for volatility (default 1.02 for 2%)
  */
 export const calculateCryptoToSend = async (
-  inrAmount: number,
+  fiatAmount: number,
   cryptoId: string,
+  currency: string = 'inr',
   buffer: number = 1.02
 ): Promise<number> => {
-  const livePrice = await getLivePrice(cryptoId);
-  if (livePrice === 0) throw new Error(`Could not determine price for ${cryptoId}`);
+  const livePrice = await getLivePrice(cryptoId, currency);
+  if (livePrice === 0) throw new Error(`Could not determine price for ${cryptoId} in ${currency}`);
 
-  const amount = (inrAmount / livePrice) * buffer;
+  const amount = (fiatAmount / livePrice) * buffer;
 
   // Precision adjustment: Stellar uses 7 decimals
   // 4-6 decimal places is usually plenty for UI display

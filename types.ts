@@ -28,6 +28,8 @@ export interface UserProfile {
   totalSavingsINR?: number;
   lastYieldDate?: string; // ISO date string
   totalYieldEarnedINR?: number;
+  preferredCurrency?: string; // e.g. "INR", "USD", "EUR"
+  countryCode?: string; // e.g. "IN", "US", "GB"
   passkeyEnabled?: boolean;
   passkeyCredentialId?: string;
   panHash?: string;

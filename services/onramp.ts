@@ -1,4 +1,5 @@
 import { OnrampWebSDK } from '@onramp.money/onramp-web-sdk';
+import { getLivePrice } from './priceService';
 
 // Onramp.money Configuration
 // For testing, use '1'. For production, replace with your actual App ID
@@ -8,6 +9,7 @@ interface PurchaseConfig {
   walletAddress: string;
   email?: string;
   partnerOrderId?: string;
+  amount?: number;
 }
 
 /**
@@ -53,15 +55,8 @@ export const openSellWidget = (config: PurchaseConfig) => {
 };
 
 /**
- * Get estimated XLM amount for given INR
+ * Get estimated XLM rate for given fiat currency
  */
-export const getXlmRate = async (): Promise<number> => {
-  try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=stellar&vs_currencies=inr');
-    const data = await response.json();
-    return data.stellar?.inr || 8.42;
-  } catch (e) {
-    console.error('Failed to fetch XLM rate:', e);
-    return 8.42;
-  }
+export const getXlmRate = async (currency: string = 'inr'): Promise<number> => {
+  return getLivePrice('stellar', currency);
 };
